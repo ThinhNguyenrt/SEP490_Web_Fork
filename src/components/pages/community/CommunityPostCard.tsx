@@ -20,7 +20,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   id, author, time, avatar, isVerified, content, image, imageTitle, likes, comments 
 }) => {
   return (
-    <article className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <article className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex space-x-3">
@@ -30,8 +30,8 @@ export const CommunityPostCard: React.FC<PostProps> = ({
               src={avatar} 
             />
             <div>
-              <h3 className="font-bold text-gray-900 dark:text-white leading-tight">{author}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{time}</p>
+              <h3 className="font-bold text-gray-900 leading-tight">{author}</h3>
+              <p className="text-xs text-gray-500 ">{time}</p>
             </div>
           </div>
           <button className="text-gray-400 hover:text-gray-600">
@@ -42,7 +42,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
         {/* Bọc nội dung bằng Link để dẫn đến trang chi tiết */}
         <Link to={`/community/${id}`} className="block mt-4 group">
           <p 
-            className="text-gray-800 dark:text-gray-200 leading-relaxed transition-colors" 
+            className="text-gray-800 leading-relaxed transition-colors" 
             dangerouslySetInnerHTML={{ __html: content }} 
           />
           
@@ -55,7 +55,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
         </Link>
       </div>
 
-      <div className="flex items-center gap-16 px-6 py-3 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-16 px-6 py-3 border-t border-gray-100">
         <button className="flex items-center cursor-pointer space-x-1.5 text-gray-500 hover:text-red-500">
           <Heart size={18} />
           <span className="text-xs">{likes}</span>

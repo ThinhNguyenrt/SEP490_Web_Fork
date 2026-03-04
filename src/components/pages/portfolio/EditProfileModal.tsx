@@ -9,6 +9,7 @@ import {
   Check,
   Edit3,
 } from "lucide-react";
+import { useEffect } from "react";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -16,6 +17,20 @@ interface EditProfileModalProps {
 }
 
 const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      // Khóa cuộn trang chính
+      document.body.style.overflow = "hidden";
+    } else {
+      // Mở khóa khi đóng modal
+      document.body.style.overflow = "unset";
+    }
+
+    // Cleanup function: Đảm bảo cuộn được khôi phục nếu component bị unmount bất ngờ
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
   if (!isOpen) return null;
 
   return (
@@ -27,23 +42,23 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
       />
 
       {/* Modal Content */}
-      <div className="bg-white dark:bg-gray-900 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative z-10 animate-in zoom-in-95 duration-300">
+      <div className="bg-white  w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative z-10 animate-in zoom-in-95 duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
+        <div className="flex items-center justify-between p-4 border-b ">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-700 dark:text-gray-300"
+              className="p-2 hover:bg-gray-100  rounded-full transition-colors text-gray-700 "
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-bold text-gray-900 ">
               Chỉnh sửa thông tin cá nhân
             </h1>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500"
+            className="p-2 hover:bg-gray-100  rounded-full transition-colors text-gray-500"
           >
             <X size={20} />
           </button>
@@ -52,7 +67,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
         {/* Images Section (Banner & Avatar) */}
         <div className="relative">
           {/* Banner */}
-          <div className="h-44 w-full bg-gray-200 dark:bg-gray-800 relative group overflow-hidden">
+          <div className="h-44 w-full bg-gray-200  relative group overflow-hidden">
             <img
               alt="Profile Banner"
               className="w-full h-full object-cover"
@@ -75,14 +90,14 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
           {/* Avatar */}
           <div className="absolute -bottom-12 left-8">
             <div className="relative group">
-              <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-900 overflow-hidden bg-gray-300 dark:bg-gray-700 shadow-xl">
+              <div className="w-32 h-32 rounded-full border-4 border-white  overflow-hidden bg-gray-300 shadow-xl">
                 <img
                   alt="User profile"
                   className="w-full h-full object-cover"
                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=AnNhien"
                 />
               </div>
-              <label className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 p-2.5 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+              <label className="absolute bottom-1 right-1 bg-white  p-2.5 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform border border-gray-100 text-gray-600 ">
                 <Camera size={18} />
                 <input type="file" className="hidden" />
               </label>
@@ -94,7 +109,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
         <div className="pt-16 pb-6 px-8 space-y-5">
           {/* Tên hiển thị */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 ml-1">
+            <label className="text-sm font-semibold text-gray-500  ml-1">
               Tên hiển thị
             </label>
             <div className="relative group">
@@ -103,7 +118,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
                 size={18}
               />
               <input
-                className="w-full pl-12 pr-12 py-3 bg-gray-100 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-[#5b99fc] text-gray-900 dark:text-white transition-all outline-none"
+                className="w-full pl-12 pr-12 py-3 bg-gray-100  border-none rounded-xl focus:ring-2 focus:ring-[#5b99fc] text-gray-900  transition-all outline-none"
                 type="text"
                 defaultValue="An Nhiên"
               />
@@ -116,7 +131,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
 
           {/* Số điện thoại */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 ml-1">
+            <label className="text-sm font-semibold text-gray-500  ml-1">
               Số điện thoại
             </label>
             <div className="relative group">
@@ -125,7 +140,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
                 size={18}
               />
               <input
-                className="w-full pl-12 pr-12 py-3 bg-gray-100 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-[#5b99fc] text-gray-900 dark:text-white transition-all outline-none"
+                className="w-full pl-12 pr-12 py-3 bg-gray-100  border-none rounded-xl focus:ring-2 focus:ring-[#5b99fc] text-gray-900  transition-all outline-none"
                 type="tel"
                 defaultValue="0123456789"
               />
@@ -138,7 +153,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
 
           {/* Email (Readonly) */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 ml-1">
+            <label className="text-sm font-semibold text-gray-500  ml-1">
               Email
             </label>
             <div className="relative opacity-60">
@@ -147,7 +162,7 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
                 size={18}
               />
               <input
-                className="w-full pl-12 pr-12 py-3 bg-gray-100 dark:bg-gray-800 border-none rounded-xl text-gray-500 dark:text-gray-400 cursor-not-allowed outline-none"
+                className="w-full pl-12 pr-12 py-3 bg-gray-100  border-none rounded-xl text-gray-500  cursor-not-allowed outline-none"
                 disabled
                 type="email"
                 value="hihihaha@gmail.com"

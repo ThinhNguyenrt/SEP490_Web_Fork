@@ -1,5 +1,4 @@
-import React from "react";
-import { Users, Heart, MessageCircle } from "lucide-react";
+import { Users } from "lucide-react";
 
 // Định nghĩa kiểu dữ liệu cho một thông báo
 interface NotificationData {
@@ -46,26 +45,26 @@ const CommunityNotification = () => {
       {notifications.map((notif) => (
         <div
           key={notif.id}
-          className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4 max-w-2xl hover:border-blue-400/50 transition-all cursor-pointer group"
+          className="bg-white  p-4 rounded-xl shadow-sm border border-gray-100  flex items-center gap-4 max-w-2xl hover:border-blue-400/50 transition-all cursor-pointer group"
         >
           {/* Avatar hoặc Icon tùy theo loại thông báo */}
           {notif.type === "group" ? (
-            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="w-12 h-12 rounded-full bg-blue-100  flex items-center justify-center text-blue-600  shrink-0">
               <Users size={24} />
             </div>
           ) : (
             <img
               alt={notif.userName}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 shrink-0"
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100  shrink-0"
               src={notif.userAvatar}
             />
           )}
 
           {/* Nội dung thông báo */}
           <div className="flex-grow">
-            <p className="text-gray-700 dark:text-gray-300 text-sm leading-snug">
+            <p className="text-gray-700  text-sm leading-snug">
               {notif.userName && (
-                <span className="font-bold text-gray-900 dark:text-white mr-1">
+                <span className="font-bold text-gray-900  mr-1">
                   {notif.userName}
                 </span>
               )}

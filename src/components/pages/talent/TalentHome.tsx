@@ -11,6 +11,7 @@ import ArrowIcon from "../../../assets/myWeb/upper-right-arrow.png";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { mockCompanyPosts } from "../../../data/mockCompanyPost";
 import SortIcon from "../../../assets/myWeb/sort.png";
+import { useAppSelector } from "@/store/hook";
 export default function TalentHome() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ export default function TalentHome() {
     setCurrentIndex(0);
   };
 
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  console.log("Current User:", user, "Is Authenticated:", isAuthenticated);
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Main Content with Filter on Left */}

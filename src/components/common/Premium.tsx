@@ -3,7 +3,7 @@ import { Award, CheckCircle2, ChevronRight, Lightbulb } from "lucide-react";
 const TipItem = ({ text }: { text: string }) => (
   <li className="flex gap-4 group">
     <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 shrink-0 transition-transform group-hover:scale-125"></div>
-    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+    <p className="text-sm text-slate-600 leading-relaxed">
       {text}
     </p>
   </li>
@@ -26,9 +26,9 @@ export function PremiumAndTips() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+      <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-sm">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center border border-blue-100 dark:border-blue-800">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100 ">
             <Lightbulb className="text-blue-500" size={24} />
           </div>
           <h3 className="text-xl font-bold">Mẹo nhỏ cho bạn</h3>
@@ -46,19 +46,19 @@ export function PremiumInNotification() {
   return (
     <aside className="w-full lg:w-96 shrink-0">
       <div className="sticky top-8 space-y-6">
-        <h2 className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 text-sm uppercase tracking-wider">
+        <h2 className="text-gray-500 font-medium flex items-center gap-2 text-sm uppercase tracking-wider">
           <Award size={16} className="text-blue-500" />
           Dành riêng cho bạn
         </h2>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden transform transition-all hover:shadow-2xl hover:shadow-blue-500/10">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden transform transition-all hover:shadow-2xl hover:shadow-blue-500/10">
           <div className="p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 ">
                 <Award size={32} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                <h3 className="text-lg font-bold text-gray-900 leading-tight">
                   Gói Premium
                 </h3>
                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-1">
@@ -69,18 +69,18 @@ export function PremiumInNotification() {
 
             <div className="space-y-6">
               <div>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+                <h4 className="text-sm font-bold text-gray-900 mb-3">
                   Dành cho Người dùng
                 </h4>
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <li className="flex items-start gap-2 text-sm text-gray-600">
                     <CheckCircle2
                       size={16}
                       className="text-blue-500 shrink-0 mt-0.5"
                     />
                     <span>Xem ai đã ghé thăm và quan tâm hồ sơ của bạn</span>
                   </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <li className="flex items-start gap-2 text-sm text-gray-600">
                     <CheckCircle2
                       size={16}
                       className="text-blue-500 shrink-0 mt-0.5"
@@ -90,19 +90,19 @@ export function PremiumInNotification() {
                 </ul>
               </div>
 
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+              <div className="border-t border-gray-100 pt-6">
+                <h4 className="text-sm font-bold text-gray-900 mb-3">
                   Dành cho Nhà tuyển dụng
                 </h4>
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <li className="flex items-start gap-2 text-sm text-gray-600">
                     <CheckCircle2
                       size={16}
                       className="text-blue-500 shrink-0 mt-0.5"
                     />
                     <span>Ưu tiên hiển thị tin tuyển dụng trên bảng tin</span>
                   </li>
-                  <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <li className="flex items-start gap-2 text-sm text-gray-600">
                     <CheckCircle2
                       size={16}
                       className="text-blue-500 shrink-0 mt-0.5"

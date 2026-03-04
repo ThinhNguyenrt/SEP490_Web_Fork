@@ -19,10 +19,6 @@ export default function LoginPage() {
          <div className="flex items-center gap-2">
            <img src="/product-logo.png" alt="SkillSnap Logo" className="h-16 w-auto" />
          </div>
-         <Button variant="outline" className="rounded-full gap-2 border-slate-200">
-           <Globe size={18} />
-           <span>VI</span>
-         </Button>
        </header>
       <main className="grow flex items-center justify-center p-4">
         <Card className="w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row shadow-2xl">

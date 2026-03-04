@@ -30,27 +30,28 @@ export default function ProfilePage() {
   const handlePortfolioClick = async () => {
     try {
       const userId = 2; // Mock user ID
-      const portfolios = await portfolioService.fetchMainPortfoliosManagerByUser(userId);
-      
+      const portfolios =
+        await portfolioService.fetchMainPortfoliosManagerByUser(userId);
+
       if (portfolios && portfolios.length > 0) {
-        navigate('/portfolioManagement');
+        navigate("/portfolioManagement");
       } else {
-        navigate('/emptyPortfolio');
+        navigate("/emptyPortfolio");
       }
     } catch (error) {
-      console.error('Error checking portfolios:', error);
-      navigate('/emptyPortfolio');
+      console.error("Error checking portfolios:", error);
+      navigate("/emptyPortfolio");
     }
   };
 
   const handleCommunityPostClick = () => {
-    navigate('/my-community-posts');
+    navigate("/my-community-posts");
   };
 
   const handleLogout = () => {
     // Clear any stored authentication data if needed
     // localStorage.removeItem('token');
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -69,14 +70,14 @@ export default function ProfilePage() {
           <CardContent className="pt-12 pb-6 text-center">
             <div className="flex items-center justify-center gap-2 mb-6 uppercase tracking-wider">
               <h3 className="font-bold text-lg text-slate-800">kakaka</h3>
-
-              <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
-                <Edit3
-                  size={12}
-                  className="text-slate-400 group-hover:text-blue-500"
-                  onClick={() => setIsEditModalOpen(true)}
-                />
-              </div>
+              <button onClick={() => setIsEditModalOpen(true)}>
+                <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
+                  <Edit3
+                    size={12}
+                    className="text-slate-400 group-hover:text-blue-500"
+                  />
+                </div>
+              </button>
             </div>
             <div className="flex gap-2">
               <Button className="flex-1 bg-[#5b99fc] hover:bg-blue-600 rounded-xl text-white font-bold">
@@ -245,7 +246,7 @@ function ServiceCard({
   onClick?: () => void;
 }) {
   return (
-    <Card 
+    <Card
       className="border-2 border-slate-200 bg-white rounded-2xl cursor-pointer hover:border-blue-400 transition-all shadow-sm"
       onClick={onClick}
     >
@@ -274,7 +275,7 @@ function SettingsItem({
   onClick?: () => void;
 }) {
   return (
-    <div 
+    <div
       className="flex items-center justify-between p-3 rounded-xl border-2 border-slate-100 cursor-pointer hover:border-blue-200 hover:bg-slate-50 transition-all bg-white"
       onClick={onClick}
     >

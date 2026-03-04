@@ -1,47 +1,44 @@
-import { ArrowLeft, Send } from "lucide-react";
+import { useState, useRef } from "react"; // Thêm useRef để focus
+import { ArrowLeft, Send, X } from "lucide-react"; // Thêm icon X để hủy
 import { CommunityPostComment } from "./CommunityPostComment";
-import { communityPosts, POST_COMMENTS_MOCK } from "@/data/mockComment";
 import { useNavigate, useParams } from "react-router-dom";
+import { communityPosts, POST_COMMENTS_MOCK } from "@/data/mockComment";
 import { CommunityPostCard } from "./CommunityPostCard";
 
 export default function CommunityPostDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const postId = Number(id);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Tìm bài viết
+  // --- State cho việc phản hồi ---
+  const [replyTarget, setReplyTarget] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
   const post = communityPosts.find((p) => p.id === postId);
-
-  // 2. Tìm danh sách bình luận tương ứng với postId này
   const postCommentsData = POST_COMMENTS_MOCK.find(
     (item) => item.postId === postId,
   );
 
-  // Xử lý trường hợp không tìm thấy bài viết (ID sai)
+  // Hàm xử lý khi click nút Phản hồi từ component con
+  const handleReplyInitiated = (authorId: number, authorName: string) => {
+    setReplyTarget({ id: authorId, name: authorName });
+    // Tự động focus vào ô nhập liệu
+    inputRef.current?.focus();
+  };
 
-  if (!post) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <p className="text-slate-500 mb-4">Bài viết không tồn tại!</p>
-
-        <button
-          onClick={() => navigate("/community")}
-          className="text-blue-500 font-bold"
-        >
-          Quay lại bảng tin
-        </button>
-      </div>
-    );
-  }
+  if (!post) return <div>...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto min-h-screen bg-white dark:bg-gray-900 border-x border-slate-200 dark:border-gray-800 shadow-sm">
+    <div className="max-w-2xl mx-auto min-h-screen bg-white border-x border-slate-200 shadow-sm">
       <div className="py-6 px-4">
         {/* Header điều hướng */}
         <header className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
+            className="p-2 hover:bg-gray-100 0 rounded-full transition-colors cursor-pointer"
           >
             <ArrowLeft size={24} />
           </button>
@@ -52,55 +49,76 @@ export default function CommunityPostDetail() {
         <div className="mb-6">
           <CommunityPostCard
             id={post.id.toString()}
-            author={post.author.name} // Lấy name từ object author
-            time={post.createdAt} // Sử dụng createdAt từ API
+            author={post.author.name} 
+            time={post.createdAt} 
             avatar={post.author.avatar}
-            isVerified={post.author.role === "COMPANY"} // Tự động xác định tích xanh nếu là doanh nghiệp
-            content={post.description || ""} // Đổi từ content sang description
-            image={post.media && post.media.length > 0 ? post.media[0] : ""} // Lấy ảnh đầu tiên trong mảng media
-            imageTitle={post.portfolioPreview?.data?.title || ""} // Lấy tiêu đề từ portfolio preview nếu có
-            likes={post.favoriteCount} // Đổi từ likes sang favoriteCount
-            comments={post.commentCount} // Đổi từ comments sang commentCount
+            isVerified={post.author.role === "COMPANY"} 
+            content={post.description || ""} 
+            image={post.media && post.media.length > 0 ? post.media[0] : ""} 
+            imageTitle={post.portfolioPreview?.data?.title || ""} 
+            likes={post.favoriteCount} 
+            comments={post.commentCount} 
           />
         </div>
 
-        <div className="border-t border-gray-100 dark:border-gray-800 pt-6 mb-24">
+        <div className="border-t border-gray-100 pt-6 mb-24">
           <h3 className="font-bold text-lg mb-6">
             Bình luận ({postCommentsData?.comments.length || 0})
           </h3>
-
           <div className="space-y-6">
-            {/* LƯU Ý: Map trên mảng comments của bài viết cụ thể */}
             {postCommentsData?.comments.map((comment) => (
-              <CommunityPostComment key={comment.id} comment={comment} />
+              <CommunityPostComment
+                key={comment.id}
+                comment={comment}
+                onReplyClick={handleReplyInitiated} 
+              />
             ))}
-
-            {(!postCommentsData || postCommentsData.comments.length === 0) && (
-              <p className="text-center text-slate-500 text-sm py-10">
-                Chưa có bình luận nào.
-              </p>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Input gõ bình luận giữ nguyên */}
-      <div className="z-50 fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
-            className="w-10 h-10 rounded-full"
-            alt="My Avatar"
-          />
-          <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 flex items-center">
-            <input
-              type="text"
-              placeholder="Viết bình luận..."
-              className="bg-transparent border-none focus:ring-0 w-full text-sm outline-none"
+      {/* --- Ô Input Bình luận cố định --- */}
+      <div className="z-50 fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="max-w-2xl mx-auto">
+          {/* Hiển thị dòng "Bạn đang phản hồi..." nếu có replyTarget */}
+          {replyTarget && (
+            <div className="flex items-center justify-between mb-2 px-2 animate-in slide-in-from-bottom-2 duration-300">
+              <p className="text-xs text-slate-500">
+                Bạn đang phản hồi{" "}
+                <span className="font-bold text-blue-500">
+                  {replyTarget.name}
+                </span>
+              </p>
+              <button
+                onClick={() => setReplyTarget(null)}
+                className="text-slate-400 hover:text-red-500 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+              className="w-10 h-10 rounded-full"
+              alt="My Avatar"
             />
-            <button className="text-blue-500 hover:text-blue-600 transition-colors cursor-pointer">
-              <Send size={20} />
-            </button>
+            <div className="flex-1 bg-gray-100 rounded-full px-4 py-2 flex items-center">
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={
+                  replyTarget
+                    ? `Phản hồi ${replyTarget.name}...`
+                    : "Viết bình luận..."
+                }
+                className="bg-transparent border-none focus:ring-0 w-full text-sm outline-none"
+              />
+              <button className="text-blue-500 hover:text-blue-600 transition-colors cursor-pointer">
+                <Send size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

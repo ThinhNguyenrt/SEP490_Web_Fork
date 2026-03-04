@@ -1,17 +1,18 @@
-import React from "react";
+import { useState } from "react";
 import { ImageIcon, Contact, Send } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import { communityPosts } from "@/data/mockComment";
 import type { CommunityPost } from "@/types/communityPost.ts";
-
+import CreatePostModal from "./CreatePostModal";
 
 export default function CommunityPost() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   return (
     <div className="bg-slate-50 text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-2xl mx-auto py-4 px-4">
-        
         {/* Create Post Section */}
-        <div className="bg-white  rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 cursor-pointer">
           <div className="flex space-x-3 mb-4">
             <img
               alt="User"
@@ -37,7 +38,10 @@ export default function CommunityPost() {
                 <span className="text-sm font-medium">Hồ sơ</span>
               </button>
             </div>
-            <button className="bg-blue-500 cursor-pointer hover:bg-blue-600 text-white px-8 py-2 rounded-lg font-semibold transition-all shadow-md active:scale-95 flex items-center gap-2">
+            <button
+              className="bg-blue-500 cursor-pointer hover:bg-blue-600 text-white px-8 py-2 rounded-lg font-semibold transition-all shadow-md active:scale-95 flex items-center gap-2"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
               <Send size={16} />
               Đăng
             </button>
@@ -70,6 +74,10 @@ export default function CommunityPost() {
           </button>
         </div>
       </div>
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }

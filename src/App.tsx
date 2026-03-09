@@ -14,6 +14,8 @@ import CommunityPostDetail from "./components/pages/community/CommunityPostDetai
 
 import PortfolioViewPage from "./components/portfolio/view/PortfolioViewPage";
 import NotificationsPage from "./components/pages/notification/NotificationsPage";
+import MyCommunityPost from "./components/pages/community/MyCommunityPost";
+import MySavePost from "./components/pages/community/save/MySavePost";
 
 function App() {
   return (
@@ -31,8 +33,10 @@ function App() {
           <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
           <Route path="/community" element={<CommunityPost />} />
           <Route path="/community/:id" element={<CommunityPostDetail />} />
-          <Route path="/portfolio/:id" element={<PortfolioViewPage />} />g
+          <Route path="/portfolio/:id" element={<PortfolioViewPage />} />
           <Route path="/notification" element={<NotificationsPage />} />
+          <Route path="/my-community-posts" element={<MyCommunityPost />} />
+          <Route path="/my-save-posts" element={<MySavePost />} />
         </Route>
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>

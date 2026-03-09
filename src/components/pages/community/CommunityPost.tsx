@@ -3,7 +3,7 @@ import { ImageIcon, Contact, Send } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import { communityPosts } from "@/data/mockComment";
 import type { CommunityPost } from "@/types/communityPost.ts";
-import CreatePostModal from "./CreatePostModal";
+import CreateJobModal from "./createPost/CreateJobModal";
 
 export default function CommunityPost() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function CommunityPost() {
           </button>
         </div>
       </div>
-      <CreatePostModal
+      <CreateJobModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />

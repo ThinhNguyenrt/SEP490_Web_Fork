@@ -2,3 +2,22 @@
 
 @plugin "tailwindcss-animate";
 
+/* Tùy chỉnh chiều cao tương đương row=3 */
+.quill-row-3 .ql-container {
+  min-height: 120px !important; 
+  height: 120px; /* Cố định hoặc để auto tùy bạn */
+  font-family: inherit;
+}
+
+.quill-row-3 .ql-editor {
+  min-height: 120px !important;
+  max-height: 250px; /* Cho phép giãn nhẹ khi gõ nhiều */
+  overflow-y: auto;
+}
+
+/* Làm gọn Toolbar hơn nữa để tiết kiệm diện tích */
+.quill-row-3 .ql-toolbar {
+  border: none !important;
+  border-bottom: 1px dashed #e2e8f0 !important;
+  padding: 4px 8px !important;
+}

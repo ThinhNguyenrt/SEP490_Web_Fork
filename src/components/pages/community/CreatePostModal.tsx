@@ -2,14 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Image as ImageIcon,
-  Video,
-  Smile,
-  MapPin,
-  Check,
   Plus,
   Contact,
 } from "lucide-react";
-import { useAppSelector } from "@/store/hook";
+
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -20,8 +16,6 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
   const [content, setContent] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (isOpen) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   X, Image as ImageIcon, Send, Info, MapPin, Briefcase,
   Banknote, ChevronDown, FileText, AlertCircle, Star, Gift, CloudUpload

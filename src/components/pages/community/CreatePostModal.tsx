@@ -9,6 +9,7 @@ import {
   Plus,
   Contact,
 } from "lucide-react";
+import { useAppSelector } from "@/store/hook";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
   const [content, setContent] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,7 +36,6 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
     return () => {
       document.body.style.overflow = "unset";
     };
-    
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -49,6 +51,10 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleCreatePost = () => {
+    console.log({ content, selectedFiles });
+    onClose();
+  };
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {/* Backdrop */}
@@ -158,7 +164,7 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
                 <ImageIcon size={24} />
               </button>
               <button
-              onClick={() => fileInputRef.current?.click()}
+                onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-blue-500 hover:bg-blue-50  rounded-full transition-colors cursor-pointer"
                 title="Video"
               >
@@ -168,10 +174,7 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
           </div>
 
           <button
-            onClick={() => {
-              console.log({ content, selectedFiles });
-              onClose();
-            }}
+            onClick={handleCreatePost}
             disabled={!content.trim() && selectedFiles.length === 0}
             className="w-full cursor-pointer bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
           >

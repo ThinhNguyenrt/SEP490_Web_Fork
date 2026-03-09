@@ -82,9 +82,9 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
             />
             <div>
               <p className="font-bold text-gray-900  text-sm">An Nhiên</p>
-              <div className="bg-gray-100  px-2 py-0.5 rounded text-[10px] font-bold text-gray-500 uppercase">
+              {/* <div className="bg-gray-100  px-2 py-0.5 rounded text-[10px] font-bold text-gray-500 uppercase">
                 Công khai
-              </div>
+              </div> */}
             </div>
           </div>
 

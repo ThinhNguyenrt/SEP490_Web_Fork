@@ -9,13 +9,13 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
 
   return (
     <form className="space-y-4 animate-in slide-in-from-left-4 duration-500">
-      <div className="space-y-1.5">
+      {/* <div className="space-y-1.5">
         <Label htmlFor="company">Tên công ty</Label>
         <div className="relative">
           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input id="company" placeholder="Tên doanh nghiệp" className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]" />
         </div>
-      </div>
+      </div> */}
 
         <div className="space-y-1.5">
           <Label htmlFor="taxCode">Mã số thuế</Label>

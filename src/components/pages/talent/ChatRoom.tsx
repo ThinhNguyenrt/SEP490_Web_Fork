@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, Search } from "lucide-react";
 import ChatDetails from "./ChatDetails";
+import { useAppSelector } from "@/store/hook";
 
 interface Message {
   id: number;
@@ -19,6 +20,8 @@ interface Conversation {
   lastMessage: string;
   lastMessageTime: string;
   description: string;
+  connectionRole: string; // Thêm role của người kết nối
+  messageRoomId: number; // ID chung cho cả hai bên để đồng bộ tin nhắn
 }
 
 interface ChatRoomProps {
@@ -26,11 +29,11 @@ interface ChatRoomProps {
 }
 
 // Local Storage helpers
-const STORAGE_KEY_PREFIX = "chat_messages_";
+const STORAGE_KEY_PREFIX = "chat_messages_room_";
 
-const loadMessagesFromStorage = (conversationId: number): Message[] => {
+const loadMessagesFromStorage = (messageRoomId: number): Message[] => {
   try {
-    const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${conversationId}`);
+    const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${messageRoomId}`);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
     console.error("Error loading messages from storage:", error);
@@ -38,12 +41,90 @@ const loadMessagesFromStorage = (conversationId: number): Message[] => {
   }
 };
 
-const saveMessagesToStorage = (conversationId: number, messages: Message[]): void => {
+const saveMessagesToStorage = (messageRoomId: number, messages: Message[]): void => {
   try {
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${conversationId}`, JSON.stringify(messages));
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}${messageRoomId}`, JSON.stringify(messages));
   } catch (error) {
     console.error("Error saving messages to storage:", error);
   }
+};
+
+// Initialize sample messages for testing
+const initializeSampleMessages = (): void => {
+  const sampleConversations = [
+    {
+      messageRoomId: 1001,
+      messages: [
+        {
+          id: 1,
+          userId: 2,
+          messageRoomId: 1001,
+          content: "Xin chào! Chúng tôi đã xem qua hồ sơ của bạn và rất ấn tượng với kinh nghiệm làm việc.",
+          createdAt: "10:30",
+          status: 1,
+        },
+        {
+          id: 2,
+          userId: 1,
+          messageRoomId: 1001,
+          content: "Cảm ơn anh/chị! Em rất vui khi nhận được tin nhắn từ Google.",
+          createdAt: "10:35",
+          status: 1,
+        },
+        {
+          id: 3,
+          userId: 2,
+          messageRoomId: 1001,
+          content: "Chúng tôi có một vị trí Senior Frontend Developer rất phù hợp với bạn. Bạn có quan tâm không?",
+          createdAt: "10:40",
+          status: 1,
+        },
+        {
+          id: 4,
+          userId: 1,
+          messageRoomId: 1001,
+          content: "Vâng, em rất quan tâm ạ! Cho em xin thêm thông tin về vị trí này được không ạ?",
+          createdAt: "10:45",
+          status: 1,
+        },
+      ],
+    },
+    {
+      messageRoomId: 1002,
+      messages: [
+        {
+          id: 1,
+          userId: 2,
+          messageRoomId: 1002,
+          content: "Chào bạn! FPT Software đang tìm kiếm người có kỹ năng React và TypeScript.",
+          createdAt: "14:20",
+          status: 1,
+        },
+        {
+          id: 2,
+          userId: 1,
+          messageRoomId: 1002,
+          content: "Em có kinh nghiệm 3 năm với React và 2 năm với TypeScript ạ.",
+          createdAt: "14:25",
+          status: 1,
+        },
+        {
+          id: 3,
+          userId: 2,
+          messageRoomId: 1002,
+          content: "Tuyệt vời! Bạn có thể sắp xếp thời gian phỏng vấn vào thứ 5 tuần này không?",
+          createdAt: "14:30",
+          status: 1,
+        },
+      ],
+    },
+  ];
+
+  sampleConversations.forEach(({ messageRoomId, messages }) => {
+    if (!localStorage.getItem(`${STORAGE_KEY_PREFIX}${messageRoomId}`)) {
+      saveMessagesToStorage(messageRoomId, messages);
+    }
+  });
 };
 
 export default function ChatRoom({ conversations = mockConversations }: ChatRoomProps) {
@@ -51,16 +132,34 @@ export default function ChatRoom({ conversations = mockConversations }: ChatRoom
   const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
 
-  const filteredConversations = conversations.filter((conv) =>
+  // Initialize sample messages on component mount
+  useEffect(() => {
+    initializeSampleMessages();
+  }, []);
+
+  // Lọc conversations dựa trên role của user
+  const filteredByRole = conversations.filter((conv) => {
+    if (user?.role === 'user') {
+      // Nếu là user/talent, chỉ hiển thị tin nhắn từ recruiter
+      return conv.connectionRole === 'recruiter';
+    } else if (user?.role === 'recruiter') {
+      // Nếu là recruiter, hiển thị tin nhắn từ user/candidate
+      return conv.connectionRole === 'user';
+    }
+    return true; // Mặc định hiển thị tất cả
+  });
+
+  const filteredConversations = filteredByRole.filter((conv) =>
     conv.connectionName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
     setShowDetails(true);
-    // Load messages from localStorage for selected conversation
-    const loadedMessages = loadMessagesFromStorage(conversation.id);
+    // Load messages from localStorage using messageRoomId
+    const loadedMessages = loadMessagesFromStorage(conversation.messageRoomId);
     setMessages(loadedMessages);
   };
 
@@ -69,15 +168,15 @@ export default function ChatRoom({ conversations = mockConversations }: ChatRoom
       const message: Message = {
         id: messages.length + 1,
         userId: 1, // Current user ID
-        messageRoomId: selectedConversation.id,
+        messageRoomId: selectedConversation.messageRoomId,
         content: content,
         createdAt: new Date().toLocaleTimeString(),
         status: 1,
       };
       const updatedMessages = [...messages, message];
       setMessages(updatedMessages);
-      // Save to localStorage
-      saveMessagesToStorage(selectedConversation.id, updatedMessages);
+      // Save to localStorage using messageRoomId
+      saveMessagesToStorage(selectedConversation.messageRoomId, updatedMessages);
     }
   };
 
@@ -176,40 +275,172 @@ export default function ChatRoom({ conversations = mockConversations }: ChatRoom
 
 // Mock data for conversations
 const mockConversations: Conversation[] = [
+  // Công ty và recruiter (dành cho user/talent xem)
   {
     id: 1,
     connectionId: 1,
     connectionName: "Google Inc.",
     connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=google",
-    lastMessage: "Xin chào bạn",
+    lastMessage: "Chúng tôi rất ấn tượng với hồ sơ của bạn!",
     lastMessageTime: "2 giờ trước",
-    description: "You can connect with companies posting jobs...",
+    description: "Công ty công nghệ hàng đầu thế giới",
+    connectionRole: "recruiter",
+    messageRoomId: 1001, // Room chung với Nguyễn Văn An
   },
   {
     id: 2,
     connectionId: 2,
-    connectionName: "Phạm Cường",
-    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=pham",
-    lastMessage: "Chúng mình đang tìm kiếm Freelancer đó",
+    connectionName: "FPT Software",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=fpt",
+    lastMessage: "Bạn có thời gian phỏng vấn vào thứ 5 không?",
     lastMessageTime: "5 giờ trước",
-    description: "Chúng mình đang tìm kiếm Freelancer để...",
+    description: "Công ty phần mềm hàng đầu Việt Nam",
+    connectionRole: "recruiter",
+    messageRoomId: 1002, // Room chung với Trần Thị Bình
   },
   {
     id: 3,
     connectionId: 3,
-    connectionName: "SkillSnap",
-    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=skillsnap",
-    lastMessage: "Cảm ơn bạn đã tham gia",
+    connectionName: "Phạm Cường - HR Manager",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=phamcuong",
+    lastMessage: "Chúng mình đang tìm kiếm Frontend Developer",
     lastMessageTime: "1 ngày trước",
-    description: "Bạn có kết nối với nhà tuyên dụng...",
+    description: "HR Manager tại VNG Corporation",
+    connectionRole: "recruiter",
+    messageRoomId: 1003, // Room chung với Lê Hoàng Minh
   },
   {
     id: 4,
     connectionId: 4,
-    connectionName: "Nguyễn Văn A",
-    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=nguyenvana",
-    lastMessage: "Có thể gặp mặt để thảo luận không?",
+    connectionName: "Microsoft Vietnam",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=microsoft",
+    lastMessage: "Hẹn gặp bạn vào ngày mai nhé!",
+    lastMessageTime: "1 ngày trước",
+    description: "Microsoft Việt Nam",
+    connectionRole: "recruiter",
+    messageRoomId: 1004, // Room chung với Phạm Thị Diệu
+  },
+  {
+    id: 5,
+    connectionId: 5,
+    connectionName: "Trần Thu Hà - Talent Acquisition",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=thuha",
+    lastMessage: "Package lương của chúng tôi rất hấp dẫn",
+    lastMessageTime: "2 ngày trước",
+    description: "Talent Acquisition tại Shopee Vietnam",
+    connectionRole: "recruiter",
+    messageRoomId: 1005, // Room chung với Đặng Văn Em
+  },
+  {
+    id: 6,
+    connectionId: 6,
+    connectionName: "VNG Corporation",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=vng",
+    lastMessage: "Cảm ơn bạn đã quan tâm đến vị trí này",
     lastMessageTime: "3 ngày trước",
-    description: "Có thể gặp mặt để thảo luận không?",
+    description: "Tập đoàn công nghệ VNG",
+    connectionRole: "recruiter",
+    messageRoomId: 1006, // Room chung với Võ Thị Hương
+  },
+  {
+    id: 7,
+    connectionId: 7,
+    connectionName: "Nguyễn Minh Tuấn - Head of IT",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=minhtuan",
+    lastMessage: "Bạn hãy chuẩn bị portfolio để phỏng vấn nhé",
+    lastMessageTime: "4 ngày trước",
+    description: "Head of IT Department tại Tiki",
+    connectionRole: "recruiter",
+    messageRoomId: 1007, // Room riêng
+  },
+  {
+    id: 8,
+    connectionId: 8,
+    connectionName: "Amazon Web Services",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=aws",
+    lastMessage: "Chúng tôi có vị trí Cloud Engineer phù hợp với bạn",
+    lastMessageTime: "1 tuần trước",
+    description: "AWS Vietnam",
+    connectionRole: "recruiter",
+    messageRoomId: 1008, // Room chung với Hoàng Minh Khoa
+  },
+
+  // Ứng viên (dành cho recruiter xem)
+  {
+    id: 9,
+    connectionId: 9,
+    connectionName: "Nguyễn Văn An",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=nguyenvanan",
+    lastMessage: "Em rất quan tâm đến vị trí này ạ",
+    lastMessageTime: "30 phút trước",
+    description: "Frontend Developer - 3 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1001, // Room chung với Google
+  },
+  {
+    id: 10,
+    connectionId: 10,
+    connectionName: "Trần Thị Bình",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=tranthib",
+    lastMessage: "Em có thể phỏng vấn bất kỳ lúc nào",
+    lastMessageTime: "1 giờ trước",
+    description: "Full Stack Developer - 5 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1002, // Room chung với FPT
+  },
+  {
+    id: 11,
+    connectionId: 11,
+    connectionName: "Lê Hoàng Minh",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=lehoangminh",
+    lastMessage: "Cảm ơn anh/chị đã xem hồ sơ của em",
+    lastMessageTime: "3 giờ trước",
+    description: "UI/UX Designer - 2 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1003, // Room chung với Phạm Cường
+  },
+  {
+    id: 12,
+    connectionId: 12,
+    connectionName: "Phạm Thị Diệu",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=phamdieu",
+    lastMessage: "Em đã gửi portfolio qua email rồi ạ",
+    lastMessageTime: "5 giờ trước",
+    description: "Backend Developer - 4 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1004, // Room chung với Microsoft
+  },
+  {
+    id: 13,
+    connectionId: 13,
+    connectionName: "Đặng Văn Em",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=dangvanem",
+    lastMessage: "Em mong được làm việc với công ty",
+    lastMessageTime: "1 ngày trước",
+    description: "Mobile Developer - 3 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1005, // Room chung với Trần Thu Hà
+  },
+  {
+    id: 14,
+    connectionId: 14,
+    connectionName: "Võ Thị Hương",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=vohuong",
+    lastMessage: "Em sẵn sàng nhận việc ngay ạ",
+    lastMessageTime: "2 ngày trước",
+    description: "Data Analyst - 2 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1006, // Room chung với VNG
+  },
+  {
+    id: 15,
+    connectionId: 15,
+    connectionName: "Hoàng Minh Khoa",
+    connectionAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=hoangkhoa",
+    lastMessage: "Em có kinh nghiệm làm việc với team quốc tế",
+    lastMessageTime: "3 ngày trước",
+    description: "DevOps Engineer - 4 năm kinh nghiệm",
+    connectionRole: "user",
+    messageRoomId: 1008, // Room chung với AWS
   },
 ];

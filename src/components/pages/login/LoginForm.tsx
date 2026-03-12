@@ -35,6 +35,7 @@ export const LoginForm = () => {
         // lưu user
         dispatch(loginSuccess(account)); 
         
+        // Recruiter vào recruiter-home, User vào talent-home
         if (account.role === "recruiter") {
           navigate("/recruiter-home");
         } else {

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./components/pages/login/Login";
 import { WebLayout } from "./components/common/WebLayout";
 import ProfilePage from "./components/pages/portfolio/Profile";
+import RecruiterProfile from "./components/pages/recruiter/profile/RecruiterProfile";
 import PortfolioManagement from "./components/pages/portfolio/PortfolioManagement";
 import EmptyPortfolioPage from "./components/pages/portfolio/EmptyPortfolio";
 import TalentHome from "./components/pages/talent/TalentHome";
@@ -29,6 +30,7 @@ function App() {
           <Route path="/job/:postId" element={<PostDetail />} />
           <Route path="/chat" element={<ChatRoom />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/recruiter-profile" element={<RecruiterProfile />} />
           <Route path="/portfolioManagement" element={<PortfolioManagement />} />
           <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
           <Route path="/community" element={<CommunityPost />} />

@@ -2,13 +2,21 @@ import { Home, Users, MessageSquare, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLocation, Link } from "react-router-dom";
+import { useAppSelector } from "@/store/hook";
 
 export function Header() {
   const location = useLocation();
+  const { user } = useAppSelector((state) => state.auth);
+
+  // Xác định trang home dựa trên role
+  const homeHref = user?.role === 'recruiter' ? '/recruiter-home' : '/talent-home';
+  
+  // Xác định trang profile dựa trên role
+  const profileHref = user?.role === 'recruiter' ? '/recruiter-profile' : '/profile';
 
   // Danh sách các tab điều hướng trung tâm
   const navItems = [
-    { icon: Home, label: "Trang chủ", href: "/talent-home" },
+    { icon: Home, label: "Trang chủ", href: homeHref },
     { icon: Users, label: "Cộng đồng", href: "/community" },
     { icon: MessageSquare, label: "Tin nhắn", href: "/chat" },
     { icon: Bell, label: "Thông báo", href: "/notification" },
@@ -29,7 +37,8 @@ export function Header() {
       {/* 2. Navigation Tabs (Trung tâm) */}
       <nav className="flex items-center gap-4 bg-slate-50/50 p-1.5 rounded-2xl">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive = location.pathname === item.href || 
+            (item.label === "Trang chủ" && (location.pathname === "/talent-home" || location.pathname === "/recruiter-home"));
           return (
             <Link
               key={item.label}
@@ -56,7 +65,7 @@ export function Header() {
 
       {/* 3. User Section (Bên phải) */}
       <div className="flex items-center justify-end min-w-37.5">
-        <Link to="/profile" className="flex items-center gap-4 cursor-pointer group p-1 pr-2 rounded-full hover:bg-slate-50 transition-all">
+        <Link to={profileHref} className="flex items-center gap-4 cursor-pointer group p-1 pr-2 rounded-full hover:bg-slate-50 transition-all">
           <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-4 group-hover:ring-blue-500/10 transition-all">
             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
             <AvatarFallback>US</AvatarFallback>

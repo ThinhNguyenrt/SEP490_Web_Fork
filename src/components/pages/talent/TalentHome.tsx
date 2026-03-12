@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TestImage from "../../../assets/testImage/testImage.png";
-import ConnectIcon from "../../../assets/myWeb/connect.png";
 import BookmarkIcon from "../../../assets/myWeb/bookmark.png";
 import ShareIcon from "../../../assets/myWeb/share1.png";
 import MapIcon from "../../../assets/myWeb/map.png";
@@ -193,7 +192,7 @@ export default function TalentHome() {
             </div>
           ) : (
             // Thẻ công việc bình thường
-          <div className="relative w-125 h-205 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+          <div className="relative w-125 h-198 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
           {/* Background Image */}
           <img 
             src={TestImage} 
@@ -242,14 +241,6 @@ export default function TalentHome() {
 
           {/* Right Side Icons (Bottom Right) */}
           <div className="absolute right-4 bottom-24 flex flex-col gap-20">
-            {/* Connect Icon */}
-            <button className="hover:scale-110 transition-transform">
-              <img 
-                src={ConnectIcon} 
-                alt="Connect" 
-                className="w-10 h-10"
-              />
-            </button>
             
             {/* Bookmark Icon */}
             <button className="hover:scale-110 transition-transform">

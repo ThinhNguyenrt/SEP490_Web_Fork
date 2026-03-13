@@ -14,6 +14,7 @@ import {
   LogOut,
   Award,
   Edit3,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -162,14 +163,19 @@ export default function ProfilePage() {
             onClick={handleCommunityPostClick}
           />
           <ServiceCard
-            icon={<LineChart className="text-blue-600" />}
-            title="Dữ liệu hiệu xuất"
-            desc="Thống kê & dữ liệu"
+            icon={<FileText className="text-blue-600" />}
+            title="Quản lý ứng tuyển"
+            desc="Quản lý các ứng tuyển"
           />
           <ServiceCard
             icon={<Bookmark className="text-blue-600" />}
             title="Quan tâm"
             desc="Danh sách đã lưu"
+          />
+          <ServiceCard
+            icon={<Calendar className="text-blue-600" />}
+            title="Quản lý lịch phỏng vấn"
+            desc="Quản lý, theo dõi lịch trình phỏng vấn"
           />
         </div>
 

@@ -7,7 +7,7 @@ import { mockCompanyPosts } from "@/data/mockCompanyPost";
 
 type TabType = "company" | "community";
 
-export default function MySavePost() {
+export default function TalentSavePost() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
 
   // Giả sử lọc dữ liệu cho từng tab

@@ -19,7 +19,11 @@ import CommunityPostDetail from "./components/pages/community/CommunityPostDetai
 import PortfolioViewPage from "./components/portfolio/view/PortfolioViewPage";
 import NotificationsPage from "./components/pages/notification/NotificationsPage";
 import MyCommunityPost from "./components/pages/community/MyCommunityPost";
-import MySavePost from "./components/pages/community/save/MySavePost";
+import MySavePost from "./components/pages/community/save/TalentSavePost";
+import CandidateManagement from "./components/pages/recruiter/recruitment/CandidateManagement";
+import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
+import CompanySavePost from "./components/pages/community/save/CompanySavePost";
+import TalentSavePost from "./components/pages/community/save/TalentSavePost";
 
 function App() {
   return (
@@ -34,6 +38,10 @@ function App() {
           <Route path="/chat" element={<ChatRoom />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/recruiter-profile" element={<RecruiterProfile />} />
+          <Route path="/candicate-management" element={<CandidateManagement />} />
+          <Route path="/interview-schedule" element={<InterviewSchedule />} />
+          <Route path="/company-saved" element={<CompanySavePost />} />
+          <Route path="/talent-saved" element={<TalentSavePost />} />
           <Route
             path="/recruitment-management"
             element={<RecruitmentManagement />}

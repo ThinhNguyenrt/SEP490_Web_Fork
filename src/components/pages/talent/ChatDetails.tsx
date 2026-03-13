@@ -23,6 +23,8 @@ interface Conversation {
   lastMessage: string;
   lastMessageTime: string;
   description: string;
+  connectionRole: string; // Thêm role của người kết nối
+  messageRoomId: number; // ID chung cho cả hai bên để đồng bộ tin nhắn
 }
 
 interface ChatDetailsProps {

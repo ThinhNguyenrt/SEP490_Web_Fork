@@ -4,7 +4,6 @@ import {
   MoreHorizontal,
   FileText,
   Users,
-  LineChart,
   Bookmark,
   ChevronRight,
   HelpCircle,
@@ -18,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EditProfileModal from "./EditProfileModal";
 import { portfolioService } from "@/services/portfolio.api";
@@ -46,6 +45,10 @@ export default function ProfilePage() {
 
   const handleCommunityPostClick = () => {
     navigate("/my-community-posts");
+  };
+
+  const handleApplicationHistoryClick = () => {
+    navigate("/application-history");
   };
 
   const handleLogout = () => {
@@ -162,9 +165,9 @@ export default function ProfilePage() {
             onClick={handleCommunityPostClick}
           />
           <ServiceCard
-            icon={<LineChart className="text-blue-600" />}
-            title="Dữ liệu hiệu xuất"
-            desc="Thống kê & dữ liệu"
+            title="Quản lí ứng tuyển"
+            desc="Quản lí, theo dõi ứng tuyển"
+            onClick={handleApplicationHistoryClick}
           />
           <ServiceCard
             icon={<Bookmark className="text-blue-600" />}
@@ -240,7 +243,7 @@ function ServiceCard({
   desc,
   onClick,
 }: {
-  icon: any;
+  icon?: ReactNode;
   title: string;
   desc: string;
   onClick?: () => void;
@@ -250,10 +253,12 @@ function ServiceCard({
       className="border-2 border-slate-200 bg-white rounded-2xl cursor-pointer hover:border-blue-400 transition-all shadow-sm"
       onClick={onClick}
     >
-      <CardContent className="p-6 space-y-3">
-        <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100">
-          {icon}
-        </div>
+      <CardContent className={icon ? "p-6 space-y-3" : "p-6"}>
+        {icon ? (
+          <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100">
+            {icon}
+          </div>
+        ) : null}
         <div>
           <h4 className="font-bold text-slate-800 text-[15px]">{title}</h4>
           <p className="text-xs text-slate-400 font-medium">{desc}</p>
@@ -269,7 +274,7 @@ function SettingsItem({
   isDanger,
   onClick,
 }: {
-  icon: any;
+  icon: ReactNode;
   label: string;
   isDanger?: boolean;
   onClick?: () => void;

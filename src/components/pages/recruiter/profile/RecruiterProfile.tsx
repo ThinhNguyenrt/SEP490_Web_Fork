@@ -1,5 +1,4 @@
 import {
-  MoreHorizontal,
   Calendar,
   Users,
   Bookmark,
@@ -16,7 +15,6 @@ import {
   FileText,
   Briefcase,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
@@ -35,8 +33,7 @@ export default function RecruiterProfile() {
   };
 
   const handlePortfolioClick = () => {
-    // Navigate to portfolio management
-    console.log("Navigate to portfolio management");
+    navigate("/recruitment-management");
   };
 
   const handleCommunityPostClick = () => {
@@ -44,8 +41,7 @@ export default function RecruiterProfile() {
   };
 
   const handleApplicationManagementClick = () => {
-    // Navigate to application management
-    console.log("Navigate to application management");
+    navigate("/recruitment-management");
   };
 
   const handleInterestClick = () => {
@@ -91,35 +87,21 @@ export default function RecruiterProfile() {
             </div>
 
             {/* Company Info */}
-            <div className="space-y-3 mb-6">
-              <div className="flex items-start gap-2 text-sm text-slate-600">
-                <Building2 size={16} className="mt-0.5 text-slate-400 shrink-0" />
-                <span className="font-medium">Công ty công nghệ hàng đầu thế giới</span>
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
+                <Building2 size={16} className="text-slate-400 shrink-0" />
+                <span className="truncate">Lĩnh vực: Tên lĩnh vực hoạt động của công ty</span>
               </div>
-              <div className="flex items-start gap-2 text-sm text-slate-600">
-                <MapPin size={16} className="mt-0.5 text-slate-400 shrink-0" />
-                <span className="font-medium">TP Hồ Chí Minh</span>
+              <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
+                <MapPin size={16} className="text-slate-400 shrink-0" />
+                <span className="truncate">TP Hồ Chí Minh</span>
               </div>
             </div>
 
             {/* Introduction */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <h4 className="font-bold text-sm text-slate-700 mb-2">Giới thiệu</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Google Inc. là một công ty công nghệ đa quốc gia chuyên về các dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ quảng cáo.
-              </p>
-            </div>
-
-            {/* Action Button */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-full rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50"
-              >
-                <MoreHorizontal size={20} />
-              </Button>
-            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Google Inc. là một công ty công nghệ đa quốc gia chuyên về các dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ quảng cáo.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -236,7 +218,7 @@ function ServiceCard({
 }) {
   return (
     <Card
-      className="border-2 border-slate-200 bg-white rounded-2xl cursor-pointer hover:border-blue-400 transition-all shadow-sm"
+      className="border-2 border-slate-200 bg-[#EFF6FF] rounded-2xl cursor-pointer hover:border-blue-400 transition-all shadow-sm"
       onClick={onClick}
     >
       <CardContent className="p-6 space-y-3">

@@ -1,4 +1,12 @@
-import { Mail, Building2, Landmark, Lock, Eye, EyeOff, RotateCcw } from "lucide-react";
+import {
+  Mail,
+  Building2,
+  Landmark,
+  Lock,
+  Eye,
+  EyeOff,
+  RotateCcw,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -17,68 +25,84 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
         </div>
       </div> */}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="taxCode">Mã số thuế</Label>
-          <div className="relative">
-            <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input id="taxCode" placeholder="MST" className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]" />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email công ty</Label>
-          <Input id="email" type="email" placeholder="hr@company.com" className="h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]" />
-        </div>
-
-      {/* Mật khẩu cho nhà tuyển dụng */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="password">Mật khẩu</Label>
-          <div className="relative">
-            <Lock
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              className="pl-10 pr-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="confirm">Xác nhận</Label>
-          <div className="relative">
-            <RotateCcw
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <Input
-              id="confirm"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="taxCode">Mã số thuế</Label>
+        <div className="relative">
+          <Landmark
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
+          <Input
+            id="taxCode"
+            placeholder="MST"
+            className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
+          />
         </div>
       </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="email">Email công ty</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="hr@company.com"
+          className="h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
+        />
+      </div>
+
+      {/* Mật khẩu cho nhà tuyển dụng */}
+      {/* <div className="grid grid-cols-2 gap-3"> */}
+      <div className="space-y-1.5">
+        <Label htmlFor="password">Mật khẩu</Label>
+        <div className="relative">
+          <Lock
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            className="pl-10 pr-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="confirm">Xác nhận</Label>
+        <div className="relative">
+          <RotateCcw
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
+          <Input
+            id="confirm"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+      </div>
+      {/* </div> */}
 
       <div className="flex justify-end">
-        <button type="button" onClick={onSwitch} className="text-sm font-medium text-[#0288D1] hover:underline">
+        <button
+          type="button"
+          onClick={onSwitch}
+          className="text-sm font-medium text-[#0288D1] hover:underline"
+        >
           Đăng ký cho ứng viên?
         </button>
       </div>

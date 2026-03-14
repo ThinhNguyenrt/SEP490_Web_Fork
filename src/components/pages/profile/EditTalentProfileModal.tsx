@@ -16,7 +16,7 @@ interface EditProfileModalProps {
   onClose: () => void;
 }
 
-const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
+const EditTalentProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
   useEffect(() => {
     if (isOpen) {
       // Khóa cuộn trang chính
@@ -193,4 +193,4 @@ const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
   );
 };
 
-export default EditProfileModal;
+export default EditTalentProfileModal;

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./components/pages/login/Login";
 import { WebLayout } from "./components/common/WebLayout";
-import ProfilePage from "./components/pages/portfolio/Profile";
+import ProfilePage from "./components/pages/profile/Profile";
 import RecruiterProfile from "./components/pages/recruiter/profile/RecruiterProfile";
 import PortfolioManagement from "./components/pages/portfolio/PortfolioManagement";
 import EmptyPortfolioPage from "./components/pages/portfolio/EmptyPortfolio";
@@ -24,6 +24,8 @@ import CandidateManagement from "./components/pages/recruiter/recruitment/Candid
 import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
 import CompanySavePost from "./components/pages/community/save/CompanySavePost";
 import TalentSavePost from "./components/pages/community/save/TalentSavePost";
+import WelcomePage from "./components/pages/login/WelcomePage";
+import ErrorPage from "./components/pages/ErrorPage";
 
 function App() {
   return (
@@ -42,6 +44,7 @@ function App() {
           <Route path="/interview-schedule" element={<InterviewSchedule />} />
           <Route path="/company-saved" element={<CompanySavePost />} />
           <Route path="/talent-saved" element={<TalentSavePost />} />
+          <Route path="/welcome" element={<WelcomePage />} />
           <Route
             path="/recruitment-management"
             element={<RecruitmentManagement />}
@@ -63,7 +66,7 @@ function App() {
           <Route path="/my-community-posts" element={<MyCommunityPost />} />
           <Route path="/my-save-posts" element={<MySavePost />} />
         </Route>
-        <Route path="*" element={<div>404 Not Found</div>} />
+        <Route path="*" element={<ErrorPage />} />
       </Routes>
     </Router>
   );

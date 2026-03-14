@@ -9,7 +9,7 @@ export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
 
   return (
     <form className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-      <div className="space-y-1.5">
+      {/* <div className="space-y-1.5">
         <Label htmlFor="username">Tên hiển thị</Label>
         <div className="relative">
           <User
@@ -22,7 +22,7 @@ export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
             className="pl-10 h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
           />
         </div>
-      </div>
+      </div> */}
 
       <div className="space-y-1.5">
         <Label htmlFor="email">Email</Label>
@@ -41,7 +41,7 @@ export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
       </div>
 
       {/* Grid mật khẩu */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* <div className="grid grid-cols-2 gap-3"> */}
         <div className="space-y-1.5">
           <Label htmlFor="password">Mật khẩu</Label>
           <div className="relative">
@@ -86,7 +86,7 @@ export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
             </button>
           </div>
         </div>
-      </div>
+      {/* </div> */}
 
       <div className="flex justify-end">
         <button

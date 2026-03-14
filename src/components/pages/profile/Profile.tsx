@@ -21,11 +21,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import EditProfileModal from "./EditProfileModal";
+import EditProfileModal from "./EditTalentProfileModal";
 import { portfolioService } from "@/services/portfolio.api";
+import TalentProfile from "./TalentProfile";
+import CompanyProfile from "./CompanyProfile";
 
 export default function ProfilePage() {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handlePortfolioClick = async () => {
@@ -57,49 +58,12 @@ export default function ProfilePage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500">
-      {/* CỘT TRÁI - Portfolio Card */}
-      <div className="lg:col-span-3 space-y-6">
-        <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
-          <div className="h-32 bg-[url('https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500')] bg-cover bg-center relative border-b-2 border-slate-200">
-            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Kala" />
-                <AvatarFallback>KA</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-          <CardContent className="pt-12 pb-6 text-center">
-            <div className="flex items-center justify-center gap-2 mb-6 uppercase tracking-wider">
-              <h3 className="font-bold text-lg text-slate-800">kakaka</h3>
-              <button onClick={() => setIsEditModalOpen(true)}>
-                <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
-                  <Edit3
-                    size={12}
-                    className="text-slate-400 group-hover:text-blue-500"
-                  />
-                </div>
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1 bg-[#5b99fc] hover:bg-blue-600 rounded-xl text-white font-bold">
-                Chia sẻ hồ sơ
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-xl border-2 border-slate-200 bg-white"
-              >
-                <MoreHorizontal size={20} />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* <TalentProfile /> */}
+      <CompanyProfile />
       {/* CỘT GIỮA - Main Profile & Services */}
       <div className="lg:col-span-6 space-y-6">
         {/* Bio Card */}
-        <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-8 pb-4 bg-white">
+        {/* <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-8 pb-4 bg-white">
           <CardContent className="p-0 flex flex-col items-center text-center space-y-4">
             <Avatar className="h-24 w-24 border-2 border-slate-200 shadow-sm">
               <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=AnNhien" />
@@ -146,7 +110,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 gap-4">
@@ -232,10 +196,6 @@ export default function ProfilePage() {
           </p>
         </Card>
       </div>
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-      />
     </div>
   );
 }

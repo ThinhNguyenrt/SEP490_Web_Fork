@@ -145,7 +145,7 @@ const CompanySavePost = () => {
   const [activeTab, setActiveTab] = useState("candidates");
 
   return (
-    <div className="bg-[#f8fafd] min-h-screen font-['Public_Sans',sans-serif]">
+    <div className="bg-[#f8fafd] min-h-screen ">
       <div className="max-w-[1440px] mx-auto px-8 flex gap-8">
         {/* Sidebar Tabs bên trái (Cố định tỷ lệ như ảnh) */}
         <aside className="w-64 shrink-0">
@@ -153,7 +153,7 @@ const CompanySavePost = () => {
             <nav className="space-y-2">
               <button
                 onClick={() => setActiveTab("candidates")}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all cursor-pointer ${
                   activeTab === "candidates"
                     ? "bg-blue-50 text-blue-600 font-bold"
                     : "text-slate-500 hover:bg-slate-50 font-medium"
@@ -175,7 +175,7 @@ const CompanySavePost = () => {
 
               <button
                 onClick={() => setActiveTab("posts")}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all cursor-pointer ${
                   activeTab === "posts"
                     ? "bg-blue-50 text-blue-600 font-bold"
                     : "text-slate-500 hover:bg-slate-50 font-medium"

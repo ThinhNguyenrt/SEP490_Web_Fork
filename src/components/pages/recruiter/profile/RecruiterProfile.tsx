@@ -41,7 +41,7 @@ export default function RecruiterProfile() {
   };
 
   const handleApplicationManagementClick = () => {
-    navigate("/recruitment-management");
+    navigate("/application-management");
   };
 
   const handleInterestClick = () => {

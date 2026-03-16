@@ -12,6 +12,8 @@ import CreateRecruitmentPost from "./components/pages/recruiter/recruitment/Crea
 import RecruitmentDetails from "./components/pages/recruiter/recruitment/RecruitmentDetails";
 import { PostDetail } from "./components/pages/talent/PostDetail";
 import ChatRoom from "./components/pages/talent/ChatRoom";
+import ApplicationHistory from "./components/pages/talent/ApplicationHistory";
+import ApplicationManagement from "./components/pages/recruiter/application/ApplicationManagement";
 
 import CommunityPost from "./components/pages/community/CommunityPost";
 import CommunityPostDetail from "./components/pages/community/CommunityPostDetail";
@@ -39,6 +41,8 @@ function App() {
           <Route path="/job/:postId" element={<PostDetail />} />
           <Route path="/chat" element={<ChatRoom />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/application-history" element={<ApplicationHistory />} />
+          <Route path="/application-management" element={<ApplicationManagement />} />
           <Route path="/recruiter-profile" element={<RecruiterProfile />} />
           <Route path="/candicate-management" element={<CandidateManagement />} />
           <Route path="/interview-schedule" element={<InterviewSchedule />} />

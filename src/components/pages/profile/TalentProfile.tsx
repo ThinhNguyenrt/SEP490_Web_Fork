@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
 import { Edit3, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import EditTalentProfileModal from "./EditTalentProfileModal";

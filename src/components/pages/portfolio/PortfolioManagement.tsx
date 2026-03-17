@@ -197,7 +197,9 @@ export default function ProfileManagement() {
   };
 
   const handleUnsetPrimary = (portfolioId: number) => {
-    setPrimaryPortfolioId(null);
+    setPrimaryPortfolioId((currentId) =>
+      currentId === portfolioId ? null : currentId,
+    );
   };
 
   return (

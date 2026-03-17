@@ -1,14 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Users,
   LayoutGrid,
   Mail,
   Phone,
   Edit3,
-  Bookmark,
-  Heart,
-  MessageSquare,
-  Share2,
   ChevronRight,
   FileText,
 } from "lucide-react";

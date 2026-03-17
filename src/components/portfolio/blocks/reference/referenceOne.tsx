@@ -1,6 +1,5 @@
 import React from 'react';
 import { ReferenceItem } from '@/services/portfolio.api';
-import ConnectIcon from '../../../../assets/myWeb/connect.png';
 
 interface ReferenceOneProps {
   data: ReferenceItem[];

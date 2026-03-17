@@ -1,6 +1,4 @@
 import {
-  Mail,
-  Building2,
   Landmark,
   Lock,
   Eye,

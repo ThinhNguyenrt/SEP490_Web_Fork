@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Camera, User, Pencil, ArrowRight } from "lucide-react";
 
 const WelcomePage = () => {

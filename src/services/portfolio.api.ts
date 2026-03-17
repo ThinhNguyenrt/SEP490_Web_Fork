@@ -54,6 +54,45 @@ export type ReferenceItem = {
   phone: string;
 };
 
+export type EducationItem = {
+  school?: string;
+  schoolName?: string;
+  major?: string;
+  department?: string;
+  time?: string;
+  description?: string;
+};
+
+export type CertificateItem = {
+  name: string;
+  issuer?: string;
+  provider?: string;
+  year?: string;
+  date?: string;
+  diploma?: string;
+  link?: string;
+};
+
+export type ProjectLinkItem = {
+  type: string;
+  link: string;
+};
+
+export type ProjectItem = {
+  image?: string;
+  name: string;
+  description?: string;
+  role?: string;
+  technology?: string;
+  projectLinks?: ProjectLinkItem[];
+  links?: ProjectLinkItem[];
+};
+
+export type SkillItem = {
+  name: string;
+  level?: string;
+};
+
 export type TeachingItem = {
   subject: string;
   teachingplace: string;
@@ -947,8 +986,15 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
 ];
 
 export const fetchPortfolio = async (userId: number, portfolioId: number) => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(PORTFOLIO_MOCK), 1);
+  return new Promise<PortfolioResponse[]>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        PORTFOLIO_MOCK.filter(
+          (portfolio) =>
+            portfolio.userId === userId && portfolio.portfolioId === portfolioId,
+        ),
+      );
+    }, 1);
   });
 };
 
@@ -961,8 +1007,14 @@ export const fetchPortfolioById = async (portfolioId: number) => {
 };
 
 export const fetchMainBlockPortfolioByUserId = async (userId: number) => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(PORTFOLIO_MOCK_Main_Block), 1);
+  return new Promise<PortfolioMainBlockItem[]>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        PORTFOLIO_LIST_MOCK.filter(
+          (portfolio) => portfolio.userId === userId,
+        ),
+      );
+    }, 1);
   });
 };
 

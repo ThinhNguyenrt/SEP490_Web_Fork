@@ -1,4 +1,3 @@
-import React from "react";
 import { MapPin, Banknote, Clock, ArrowUpRight, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { mockCompanyPosts } from "@/data/mockCompanyPost";

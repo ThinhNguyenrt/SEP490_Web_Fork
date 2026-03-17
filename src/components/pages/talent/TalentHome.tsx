@@ -90,10 +90,10 @@ export default function TalentHome() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Main Content with Filter on Left */}
-      <div className="flex gap-0 pt-10 min-h-screen ">
+      <div className="flex gap-0 pt-8 min-h-screen ">
         {/* Left Filter Sidebar - Attached to left edge */}
         <div className ="fixed left-3 h-screen  ">
-          <div className="w-89 bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2 ">
+          <div className="w-82 bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2 ">
             <div className="flex items-center gap-2 mb-6">
               <img src={SortIcon} alt="Sort" className="w-8 h-8"/>
               <h2 className="text-2xl font-bold text-gray-900">Bộ lọc tìm việc</h2>
@@ -192,7 +192,7 @@ export default function TalentHome() {
             </div>
           ) : (
             // Thẻ công việc bình thường
-          <div className="relative w-125 h-198 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+          <div className="relative w-110 h-162 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
           {/* Background Image */}
           <img 
             src={TestImage} 

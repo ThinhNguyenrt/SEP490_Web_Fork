@@ -23,7 +23,7 @@ export function Header() {
   ];
 
   return (
-    <header className="h-20 border-b border-slate-100 bg-white px-8 flex items-center justify-between transition-colors sticky top-0 z-50">
+    <header className="h-14 border-b border-slate-100 bg-white px-8 flex items-center justify-between transition-colors sticky top-0 z-50">
       
       {/* 1. Logo Section (Bên trái) */}
       <div className="flex items-center gap-2 min-w-37.5">

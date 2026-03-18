@@ -1,4 +1,5 @@
 import { PostComment } from "@/types/communityPost";
+import { formatTimeAgo } from "@/utils/FormatTime";
 
 interface CommentProps {
   comment: PostComment;
@@ -53,7 +54,7 @@ const CommentItem = ({ author, content, createdAt, isReply, replyToUser, onReply
     <div className="flex gap-3 mb-2">
       <img 
         src={author.avatar} 
-        className={`${isReply ? "w-8 h-8" : "w-10 h-10"} rounded-full z-10 bg-white object-cover shadow-sm`} 
+        className={"w-10 h-10 rounded-full z-10 bg-white object-cover shadow-sm"} 
         alt={author.name} 
       />
       
@@ -72,7 +73,7 @@ const CommentItem = ({ author, content, createdAt, isReply, replyToUser, onReply
         </div>
         
         <div className="flex items-center gap-4 mt-1 ml-2 text-[11px] font-bold text-gray-500">
-          <span>{createdAt}</span>
+          <span>{formatTimeAgo(createdAt)}</span>
           {/* Sửa nút bấm gọi hàm callback */}
           <button 
             onClick={() => onReplyClick(author.id, author.name)}

@@ -45,7 +45,7 @@ export function PremiumAndTips() {
 export function PremiumInNotification() {
   return (
     <aside className="w-full lg:w-96 shrink-0">
-      <div className="sticky top-8 space-y-6">
+      <div className="sticky top-40 space-y-6">
         <h2 className="text-gray-500 font-medium flex items-center gap-2 text-sm uppercase tracking-wider">
           <Award size={16} className="text-blue-500" />
           Dành riêng cho bạn

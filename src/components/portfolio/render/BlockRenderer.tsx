@@ -10,6 +10,7 @@ import AwardBlock from '../blocks/award/AwardBlock';
 import ActivityBlock from '../blocks/activity/ActivityBlock';
 import OtherInfoBlock from '../blocks/otherinfo/OtherInfoBlock';
 import ReferenceBlock from '../blocks/reference/ReferenceBlock';
+import ResearchBlock from '../blocks/research/ResearchBlock';
 import TeachingBlock from '../blocks/teaching/TeachingBlock';
 import TypicalCaseBlock from '../blocks/typicalcase/TypicalCaseBlock';
 
@@ -48,6 +49,8 @@ const BlockRenderer: React.FC<BlockRendererProps> = ({ block }) => {
         return <OtherInfoBlock data={data} variant={blockVariant} />;
       case 'reference':
         return <ReferenceBlock data={data} variant={blockVariant} />;
+      case 'research':
+        return <ResearchBlock data={data} variant={blockVariant} />;
       case 'teaching':
         return <TeachingBlock data={data} variant={blockVariant} />;
       case 'typicalcase':

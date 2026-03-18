@@ -96,7 +96,7 @@ const SavedCandidates = () => {
                   <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
                     {can.status}
                   </span>
-                  <span className="text-[10px] text-blue-400 italic font-medium">
+                  <span className="text-[10px] text-blue-400 font-medium">
                     Hồ sơ này mới cập nhật
                   </span>
                 </div>
@@ -145,7 +145,7 @@ const CompanySavePost = () => {
       <div className="max-w-[1440px] mx-auto px-8 flex gap-8">
         {/* Sidebar Tabs bên trái (Cố định tỷ lệ như ảnh) */}
         <aside className="w-64 shrink-0">
-          <div className="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm sticky top-8">
+          <div className="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm sticky top-16">
             <nav className="space-y-2">
               <button
                 onClick={() => setActiveTab("candidates")}
@@ -193,14 +193,14 @@ const CompanySavePost = () => {
         </aside>
 
         {/* Nội dung thay đổi dựa trên tab */}
-        <main className="flex-1 pb-20">
+        <main className="flex-1 pb-20 min-h-screen">
           {/* Header Trang */}
           <div className="bg-white border-b border-slate-100 p-8 mb-6">
             <div className="max-w-[1440px] mx-auto">
               <h1 className="text-2xl font-black text-slate-800 tracking-tight">
                 Mục quan tâm
               </h1>
-              <p className="text-[14px] text-slate-400 mt-1 font-medium italic">
+              <p className="text-[14px] text-slate-400 mt-1 font-medium">
                 Quản lý và theo dõi các hồ sơ, bài viết bạn đã quan tâm
               </p>
             </div>
@@ -208,7 +208,7 @@ const CompanySavePost = () => {
           {activeTab === "candidates" ? (
             <SavedCandidates />
           ) : communityPosts.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-3xl mx-auto">
               {communityPosts.map((post: CommunityPost) => (
                 <CommunityPostCard
                   key={post.id}

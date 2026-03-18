@@ -44,8 +44,8 @@ function App() {
           <Route path="/application-history" element={<ApplicationHistory />} />
           <Route path="/application-management" element={<ApplicationManagement />} />
           <Route path="/recruiter-profile" element={<RecruiterProfile />} />
-          <Route path="/candicate-management" element={<CandidateManagement />} />
-          <Route path="/interview-schedule" element={<InterviewSchedule />} />
+          {/* <Route path="/candicate-management" element={<CandidateManagement />} />
+          <Route path="/interview-schedule" element={<InterviewSchedule />} /> */}
           <Route path="/company-saved" element={<CompanySavePost />} />
           <Route path="/talent-saved" element={<TalentSavePost />} />
           <Route path="/welcome" element={<WelcomePage />} />

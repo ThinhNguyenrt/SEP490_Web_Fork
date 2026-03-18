@@ -1,58 +1,50 @@
 import React from 'react';
-import { Mail, Phone } from 'lucide-react';
 
 interface IntroFourProps {
-  data: { fullName?: string; title?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  data: {
+    fullName?: string;
+    title?: string;
+    avatar?: string;
+    school?: string;
+    department?: string;
+    description?: string;
+  };
 }
 
-/**
- * IntroFour - Giới thiệu với avatar hình vuông
- * Layout tương tự IntroOne nhưng avatar là hình vuông thay vì tròn
- */
 const IntroFour: React.FC<IntroFourProps> = ({ data }) => {
-  const { fullName, title, description, avatar, email, phone } = data;
+  const { fullName, title, avatar, school, department, description } = data;
+  const subtitle = title;
 
   return (
-    <div className="intro-block bg-white px-6 py-8 text-center border-b border-gray-200 last:border-b-0">
-      {/* Avatar - Square Shape */}
+    <div className="intro-block bg-white px-6 py-10 border-b border-gray-200 last:border-b-0 text-center">
       {avatar && (
-        <div className="mb-6">
+        <div className="mb-6 flex justify-center">
           <img
             src={avatar}
-            alt={fullName}
-            className="w-28 h-28 object-cover mx-auto border-4 border-gray-100 shadow-md"
+            alt={fullName || 'Avatar'}
+            className="w-28 h-28 rounded-full object-cover"
           />
         </div>
       )}
 
-      {/* Name */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
 
-      {/* Title */}
-      {title && <p className="text-lg text-blue-600 font-semibold mb-4">{title}</p>}
+      {school ? (
+        <div className="mb-4">
+          <p className="text-lg font-semibold text-blue-500">{school}</p>
+          {(department || subtitle) && (
+            <p className="text-lg font-semibold text-slate-500 mt-1">{department || subtitle}</p>
+          )}
+        </div>
+      ) : (
+        subtitle && <p className="text-lg font-semibold text-slate-500 mb-4">{subtitle}</p>
+      )}
 
-      {/* Description */}
       {description && (
-        <p className="text-gray-700 text-sm leading-relaxed mb-6 max-w-2xl mx-auto">
+        <p className="text-base leading-relaxed text-slate-700 max-w-2xl mx-auto">
           {description}
         </p>
       )}
-
-      {/* Contact Info */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
-        {email && (
-          <a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-blue-600 transition-colors">
-            <Mail size={16} />
-            {email}
-          </a>
-        )}
-        {phone && (
-          <a href={`tel:${phone}`} className="flex items-center gap-2 hover:text-blue-600 transition-colors">
-            <Phone size={16} />
-            {phone}
-          </a>
-        )}
-      </div>
     </div>
   );
 };

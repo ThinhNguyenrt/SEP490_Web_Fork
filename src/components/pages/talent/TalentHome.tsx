@@ -22,6 +22,7 @@ export default function TalentHome() {
   const [filteredPosts, setFilteredPosts] = useState(mockCompanyPosts);
   const [isLoading, setIsLoading] = useState(false);
   const currentPost = filteredPosts[currentIndex];
+  const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-205" : "h-176";
 
   const handleNext = () => {
     if (currentIndex < filteredPosts.length - 1) {
@@ -90,7 +91,7 @@ export default function TalentHome() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Main Content with Filter on Left */}
-      <div className="flex gap-0 pt-8 min-h-screen ">
+      <div className="flex gap-0 pt-10 min-h-screen ">
         {/* Left Filter Sidebar - Attached to left edge */}
         <div className ="fixed left-3 h-screen  ">
           <div className="w-82 bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2 ">
@@ -162,15 +163,17 @@ export default function TalentHome() {
         </div>
 
         {/* Center Content - Centered in remaining space */}
-        <div className="flex-1 flex items-center justify-center gap-8">
+        <div className="flex-1 flex items-start justify-center gap-8">
           {/* Left Arrow */}
-          <button 
-            onClick={handlePrev}
-            disabled={currentIndex === 0 || filteredPosts.length === 0}
-            className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={32} className="text-slate-600" />
-          </button>
+          <div className={`${arrowTrackHeightClass} flex items-center`}>
+            <button 
+              onClick={handlePrev}
+              disabled={currentIndex === 0 || filteredPosts.length === 0}
+              className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={32} className="text-slate-600" />
+            </button>
+          </div>
 
           {/* Card Container */}
           {filteredPosts.length === 0 ? (
@@ -192,7 +195,7 @@ export default function TalentHome() {
             </div>
           ) : (
             // Thẻ công việc bình thường
-          <div className="relative w-110 h-162 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+          <div className="relative w-110 h-176 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
           {/* Background Image */}
           <img 
             src={TestImage} 
@@ -267,7 +270,7 @@ export default function TalentHome() {
             <div className="flex justify-center">
               <button 
                 onClick={handleViewDetails}
-                className="flex items-center justify-center gap-2 bg-transparent border-2 border-white hover:bg-white hover:bg-opacity-10 transition-colors px-8 py-3 rounded-lg border-2 text-white font-medium w-56"
+                className="flex items-center justify-center gap-2 bg-transparent border-2 border-white px-8 py-3 rounded-lg text-white font-medium w-56"
               >
                 <span>Xem chi tiết</span>
                 <img src={ArrowIcon} alt="Arrow" className="w-8 h-8" />
@@ -278,13 +281,15 @@ export default function TalentHome() {
           )}
 
           {/* Right Arrow */}
-          <button 
-            onClick={handleNext}
-            disabled={currentIndex === filteredPosts.length - 1 || filteredPosts.length === 0}
-            className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight size={32} className="text-slate-600" />
-          </button>
+          <div className={`${arrowTrackHeightClass} flex items-center`}>
+            <button 
+              onClick={handleNext}
+              disabled={currentIndex === filteredPosts.length - 1 || filteredPosts.length === 0}
+              className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={32} className="text-slate-600" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

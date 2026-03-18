@@ -1,5 +1,6 @@
 import React from 'react';
 import { OtherInfoItem } from '@/services/portfolio.api';
+import ShapeToyIcon from '../../../../assets/myWeb/shape-toy 2.png';
 
 interface OtherInfoOneProps {
   data: OtherInfoItem[];
@@ -15,6 +16,9 @@ const OtherInfoOne: React.FC<OtherInfoOneProps> = ({ data }) => {
   return (
     <div className="otherinfo-block bg-white px-6 py-8 border-b border-gray-200 last:border-b-0 ">
       <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+          <img src={ShapeToyIcon} alt="Sở thích" className="w-6 h-6" />
+        </div>
         <h3 className="text-2xl font-bold text-gray-900">Sở thích cá nhân</h3>
       </div>
 

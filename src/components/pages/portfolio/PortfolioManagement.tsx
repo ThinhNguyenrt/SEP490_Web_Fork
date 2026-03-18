@@ -196,14 +196,14 @@ export default function ProfileManagement() {
     setPrimaryPortfolioId(portfolioId);
   };
 
-  const handleUnsetPrimary = (portfolioId: number) => {
+  const handleUnsetPrimary = (_portfolioId: number) => {
     setPrimaryPortfolioId(null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900  transition-colors duration-200 mt-4">
-      <div className="max-w-360 mx-auto flex min-h-screen">
-        <main className="w-2/3 md:px-10 pr-4 border-slate-200 ">
+    <div className="min-h-screen bg-slate-50 transition-colors duration-200 mt-4">
+      <div className="max-w-360 mx-auto flex min-h-screen flex-col lg:flex-row">
+        <main className="w-full lg:w-2/3 px-4 md:px-10 lg:pr-8 text-slate-900">
           <header className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <button className="p-2 hover:bg-slate-200  rounded-full transition-colors cursor-pointer" onClick={() => navigate(-1)}>
@@ -248,7 +248,9 @@ export default function ProfileManagement() {
           )}
         </main>
 
-        <PremiumAndTips />
+        <aside className="w-full lg:w-1/3 px-4 md:px-10 lg:px-6 pt-2 pb-8 shrink-0">
+          <PremiumAndTips />
+        </aside>
       </div>
     </div>
   );

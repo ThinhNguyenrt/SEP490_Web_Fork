@@ -1,4 +1,4 @@
-import { Mail, Lock, User, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

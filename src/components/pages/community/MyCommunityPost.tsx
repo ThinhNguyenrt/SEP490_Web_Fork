@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import { communityPosts } from "@/data/mockComment";
 import type { CommunityPost } from "@/types/communityPost.ts";

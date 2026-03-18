@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Settings } from "lucide-react";
 import SystemNotification from "./SystemNotification";
 import CommunityNotification from "./CommunityNotification";
 import { PremiumInNotification } from "@/components/common/Premium";

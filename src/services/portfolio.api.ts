@@ -30,6 +30,44 @@ export type ExperienceItem = {
   description?: string;
 };
 
+export type SkillItem = {
+  name: string;
+};
+
+export type EducationItem = {
+  school?: string;
+  schoolName?: string;
+  major?: string;
+  department?: string;
+  time: string;
+  description?: string;
+};
+
+export type CertificateItem = {
+  name: string;
+  issuer?: string;
+  provider?: string;
+  year?: string | number;
+  date?: string;
+  diploma?: string;
+  link?: string;
+};
+
+export type ProjectLinkItem = {
+  type: string;
+  link: string;
+};
+
+export type ProjectItem = {
+  image?: string;
+  name?: string;
+  description?: string;
+  role?: string;
+  technology?: string;
+  projectLinks?: ProjectLinkItem[];
+  links?: ProjectLinkItem[];
+};
+
 export type AwardItem = {
   name: string;
   date: string;

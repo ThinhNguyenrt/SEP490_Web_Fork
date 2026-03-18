@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   Camera,
   User,
-  PhoneIcon,
   Mail,
   Lock,
   Check,

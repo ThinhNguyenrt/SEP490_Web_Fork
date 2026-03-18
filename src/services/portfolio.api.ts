@@ -871,7 +871,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
       order: 1,
       data: {
         avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-        name: "Phạm An Nhiênn",
+        name: "Phạm An Nhiên",
         studyField: "Frontend Intern",
         schoolYear: 3,
         school: "Đại học FPT",
@@ -946,23 +946,105 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   },
 ];
 
+const normalizeIntroData = (data: unknown) => {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return data;
+  }
+
+  const introData = data as Record<string, unknown>;
+  const pickString = (...values: unknown[]): string => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+
+    return "";
+  };
+
+  return {
+    ...introData,
+    fullName: pickString(introData.fullName, introData.name),
+    title: pickString(introData.title, introData.studyField, introData.department),
+    description: pickString(introData.description, introData.detail),
+  };
+};
+
+const normalizePortfolioBlocks = (blocks: PortfolioBlock[]): PortfolioBlock[] => {
+  return blocks.map((block) => {
+    if (block.type.toUpperCase() !== "INTRO") {
+      return block;
+    }
+
+    return {
+      ...block,
+      data: normalizeIntroData(block.data),
+    };
+  });
+};
+
+const normalizeMainPortfolioItem = (
+  item: PortfolioMainBlockItem,
+): PortfolioMainBlockItem => {
+  if (item.blocks.type.toUpperCase() !== "INTRO") {
+    return item;
+  }
+
+  return {
+    ...item,
+    blocks: {
+      ...item.blocks,
+      data: normalizeIntroData(item.blocks.data),
+    },
+  };
+};
+
 export const fetchPortfolio = async (userId: number, portfolioId: number) => {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(PORTFOLIO_MOCK), 1);
+    setTimeout(() => {
+      const portfolio = PORTFOLIO_MOCK.find(
+        (p) => p.userId === userId && p.portfolioId === portfolioId,
+      );
+
+      resolve(
+        portfolio
+          ? {
+              ...portfolio,
+              blocks: normalizePortfolioBlocks(portfolio.blocks),
+            }
+          : undefined,
+      );
+    }, 1);
   });
 };
 
 export const fetchPortfolioById = async (portfolioId: number) => {
   return new Promise<PortfolioResponse | undefined>((resolve) => {
     setTimeout(() => {
-      resolve(PORTFOLIO_MOCK.find((p) => p.portfolioId === portfolioId));
+      const portfolio = PORTFOLIO_MOCK.find((p) => p.portfolioId === portfolioId);
+
+      resolve(
+        portfolio
+          ? {
+              ...portfolio,
+              blocks: normalizePortfolioBlocks(portfolio.blocks),
+            }
+          : undefined,
+      );
     }, 1);
   });
 };
 
 export const fetchMainBlockPortfolioByUserId = async (userId: number) => {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(PORTFOLIO_MOCK_Main_Block), 1);
+    setTimeout(() => {
+      if (PORTFOLIO_MOCK_Main_Block.userId !== userId) {
+        resolve(undefined);
+        return;
+      }
+
+      resolve(normalizeMainPortfolioItem(PORTFOLIO_MOCK_Main_Block));
+    }, 1);
   });
 };
 
@@ -971,7 +1053,11 @@ export const fetchMainPortfoliosManagerByUser = async (
 ): Promise<PortfolioMainBlockItem[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(PORTFOLIO_LIST_MOCK.filter((p) => p.userId === userId));
+      resolve(
+        PORTFOLIO_LIST_MOCK
+          .filter((p) => p.userId === userId)
+          .map((item) => normalizeMainPortfolioItem(item)),
+      );
     }, 1);
   });
 };

@@ -274,9 +274,9 @@ export default function ApplicationHistory() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
           <section className="xl:col-span-3">
-            <Card className="h-full border border-slate-200 bg-white shadow-sm">
+            <Card className="border border-slate-200 bg-white shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-slate-800">Bộ lọc trạng thái</CardTitle>
               </CardHeader>
@@ -417,7 +417,7 @@ export default function ApplicationHistory() {
           </section>
 
           <section className="xl:col-span-3">
-            <Card className="h-full overflow-hidden border border-slate-200 bg-white shadow-sm">
+            <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm">
               <div className="relative h-28 bg-slate-200/70">
                 <div className="absolute -bottom-7 left-6 h-14 w-14 overflow-hidden rounded-full border-4 border-white shadow-sm">
                   <img

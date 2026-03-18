@@ -22,8 +22,6 @@ import PortfolioViewPage from "./components/portfolio/view/PortfolioViewPage";
 import NotificationsPage from "./components/pages/notification/NotificationsPage";
 import MyCommunityPost from "./components/pages/community/MyCommunityPost";
 import MySavePost from "./components/pages/community/save/TalentSavePost";
-import CandidateManagement from "./components/pages/recruiter/recruitment/CandidateManagement";
-import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
 import CompanySavePost from "./components/pages/community/save/CompanySavePost";
 import TalentSavePost from "./components/pages/community/save/TalentSavePost";
 import WelcomePage from "./components/pages/login/WelcomePage";

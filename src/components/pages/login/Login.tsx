@@ -13,7 +13,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Header giữ nguyên ... */}
-      <header className="w-full px-6 py-2 flex justify-between items-center bg-white  ">
+      <header className="w-full px-6 flex justify-between items-center bg-white  ">
         <div className="flex items-center gap-2">
           <img
             src="/product-logo.png"

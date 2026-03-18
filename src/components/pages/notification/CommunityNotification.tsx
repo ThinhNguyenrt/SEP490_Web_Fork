@@ -37,6 +37,48 @@ const CommunityNotification = () => {
       time: "1 ngày trước",
       type: "group",
     },
+    {
+      id: 4,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 5,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 6,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 5,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 6,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 5,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
+    {
+      id: 6,
+      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
+      time: "1 ngày trước",
+      type: "group",
+    },
 
   ];
 

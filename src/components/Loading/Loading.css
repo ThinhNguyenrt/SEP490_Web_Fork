@@ -1,0 +1,65 @@
+/* SkillSnap Typography */
+.logo-name-skillsnap {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #1e293b; /* slate-800 */
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  margin-left: 0.3em; /* Để cân bằng padding của letter-spacing */
+  margin-bottom: 0.5rem;
+  font-family: 'Public Sans', sans-serif;
+}
+
+.sub-logo-skillsnap {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8; /* slate-400 */
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+/* Progress Bar Animation */
+.progress-container-skillsnap {
+  width: 160px;
+  height: 3px;
+  background-color: #f1f5f9; /* slate-100 */
+  border-radius: 9999px;
+  margin: 1rem auto 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-skillsnap {
+  height: 100%;
+  background-color: #2563eb; /* blue-600 */
+  width: 40%;
+  border-radius: 9999px;
+  position: absolute;
+  animation: skillLoading 1.5s ease-in-out infinite;
+}
+
+@keyframes skillLoading {
+  0% {
+    left: -40%;
+    width: 20%;
+  }
+  50% {
+    width: 40%;
+  }
+  100% {
+    left: 100%;
+    width: 20%;
+  }
+}
+
+/* Hiệu ứng Fade In cho toàn bộ trang */
+.animate-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

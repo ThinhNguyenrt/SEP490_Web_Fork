@@ -1,4 +1,5 @@
-import {MessageSquare } from "lucide-react";
+
+import { MessageSquare } from "lucide-react";
 
 const SystemNotification = () => {
   return (

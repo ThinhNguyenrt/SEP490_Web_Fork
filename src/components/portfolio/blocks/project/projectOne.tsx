@@ -23,40 +23,44 @@ const ProjectOne: React.FC<ProjectOneProps> = ({ data }) => {
       </div>
       {projects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map((project: ProjectItem, index: number) => (
-            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-              {project.image && (
-                <img
-                  src={project.image}
-                  alt={project.name}
-                  className="w-full h-40 object-cover"
-                />
-              )}
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{project.name || 'Project'}</h3>
-                <p className="text-gray-700 text-sm mb-3 flex-1">{project.description || 'N/A'}</p>
-                <div className="space-y-1 mb-4">
-                  {project.technology && <p className="text-gray-600 text-sm"><strong>Tech:</strong> {project.technology}</p>}
-                  {project.role && <p className="text-gray-600 text-sm"><strong>Role:</strong> {project.role}</p>}
-                </div>
-                {project.projectLinks && Array.isArray(project.projectLinks) && project.projectLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {project.projectLinks.map((link: { type: string; link: string }, idx: number) => (
-                      <a
-                        key={idx}
-                        href={link.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        {link.type}
-                      </a>
-                    ))}
-                  </div>
+          {projects.map((project: ProjectItem, index: number) => {
+            const projectLinks = project.projectLinks ?? project.links ?? [];
+
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                {project.image && (
+                  <img
+                    src={project.image}
+                    alt={project.name}
+                    className="w-full h-40 object-cover"
+                  />
                 )}
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{project.name || 'Project'}</h3>
+                  <p className="text-gray-700 text-sm mb-3 flex-1">{project.description || 'N/A'}</p>
+                  <div className="space-y-1 mb-4">
+                    {project.technology && <p className="text-gray-600 text-sm"><strong>Tech:</strong> {project.technology}</p>}
+                    {project.role && <p className="text-gray-600 text-sm"><strong>Role:</strong> {project.role}</p>}
+                  </div>
+                  {projectLinks.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {projectLinks.map((link, idx: number) => (
+                        <a
+                          key={idx}
+                          href={link.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          {link.type}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">No projects added yet</div>

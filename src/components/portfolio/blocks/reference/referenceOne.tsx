@@ -1,7 +1,6 @@
 import React from 'react';
 import { ReferenceItem } from '@/services/portfolio.api';
 
-
 interface ReferenceOneProps {
   data: ReferenceItem[];
 }

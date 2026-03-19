@@ -23,30 +23,35 @@ const CertificationOne: React.FC<CertificationOneProps> = ({ data }) => {
 
       {certificates.length > 0 ? (
         <div className="space-y-4">
-          {certificates.map((cert: CertificateItem, index: number) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-              <h4 className="font-semibold text-gray-900 text-lg">{cert.name}</h4>
-              <div className="flex items-start justify-between mt-2">
-                <div>
-                  <p className="text-gray-600 text-sm">{cert.issuer}</p>
-                  <p className="text-gray-500 text-xs mt-1">Năm: {cert.year}</p>
-                  {cert.diploma && (
-                    <p className="text-gray-500 text-xs mt-1">Chứng chỉ: {cert.diploma}</p>
-                  )}
+          {certificates.map((cert: CertificateItem, index: number) => {
+            const issuer = cert.issuer ?? cert.provider ?? 'N/A';
+            const issuedAt = cert.year ?? cert.date ?? 'N/A';
+
+            return (
+              <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <h4 className="font-semibold text-gray-900 text-lg">{cert.name}</h4>
+                <div className="flex items-start justify-between mt-2">
+                  <div>
+                    <p className="text-gray-600 text-sm">{issuer}</p>
+                    <p className="text-gray-500 text-xs mt-1">Năm: {issuedAt}</p>
+                    {cert.diploma && (
+                      <p className="text-gray-500 text-xs mt-1">Chứng chỉ: {cert.diploma}</p>
+                    )}
+                  </div>
                 </div>
+                {cert.link && (
+                  <a
+                    href={cert.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm inline-block mt-3"
+                  >
+                    Xem chứng chỉ →
+                  </a>
+                )}
               </div>
-              {cert.link && (
-                <a
-                  href={cert.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline text-sm inline-block mt-3"
-                >
-                  Xem chứng chỉ →
-                </a>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">No certificates added yet</div>

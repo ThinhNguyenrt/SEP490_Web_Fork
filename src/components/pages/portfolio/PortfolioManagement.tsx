@@ -20,12 +20,14 @@ import { PremiumAndTips } from "@/components/common/Premium";
 const ProfileCard = ({
   data,
   onViewDetail,
+  onEdit,
   isPrimary,
   onSetPrimary,
   onUnsetPrimary,
 }: {
   data: PortfolioMainBlockItem;
   onViewDetail: (portfolioId: number) => void;
+  onEdit: (portfolioId: number) => void;
   isPrimary: boolean;
   onSetPrimary: (portfolioId: number) => void;
   onUnsetPrimary: (portfolioId: number) => void;
@@ -99,7 +101,13 @@ const ProfileCard = ({
                 >
                   <Eye size={14} /> Xem chi tiết
                 </button>
-                <button className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50  cursor-pointer">
+                <button
+                  onClick={() => {
+                    onEdit(data.portfolioId);
+                    setShowMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50  cursor-pointer"
+                >
                   <Edit3 size={14} /> Chỉnh sửa
                 </button>
                 <button className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-500 hover:bg-red-50  cursor-pointer">
@@ -192,6 +200,14 @@ export default function ProfileManagement() {
     navigate(`/portfolio/${portfolioId}`);
   };
 
+  const handleEdit = (portfolioId: number) => {
+    navigate(`/portfolio/${portfolioId}/edit`);
+  };
+
+  const handleCreate = () => {
+    navigate("/portfolio/create");
+  };
+
   const handleSetPrimary = (portfolioId: number) => {
     setPrimaryPortfolioId(portfolioId);
   };
@@ -213,7 +229,10 @@ export default function ProfileManagement() {
                 Quản lý hồ sơ
               </h1>
             </div>
-            <button className="bg-blue-500 hover:bg-blue-600 cursor-pointer text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all active:scale-95">
+            <button
+              onClick={handleCreate}
+              className="bg-blue-500 hover:bg-blue-600 cursor-pointer text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all active:scale-95"
+            >
               <Plus size={20} /> Thêm hồ sơ mới
             </button>
           </header>
@@ -235,6 +254,7 @@ export default function ProfileManagement() {
                   key={portfolio.portfolioId}
                   data={portfolio}
                   onViewDetail={handleViewDetail}
+                  onEdit={handleEdit}
                   isPrimary={primaryPortfolioId === portfolio.portfolioId}
                   onSetPrimary={handleSetPrimary}
                   onUnsetPrimary={handleUnsetPrimary}

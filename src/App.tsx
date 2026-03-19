@@ -5,6 +5,7 @@ import ProfilePage from "./components/pages/profile/Profile";
 import RecruiterProfile from "./components/pages/recruiter/profile/RecruiterProfile";
 import PortfolioManagement from "./components/pages/portfolio/PortfolioManagement";
 import EmptyPortfolioPage from "./components/pages/portfolio/EmptyPortfolio";
+import CreatePortfolio from "./components/pages/portfolio/CreatePortfolio";
 import TalentHome from "./components/pages/talent/TalentHome";
 import RecruiterHome from "./components/pages/recruiter/home/RecruiterHome";
 import RecruitmentManagement from "./components/pages/recruiter/recruitment/RecruitmentManagement";
@@ -62,6 +63,8 @@ function App() {
             element={<RecruitmentDetails />}
           />
           <Route path="/portfolioManagement" element={<PortfolioManagement />} />
+          <Route path="/portfolio/create" element={<CreatePortfolio />} />
+          <Route path="/portfolio/:id/edit" element={<CreatePortfolio />} />
           <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
           <Route path="/community" element={<CommunityPost />} />
           <Route path="/community/:id" element={<CommunityPostDetail />} />

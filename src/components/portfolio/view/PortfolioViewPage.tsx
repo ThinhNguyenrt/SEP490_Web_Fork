@@ -45,8 +45,11 @@ const PortfolioViewPage: React.FC = () => {
   }, [id]);
 
   const handleEdit = () => {
-    // Placeholder for edit functionality
-    console.log('Edit portfolio');
+    if (!portfolio) {
+      return;
+    }
+
+    navigate(`/portfolio/${portfolio.portfolioId}/edit`);
   };
 
   if (loading) {

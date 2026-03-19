@@ -14,7 +14,7 @@ const ReferenceOne: React.FC<ReferenceOneProps> = ({ data }) => {
   const references = Array.isArray(data) ? data : [];
 
   return (
-    <div className="reference-block px-6 py-8 border-b border-gray-200 last:border-b-0 w-[600px] mx-auto "  style={{ backgroundColor: '#EFF6FF' }} >
+    <div className="reference-block w-full max-w-150 px-6 py-8 border-b border-gray-200 last:border-b-0 mx-auto" style={{ backgroundColor: '#EFF6FF' }}>
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-center gap-3 mb-6">
           <h3 className="text-2xl font-bold text-gray-900">Người giới thiệu</h3>

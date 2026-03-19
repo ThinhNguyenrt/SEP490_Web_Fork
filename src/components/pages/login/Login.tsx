@@ -25,7 +25,7 @@ export default function LoginPage() {
       <main className="grow flex items-center justify-center p-4">
         <Card className="w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row shadow-2xl">
           {/* Ảnh bên trái giữ nguyên ... */}
-          <div className="hidden lg:flex lg:w-1/2 bg-[#F0DBBA] relative items-center justify-center overflow-hidden">
+          <div className="hidden lg:flex lg:w-1/2 bg-[#F0DBBA] relative items-center justify-center overflow-hidden z-0">
             <div className="absolute inset-0 opacity-10 pattern-grid-lg text-slate-500"></div>
             <img
               src={LoginPlaceholder}

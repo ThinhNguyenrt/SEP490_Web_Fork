@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  BrowserRouter,
+} from "react-router-dom";
 import LoginPage from "./components/pages/login/Login";
 import { WebLayout } from "./components/common/WebLayout";
 import ProfilePage from "./components/pages/profile/Profile";
@@ -22,57 +27,85 @@ import PortfolioViewPage from "./components/portfolio/view/PortfolioViewPage";
 import NotificationsPage from "./components/pages/notification/NotificationsPage";
 import MyCommunityPost from "./components/pages/community/MyCommunityPost";
 import MySavePost from "./components/pages/community/save/TalentSavePost";
-import CandidateManagement from "./components/pages/recruiter/recruitment/CandidateManagement";
-import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
+// import CandidateManagement from "./components/pages/recruiter/recruitment/CandidateManagement";
+// import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
 import CompanySavePost from "./components/pages/community/save/CompanySavePost";
 import TalentSavePost from "./components/pages/community/save/TalentSavePost";
 import WelcomePage from "./components/pages/login/WelcomePage";
 import ErrorPage from "./components/pages/ErrorPage";
-
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Suspense } from "react";
+import LoadingWrapper from "./components/Loading/LoadingWrapper";
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Route trang Login tách biệt hoàn toàn */}
-        <Route path="/" element={<LoginPage />} />{" "}
-        <Route element={<WebLayout />}>
-          <Route path="talent-home" element={<TalentHome />} />
-          <Route path="recruiter-home" element={<RecruiterHome />} />
-          <Route path="/job/:postId" element={<PostDetail />} />
-          <Route path="/chat" element={<ChatRoom />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/application-history" element={<ApplicationHistory />} />
-          <Route path="/application-management" element={<ApplicationManagement />} />
-          <Route path="/recruiter-profile" element={<RecruiterProfile />} />
-          {/* <Route path="/candicate-management" element={<CandidateManagement />} />
+    <BrowserRouter>
+      <Suspense fallback={<LoadingWrapper />}>
+        <LoadingWrapper>
+          <Routes>
+            {/* Route trang Login tách biệt hoàn toàn */}
+            <Route path="/" element={<LoginPage />} />{" "}
+            <Route element={<WebLayout />}>
+              <Route path="talent-home" element={<TalentHome />} />
+              <Route path="recruiter-home" element={<RecruiterHome />} />
+              <Route path="/job/:postId" element={<PostDetail />} />
+              <Route path="/chat" element={<ChatRoom />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route
+                path="/application-history"
+                element={<ApplicationHistory />}
+              />
+              <Route
+                path="/application-management"
+                element={<ApplicationManagement />}
+              />
+              <Route path="/recruiter-profile" element={<RecruiterProfile />} />
+              {/* <Route path="/candicate-management" element={<CandidateManagement />} />
           <Route path="/interview-schedule" element={<InterviewSchedule />} /> */}
-          <Route path="/company-saved" element={<CompanySavePost />} />
-          <Route path="/talent-saved" element={<TalentSavePost />} />
-          <Route path="/welcome" element={<WelcomePage />} />
-          <Route
-            path="/recruitment-management"
-            element={<RecruitmentManagement />}
+              <Route path="/company-saved" element={<CompanySavePost />} />
+              <Route path="/talent-saved" element={<TalentSavePost />} />
+              <Route path="/welcome" element={<WelcomePage />} />
+              <Route
+                path="/recruitment-management"
+                element={<RecruitmentManagement />}
+              />
+              <Route
+                path="/recruitment-management/create"
+                element={<CreateRecruitmentPost />}
+              />
+              <Route
+                path="/recruitment-management/:postId"
+                element={<RecruitmentDetails />}
+              />
+              <Route
+                path="/portfolioManagement"
+                element={<PortfolioManagement />}
+              />
+              <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
+              <Route path="/community" element={<CommunityPost />} />
+              <Route path="/community/:id" element={<CommunityPostDetail />} />
+              <Route path="/portfolio/:id" element={<PortfolioViewPage />} />
+              <Route path="/notification" element={<NotificationsPage />} />
+              <Route path="/my-community-posts" element={<MyCommunityPost />} />
+              <Route path="/my-save-posts" element={<MySavePost />} />
+            </Route>
+            <Route path="*" element={<ErrorPage />} />
+          </Routes>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light" // Hoặc "dark" tùy UI của bạn
           />
-          <Route
-            path="/recruitment-management/create"
-            element={<CreateRecruitmentPost />}
-          />
-          <Route
-            path="/recruitment-management/:postId"
-            element={<RecruitmentDetails />}
-          />
-          <Route path="/portfolioManagement" element={<PortfolioManagement />} />
-          <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
-          <Route path="/community" element={<CommunityPost />} />
-          <Route path="/community/:id" element={<CommunityPostDetail />} />
-          <Route path="/portfolio/:id" element={<PortfolioViewPage />} />
-          <Route path="/notification" element={<NotificationsPage />} />
-          <Route path="/my-community-posts" element={<MyCommunityPost />} />
-          <Route path="/my-save-posts" element={<MySavePost />} />
-        </Route>
-        <Route path="*" element={<ErrorPage />} />
-      </Routes>
-    </Router>
+        </LoadingWrapper>
+      </Suspense>
+    </BrowserRouter>
   );
 }
 

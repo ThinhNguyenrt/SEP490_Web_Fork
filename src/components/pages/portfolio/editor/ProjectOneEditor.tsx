@@ -1,0 +1,306 @@
+import { Upload, X } from "lucide-react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  useRef,
+  useState,
+} from "react";
+import { cn } from "@/lib/utils";
+import { type ProjectOneDraft } from "@/components/pages/portfolio/editor/projectOneDraft";
+
+type ProjectOneEditorProps = {
+  initialData: ProjectOneDraft;
+  onSave: (nextDraft: ProjectOneDraft) => void;
+  onCancel: () => void;
+};
+
+const readImageAsDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Không thể đọc ảnh đã chọn."));
+    };
+
+    reader.onerror = () => reject(new Error("Không thể đọc ảnh đã chọn."));
+
+    reader.readAsDataURL(file);
+  });
+};
+
+const normalizeDraft = (draft: ProjectOneDraft): ProjectOneDraft => {
+  return {
+    image: draft.image.trim(),
+    name: draft.name.trim(),
+    description: draft.description.trim(),
+    role: draft.role.trim(),
+    technology: draft.technology.trim(),
+    githubLink: draft.githubLink.trim(),
+    figmaLink: draft.figmaLink.trim(),
+    appLink: draft.appLink.trim(),
+    websiteLink: draft.websiteLink.trim(),
+  };
+};
+
+export default function ProjectOneEditor({ initialData, onSave, onCancel }: ProjectOneEditorProps) {
+  const [draft, setDraft] = useState<ProjectOneDraft>(initialData);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const updateDraftField = (field: keyof ProjectOneDraft, value: string) => {
+    setDraft((prevDraft) => ({
+      ...prevDraft,
+      [field]: value,
+    }));
+  };
+
+  const hasContent = [
+    draft.image,
+    draft.name,
+    draft.description,
+    draft.role,
+    draft.technology,
+    draft.githubLink,
+    draft.figmaLink,
+    draft.appLink,
+    draft.websiteLink,
+  ].some((value) => value.trim().length > 0);
+
+  const handleSave = () => {
+    if (!hasContent) {
+      return;
+    }
+
+    onSave(normalizeDraft(draft));
+  };
+
+  const applyProjectImage = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    const nextImage = await readImageAsDataUrl(file);
+    updateDraftField("image", nextImage);
+  };
+
+  const handleImageInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    await applyProjectImage(file);
+    event.target.value = "";
+  };
+
+  const handleImageDrop = async (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingImage(false);
+
+    const file = event.dataTransfer.files?.[0] ?? null;
+    await applyProjectImage(file);
+  };
+
+  const linkFieldClassName =
+    "h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]";
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
+      <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">
+        <div>
+          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Thêm dự án mới</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Hãy điền thông tin dự án để hiển thị trong hồ sơ của bạn
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full p-1 text-slate-700 transition-colors hover:bg-slate-200"
+          title="Đóng"
+        >
+          <X size={24} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      <div className="space-y-3 p-3">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Ảnh dự án</label>
+
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            onChange={handleImageInputChange}
+            className="hidden"
+          />
+
+          <div
+            onDragEnter={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsDraggingImage(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsDraggingImage(true);
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsDraggingImage(false);
+            }}
+            onDrop={handleImageDrop}
+            className={cn(
+              "rounded-xl border border-dashed bg-white px-3 py-4 text-center transition-colors",
+              isDraggingImage
+                ? "border-[#4A79E8] bg-[#edf3ff]"
+                : "border-[#bfc8d8]",
+            )}
+          >
+            {draft.image ? (
+              <div className="space-y-3">
+                <img
+                  src={draft.image}
+                  alt="Ảnh dự án"
+                  className="mx-auto h-28 w-full max-w-xs rounded-xl border border-[#d7dfeb] object-cover"
+                />
+                <p className="text-xs text-slate-500">Kéo thả ảnh mới hoặc bấm Chọn ảnh để thay thế</p>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-2 flex justify-center text-[#5f84d7]">
+                  <Upload size={28} />
+                </div>
+                <p className="text-sm font-semibold text-slate-600">
+                  Kéo thả ảnh vào đây hoặc chọn ảnh từ máy
+                </p>
+                <p className="mt-1 text-xs text-slate-500">JPG/PNG, gợi ý kích thước 1600x900 hoặc 4:3</p>
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-[#acb4c3] bg-[#f4f6fa] px-5 text-sm font-semibold text-slate-700 transition-colors hover:bg-[#eaedf3]"
+              >
+                Chọn ảnh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Tên dự án</label>
+          <input
+            value={draft.name}
+            onChange={(event) => updateDraftField("name", event.target.value)}
+            placeholder="Nhập tên dự án, ví dụ: Dashboard phân tích dữ liệu"
+            className={linkFieldClassName}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Mô tả dự án</label>
+          <textarea
+            value={draft.description}
+            onChange={(event) => updateDraftField("description", event.target.value)}
+            placeholder="Mục tiêu dự án và kết quả đạt được (50 - 100 từ)"
+            className="min-h-24 w-full resize-none rounded-xl border border-[#d1d5db] bg-white p-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Vai trò</label>
+          <input
+            value={draft.role}
+            onChange={(event) => updateDraftField("role", event.target.value)}
+            placeholder="Vai trò của bạn trong dự án này là gì?"
+            className={linkFieldClassName}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Công nghệ</label>
+          <input
+            value={draft.technology}
+            onChange={(event) => updateDraftField("technology", event.target.value)}
+            placeholder="Công nghệ bạn đã sử dụng trong dự án này là gì?"
+            className={linkFieldClassName}
+          />
+        </div>
+
+        <div className="rounded-xl border border-[#d7dfeb] bg-[#edf2fb] p-3">
+          <h4 className="text-sm font-semibold text-slate-700">Đường dẫn công khai</h4>
+          <p className="mt-1 text-xs text-slate-500">
+            Đường dẫn công khai giúp nhà tuyển dụng có thể xem chi tiết hơn dự án của bạn
+          </p>
+
+          <div className="mt-3 space-y-2.5">
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-600">Github</label>
+              <input
+                value={draft.githubLink}
+                onChange={(event) => updateDraftField("githubLink", event.target.value)}
+                className={linkFieldClassName}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-600">Figma hoặc nơi bạn thiết kế dự án</label>
+              <input
+                value={draft.figmaLink}
+                onChange={(event) => updateDraftField("figmaLink", event.target.value)}
+                className={linkFieldClassName}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-600">Ứng dụng</label>
+              <input
+                value={draft.appLink}
+                onChange={(event) => updateDraftField("appLink", event.target.value)}
+                className={linkFieldClassName}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-600">Website</label>
+              <input
+                value={draft.websiteLink}
+                onChange={(event) => updateDraftField("websiteLink", event.target.value)}
+                className={linkFieldClassName}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 border-t border-[#d7dfeb] bg-[#EFF6FF] px-3 py-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-9 min-w-24 rounded-xl bg-[#e6eaf1] px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-[#dde3ec]"
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!hasContent}
+          className="h-9 min-w-32 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Thêm dự án
+        </button>
+      </div>
+    </div>
+  );
+}

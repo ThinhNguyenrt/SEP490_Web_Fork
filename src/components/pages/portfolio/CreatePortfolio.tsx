@@ -12,15 +12,26 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
+import ActivityOneEditor from "./editor/ActivityOneEditor";
+import AwardEditor from "./editor/AwardEditor";
 import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
 import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
 import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
 import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
 import SkillOneEditor from "@/components/pages/portfolio/editor/SkillOneEditor";
+import ProjectOneEditor from "./editor/ProjectOneEditor";
 import {
   createCertificateOneDraft,
   type CertificateOneDraft,
 } from "@/components/pages/portfolio/editor/certificateOneDraft";
+import {
+  createActivityOneDraft,
+  type ActivityOneDraft,
+} from "./editor/activityOneDraft";
+import {
+  createAwardOneDraft,
+  type AwardOneDraft,
+} from "./editor/awardOneDraft";
 import {
   createEducationOneDraft,
   type EducationOneDraft,
@@ -38,6 +49,10 @@ import {
   createSkillOneDraft,
   type SkillOneDraft,
 } from "@/components/pages/portfolio/editor/skillOneDraft";
+import {
+  createProjectOneDraft,
+  type ProjectOneDraft,
+} from "./editor/projectOneDraft";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { cn } from "@/lib/utils";
 import {
@@ -61,7 +76,15 @@ type BlockCatalogItem = {
   description: string;
 };
 
-type EditableBlockType = "INTRO" | "SKILL" | "EDUCATION" | "EXPERIMENT" | "DIPLOMA";
+type EditableBlockType =
+  | "INTRO"
+  | "SKILL"
+  | "EDUCATION"
+  | "EXPERIMENT"
+  | "PROJECT"
+  | "AWARD"
+  | "ACTIVITIES"
+  | "DIPLOMA";
 
 const BLOCK_LABELS: Record<string, string> = {
   INTRO: "Giới thiệu",
@@ -84,6 +107,9 @@ const EDITABLE_BLOCK_TYPES: EditableBlockType[] = [
   "SKILL",
   "EDUCATION",
   "EXPERIMENT",
+  "PROJECT",
+  "AWARD",
+  "ACTIVITIES",
   "DIPLOMA",
 ];
 
@@ -599,6 +625,39 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingProjectOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "PROJECT"
+      && selectedBlock.variant.toUpperCase() === "PROJECTONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingAwardOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "AWARD"
+      && selectedBlock.variant.toUpperCase() === "AWARDONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingActivityOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "ACTIVITIES"
+      && selectedBlock.variant.toUpperCase() === "ACTIVITYONE"
+    );
+  }, [selectedBlock]);
+
   const isEditingCertificateOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -615,6 +674,9 @@ export default function CreatePortfolio() {
     || isEditingSkillOne
     || isEditingEducationOne
     || isEditingExperienceOne
+    || isEditingProjectOne
+    || isEditingAwardOne
+    || isEditingActivityOne
     || isEditingCertificateOne;
 
   const introOneInitialData = useMemo(() => {
@@ -680,6 +742,54 @@ export default function CreatePortfolio() {
 
     return `experience-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingExperienceOne, selectedBlock]);
+
+  const projectOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectOne) {
+      return null;
+    }
+
+    return createProjectOneDraft(selectedBlock.data);
+  }, [isEditingProjectOne, selectedBlock]);
+
+  const projectOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectOne) {
+      return "project-one-editor";
+    }
+
+    return `project-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingProjectOne, selectedBlock]);
+
+  const awardOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingAwardOne) {
+      return null;
+    }
+
+    return createAwardOneDraft(selectedBlock.data);
+  }, [isEditingAwardOne, selectedBlock]);
+
+  const awardOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingAwardOne) {
+      return "award-one-editor";
+    }
+
+    return `award-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingAwardOne, selectedBlock]);
+
+  const activityOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingActivityOne) {
+      return null;
+    }
+
+    return createActivityOneDraft(selectedBlock.data);
+  }, [isEditingActivityOne, selectedBlock]);
+
+  const activityOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingActivityOne) {
+      return "activity-one-editor";
+    }
+
+    return `activity-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingActivityOne, selectedBlock]);
 
   const certificateOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingCertificateOne) {
@@ -986,6 +1096,96 @@ export default function CreatePortfolio() {
   };
 
   const handleExperienceOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleProjectOneSave = (nextDraft: ProjectOneDraft) => {
+    if (!selectedBlock || !isEditingProjectOne) {
+      return;
+    }
+
+    const projectLinks = [
+      { type: "github", link: nextDraft.githubLink.trim() },
+      { type: "figma", link: nextDraft.figmaLink.trim() },
+      { type: "app", link: nextDraft.appLink.trim() },
+      { type: "website", link: nextDraft.websiteLink.trim() },
+    ].filter((item) => item.link.length > 0);
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          image: nextDraft.image,
+          name: nextDraft.name,
+          description: nextDraft.description,
+          role: nextDraft.role,
+          technology: nextDraft.technology,
+          projectLinks,
+          links: projectLinks,
+        },
+      ];
+    });
+  };
+
+  const handleProjectOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleAwardOneSave = (nextDraft: AwardOneDraft) => {
+    if (!selectedBlock || !isEditingAwardOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          name: nextDraft.name,
+          date: nextDraft.date,
+          time: nextDraft.date,
+          organization: nextDraft.organization,
+          issuer: nextDraft.organization,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleAwardOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleActivityOneSave = (nextDraft: ActivityOneDraft) => {
+    if (!selectedBlock || !isEditingActivityOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          name: nextDraft.name,
+          date: nextDraft.date,
+          time: nextDraft.date,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleActivityOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1396,6 +1596,51 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderProjectOneEditor = () => {
+    if (!projectOneInitialData) {
+      return null;
+    }
+
+    return (
+      <ProjectOneEditor
+        key={projectOneEditorKey}
+        initialData={projectOneInitialData}
+        onSave={handleProjectOneSave}
+        onCancel={handleProjectOneCancel}
+      />
+    );
+  };
+
+  const renderAwardOneEditor = () => {
+    if (!awardOneInitialData) {
+      return null;
+    }
+
+    return (
+      <AwardEditor
+        key={awardOneEditorKey}
+        initialData={awardOneInitialData}
+        onSave={handleAwardOneSave}
+        onCancel={handleAwardOneCancel}
+      />
+    );
+  };
+
+  const renderActivityOneEditor = () => {
+    if (!activityOneInitialData) {
+      return null;
+    }
+
+    return (
+      <ActivityOneEditor
+        key={activityOneEditorKey}
+        initialData={activityOneInitialData}
+        onSave={handleActivityOneSave}
+        onCancel={handleActivityOneCancel}
+      />
+    );
+  };
+
   const renderCertificateOneEditor = () => {
     if (!certificateOneInitialData) {
       return null;
@@ -1437,6 +1682,18 @@ export default function CreatePortfolio() {
 
     if (blockType === "EXPERIMENT" && variant === "EXPERIMENTONE") {
       return renderExperienceOneEditor();
+    }
+
+    if (blockType === "PROJECT" && variant === "PROJECTONE") {
+      return renderProjectOneEditor();
+    }
+
+    if (blockType === "AWARD" && variant === "AWARDONE") {
+      return renderAwardOneEditor();
+    }
+
+    if (blockType === "ACTIVITIES" && variant === "ACTIVITYONE") {
+      return renderActivityOneEditor();
     }
 
     if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {

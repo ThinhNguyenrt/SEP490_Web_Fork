@@ -12,6 +12,11 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
+import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
+import {
+  createIntroOneDraft,
+  type IntroOneDraft,
+} from "@/components/pages/portfolio/editor/introOneDraft";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { cn } from "@/lib/utils";
 import {
@@ -401,6 +406,7 @@ export default function CreatePortfolio() {
     useState<EditableBlockType>("INTRO");
   const [blocks, setBlocks] = useState<PortfolioBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [showBlockSelector, setShowBlockSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -456,6 +462,7 @@ export default function CreatePortfolio() {
           setBlocks(sortedBlocks);
           setActiveEditorBlockType(preferredType);
           setSelectedBlockId(preferredBlockId);
+          setShowBlockSelector(false);
           setPortfolioName(
             nextPortfolioNames.get(portfolioId) ?? `Portfolio ${portfolioId}`,
           );
@@ -465,6 +472,7 @@ export default function CreatePortfolio() {
         setBlocks([]);
         setActiveEditorBlockType("INTRO");
         setSelectedBlockId(null);
+        setShowBlockSelector(false);
         setPortfolioName("Hồ sơ mới");
       } catch (initializationError) {
         const message =
@@ -483,6 +491,11 @@ export default function CreatePortfolio() {
   useEffect(() => {
     if (blocks.length === 0) {
       setSelectedBlockId(null);
+      setShowBlockSelector(true);
+      return;
+    }
+
+    if (showBlockSelector) {
       return;
     }
 
@@ -500,7 +513,7 @@ export default function CreatePortfolio() {
     if (selectedBlockId === null || !blocks.some((block) => block.id === selectedBlockId)) {
       setSelectedBlockId(blocks[0].id);
     }
-  }, [activeEditorBlockType, blocks, selectedBlockId]);
+  }, [activeEditorBlockType, blocks, selectedBlockId, showBlockSelector]);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? null,
@@ -514,6 +527,33 @@ export default function CreatePortfolio() {
       ) ?? null,
     [activeEditorBlockType, blocks],
   );
+
+  const isEditingIntroOne = useMemo(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "INTRO"
+      && selectedBlock.variant.toUpperCase() === "INTROONE"
+    );
+  }, [selectedBlock]);
+
+  const introOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroOne) {
+      return null;
+    }
+
+    return createIntroOneDraft(selectedBlock.data);
+  }, [isEditingIntroOne, selectedBlock]);
+
+  const introOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroOne) {
+      return "intro-one-editor";
+    }
+
+    return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingIntroOne, selectedBlock]);
 
   const updateSelectedBlockData = (updater: (current: unknown) => unknown) => {
     if (selectedBlockId === null) {
@@ -603,6 +643,7 @@ export default function CreatePortfolio() {
     setBlocks(nextBlocks);
     setActiveEditorBlockType(preferredType);
     setSelectedBlockId(preferredBlockId);
+    setShowBlockSelector(false);
     setActiveTemplateId(template.portfolioId);
     setActiveTab("template");
   };
@@ -624,6 +665,7 @@ export default function CreatePortfolio() {
 
     setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
     setSelectedBlockId(newBlock.id);
+    setShowBlockSelector(false);
     setActiveTab("component");
   };
 
@@ -708,6 +750,28 @@ export default function CreatePortfolio() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleIntroOneSave = (nextDraft: IntroOneDraft) => {
+    if (!selectedBlock || !isEditingIntroOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.fullName = nextDraft.fullName;
+      nextData.title = nextDraft.title;
+      nextData.email = nextDraft.email;
+      nextData.phone = nextDraft.phone;
+      nextData.description = nextDraft.description;
+      nextData.avatar = nextDraft.avatar;
+      return nextData;
+    });
+  };
+
+  const handleIntroOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
   };
 
   const renderFieldInput = (
@@ -1028,6 +1092,21 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderIntroOneEditor = () => {
+    if (!introOneInitialData) {
+      return null;
+    }
+
+    return (
+      <IntroOneEditor
+        key={introOneEditorKey}
+        initialData={introOneInitialData}
+        onSave={handleIntroOneSave}
+        onCancel={handleIntroOneCancel}
+      />
+    );
+  };
+
   const renderEditorForm = () => {
     if (!selectedBlock) {
       return (
@@ -1039,6 +1118,10 @@ export default function CreatePortfolio() {
 
     const blockType = normalizeBlockType(selectedBlock.type);
     const variant = selectedBlock.variant.toUpperCase();
+
+    if (blockType === "INTRO" && variant === "INTROONE") {
+      return renderIntroOneEditor();
+    }
 
     if (blockType === "INTRO") {
       return renderObjectFields([
@@ -1495,15 +1578,20 @@ export default function CreatePortfolio() {
             )}
           </main>
 
-          <aside className="rounded-2xl border border-slate-200 bg-white p-3">
-            <div className="mb-3">
+          <aside
+            className={cn(
+              "rounded-2xl border border-slate-200 p-3",
+              isEditingIntroOne ? "bg-[#EFF6FF]" : "bg-white",
+            )}
+          >
+            <div className={cn("mb-3", isEditingIntroOne && "hidden")}>
               <h2 className="text-sm font-bold text-slate-900">Chỉnh sửa block</h2>
               <p className="text-xs text-slate-500">
                 Chỉ hiển thị form chỉnh sửa cho Introduction, Skill và Education.
               </p>
             </div>
 
-            <div className="mb-3 grid grid-cols-3 gap-2">
+            <div className={cn("mb-3 grid grid-cols-3 gap-2", isEditingIntroOne && "hidden")}>
               {EDITABLE_BLOCK_TYPES.map((type) => {
                 const hasBlock = blocks.some(
                   (block) => normalizeBlockType(block.type) === type,
@@ -1521,6 +1609,7 @@ export default function CreatePortfolio() {
 
                       if (targetBlockId) {
                         setSelectedBlockId(targetBlockId);
+                        setShowBlockSelector(false);
                       }
                     }}
                     className={cn(
@@ -1558,27 +1647,29 @@ export default function CreatePortfolio() {
             )}
 
             {activeEditorBlock && (
-              <div className="max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Thông tin {BLOCK_LABELS[activeEditorBlockType]}
-                  </h3>
-                  {selectedBlock && (
-                    <select
-                      value={selectedBlock.variant.toUpperCase()}
-                      onChange={(event) => updateSelectedVariant(event.target.value)}
-                      className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 outline-none focus:border-blue-400"
-                    >
-                      {(BLOCK_VARIANTS[normalizeBlockType(selectedBlock.type)] ?? [selectedBlock.variant]).map((variantOption) => (
-                        <option key={variantOption} value={variantOption}>
-                          {variantOption}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+              <div className={cn(!isEditingIntroOne && "max-h-[calc(100vh-320px)] overflow-y-auto pr-1")}>
+                {!isEditingIntroOne && (
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Thông tin {BLOCK_LABELS[activeEditorBlockType]}
+                    </h3>
+                    {selectedBlock && (
+                      <select
+                        value={selectedBlock.variant.toUpperCase()}
+                        onChange={(event) => updateSelectedVariant(event.target.value)}
+                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 outline-none focus:border-blue-400"
+                      >
+                        {(BLOCK_VARIANTS[normalizeBlockType(selectedBlock.type)] ?? [selectedBlock.variant]).map((variantOption) => (
+                          <option key={variantOption} value={variantOption}>
+                            {variantOption}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
 
-                {renderEditorForm()}
+                {isEditingIntroOne ? <div className="-mx-3 -mb-3">{renderEditorForm()}</div> : renderEditorForm()}
               </div>
             )}
           </aside>

@@ -12,11 +12,32 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
+import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
+import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
+import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
 import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
+import SkillOneEditor from "@/components/pages/portfolio/editor/SkillOneEditor";
+import {
+  createCertificateOneDraft,
+  type CertificateOneDraft,
+} from "@/components/pages/portfolio/editor/certificateOneDraft";
+import {
+  createEducationOneDraft,
+  type EducationOneDraft,
+} from "@/components/pages/portfolio/editor/educationOneDraft";
+import {
+  createExperienceOneDraft,
+  splitExperienceOneTimeRange,
+  type ExperienceOneDraft,
+} from "@/components/pages/portfolio/editor/experienceOneDraft";
 import {
   createIntroOneDraft,
   type IntroOneDraft,
 } from "@/components/pages/portfolio/editor/introOneDraft";
+import {
+  createSkillOneDraft,
+  type SkillOneDraft,
+} from "@/components/pages/portfolio/editor/skillOneDraft";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { cn } from "@/lib/utils";
 import {
@@ -40,7 +61,7 @@ type BlockCatalogItem = {
   description: string;
 };
 
-type EditableBlockType = "INTRO" | "SKILL" | "EDUCATION";
+type EditableBlockType = "INTRO" | "SKILL" | "EDUCATION" | "EXPERIMENT" | "DIPLOMA";
 
 const BLOCK_LABELS: Record<string, string> = {
   INTRO: "Giới thiệu",
@@ -58,7 +79,13 @@ const BLOCK_LABELS: Record<string, string> = {
   TYPICALCASE: "Ca điển hình",
 };
 
-const EDITABLE_BLOCK_TYPES: EditableBlockType[] = ["INTRO", "SKILL", "EDUCATION"];
+const EDITABLE_BLOCK_TYPES: EditableBlockType[] = [
+  "INTRO",
+  "SKILL",
+  "EDUCATION",
+  "EXPERIMENT",
+  "DIPLOMA",
+];
 
 const BLOCK_VARIANTS: Record<string, string[]> = {
   INTRO: ["INTROONE", "INTROTWO", "INTROTHREE", "INTROFOUR", "INTROFIVE"],
@@ -528,7 +555,7 @@ export default function CreatePortfolio() {
     [activeEditorBlockType, blocks],
   );
 
-  const isEditingIntroOne = useMemo(() => {
+  const isEditingIntroOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
     }
@@ -538,6 +565,57 @@ export default function CreatePortfolio() {
       && selectedBlock.variant.toUpperCase() === "INTROONE"
     );
   }, [selectedBlock]);
+
+  const isEditingSkillOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "SKILL"
+      && selectedBlock.variant.toUpperCase() === "SKILLONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingEducationOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "EDUCATION"
+      && selectedBlock.variant.toUpperCase() === "EDUCATIONONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingExperienceOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "EXPERIMENT"
+      && selectedBlock.variant.toUpperCase() === "EXPERIMENTONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingCertificateOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "DIPLOMA"
+      && selectedBlock.variant.toUpperCase() === "DIPLOMAONE"
+    );
+  }, [selectedBlock]);
+
+  const isUsingDedicatedEditor =
+    isEditingIntroOne
+    || isEditingSkillOne
+    || isEditingEducationOne
+    || isEditingExperienceOne
+    || isEditingCertificateOne;
 
   const introOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingIntroOne) {
@@ -554,6 +632,70 @@ export default function CreatePortfolio() {
 
     return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingIntroOne, selectedBlock]);
+
+  const skillOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingSkillOne) {
+      return null;
+    }
+
+    return createSkillOneDraft(selectedBlock.data);
+  }, [isEditingSkillOne, selectedBlock]);
+
+  const skillOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingSkillOne) {
+      return "skill-one-editor";
+    }
+
+    return `skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingSkillOne, selectedBlock]);
+
+  const educationOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationOne) {
+      return null;
+    }
+
+    return createEducationOneDraft(selectedBlock.data);
+  }, [isEditingEducationOne, selectedBlock]);
+
+  const educationOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationOne) {
+      return "education-one-editor";
+    }
+
+    return `education-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingEducationOne, selectedBlock]);
+
+  const experienceOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingExperienceOne) {
+      return null;
+    }
+
+    return createExperienceOneDraft(selectedBlock.data);
+  }, [isEditingExperienceOne, selectedBlock]);
+
+  const experienceOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingExperienceOne) {
+      return "experience-one-editor";
+    }
+
+    return `experience-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingExperienceOne, selectedBlock]);
+
+  const certificateOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingCertificateOne) {
+      return null;
+    }
+
+    return createCertificateOneDraft(selectedBlock.data);
+  }, [isEditingCertificateOne, selectedBlock]);
+
+  const certificateOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingCertificateOne) {
+      return "certificate-one-editor";
+    }
+
+    return `certificate-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingCertificateOne, selectedBlock]);
 
   const updateSelectedBlockData = (updater: (current: unknown) => unknown) => {
     if (selectedBlockId === null) {
@@ -770,6 +912,108 @@ export default function CreatePortfolio() {
   };
 
   const handleIntroOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleSkillOneSave = (nextDraft: SkillOneDraft) => {
+    if (!selectedBlock || !isEditingSkillOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return nextDraft.skills.map((skillName) => ({ name: skillName }));
+    });
+  };
+
+  const handleSkillOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleEducationOneSave = (nextDraft: EducationOneDraft) => {
+    if (!selectedBlock || !isEditingEducationOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          schoolName: nextDraft.schoolName,
+          school: nextDraft.schoolName,
+          time: nextDraft.time,
+          department: nextDraft.department,
+          major: nextDraft.department,
+          certificate: nextDraft.certificate,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleEducationOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleExperienceOneSave = (nextDraft: ExperienceOneDraft) => {
+    if (!selectedBlock || !isEditingExperienceOne) {
+      return;
+    }
+
+    const { startDate, endDate } = splitExperienceOneTimeRange(nextDraft.time);
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          jobName: nextDraft.jobName,
+          address: nextDraft.address,
+          startDate,
+          endDate,
+          time: nextDraft.time,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleExperienceOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleCertificateOneSave = (nextDraft: CertificateOneDraft) => {
+    if (!selectedBlock || !isEditingCertificateOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          name: nextDraft.name,
+          issuer: nextDraft.issuer,
+          provider: nextDraft.issuer,
+          year: nextDraft.year,
+          date: nextDraft.year,
+          link: nextDraft.link,
+        },
+      ];
+    });
+  };
+
+  const handleCertificateOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1107,6 +1351,66 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderSkillOneEditor = () => {
+    if (!skillOneInitialData) {
+      return null;
+    }
+
+    return (
+      <SkillOneEditor
+        key={skillOneEditorKey}
+        initialData={skillOneInitialData}
+        onSave={handleSkillOneSave}
+        onCancel={handleSkillOneCancel}
+      />
+    );
+  };
+
+  const renderEducationOneEditor = () => {
+    if (!educationOneInitialData) {
+      return null;
+    }
+
+    return (
+      <EducationOneEditor
+        key={educationOneEditorKey}
+        initialData={educationOneInitialData}
+        onSave={handleEducationOneSave}
+        onCancel={handleEducationOneCancel}
+      />
+    );
+  };
+
+  const renderExperienceOneEditor = () => {
+    if (!experienceOneInitialData) {
+      return null;
+    }
+
+    return (
+      <ExperienceOneEditor
+        key={experienceOneEditorKey}
+        initialData={experienceOneInitialData}
+        onSave={handleExperienceOneSave}
+        onCancel={handleExperienceOneCancel}
+      />
+    );
+  };
+
+  const renderCertificateOneEditor = () => {
+    if (!certificateOneInitialData) {
+      return null;
+    }
+
+    return (
+      <CertificateOneEditor
+        key={certificateOneEditorKey}
+        initialData={certificateOneInitialData}
+        onSave={handleCertificateOneSave}
+        onCancel={handleCertificateOneCancel}
+      />
+    );
+  };
+
   const renderEditorForm = () => {
     if (!selectedBlock) {
       return (
@@ -1121,6 +1425,22 @@ export default function CreatePortfolio() {
 
     if (blockType === "INTRO" && variant === "INTROONE") {
       return renderIntroOneEditor();
+    }
+
+    if (blockType === "SKILL" && variant === "SKILLONE") {
+      return renderSkillOneEditor();
+    }
+
+    if (blockType === "EDUCATION" && variant === "EDUCATIONONE") {
+      return renderEducationOneEditor();
+    }
+
+    if (blockType === "EXPERIMENT" && variant === "EXPERIMENTONE") {
+      return renderExperienceOneEditor();
+    }
+
+    if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {
+      return renderCertificateOneEditor();
     }
 
     if (blockType === "INTRO") {
@@ -1581,17 +1901,17 @@ export default function CreatePortfolio() {
           <aside
             className={cn(
               "rounded-2xl border border-slate-200 p-3",
-              isEditingIntroOne ? "bg-[#EFF6FF]" : "bg-white",
+              isUsingDedicatedEditor ? "bg-[#EFF6FF]" : "bg-white",
             )}
           >
-            <div className={cn("mb-3", isEditingIntroOne && "hidden")}>
+            <div className={cn("mb-3", isUsingDedicatedEditor && "hidden")}>
               <h2 className="text-sm font-bold text-slate-900">Chỉnh sửa block</h2>
               <p className="text-xs text-slate-500">
-                Chỉ hiển thị form chỉnh sửa cho Introduction, Skill và Education.
+                Chỉ hiển thị form chỉnh sửa cho các block đã hỗ trợ editor riêng.
               </p>
             </div>
 
-            <div className={cn("mb-3 grid grid-cols-3 gap-2", isEditingIntroOne && "hidden")}>
+            <div className={cn("mb-3 grid grid-cols-3 gap-2", isUsingDedicatedEditor && "hidden")}>
               {EDITABLE_BLOCK_TYPES.map((type) => {
                 const hasBlock = blocks.some(
                   (block) => normalizeBlockType(block.type) === type,
@@ -1647,8 +1967,8 @@ export default function CreatePortfolio() {
             )}
 
             {activeEditorBlock && (
-              <div className={cn(!isEditingIntroOne && "max-h-[calc(100vh-320px)] overflow-y-auto pr-1")}>
-                {!isEditingIntroOne && (
+              <div className={cn(!isUsingDedicatedEditor && "max-h-[calc(100vh-320px)] overflow-y-auto pr-1")}>
+                {!isUsingDedicatedEditor && (
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <h3 className="text-sm font-bold text-slate-900">
                       Thông tin {BLOCK_LABELS[activeEditorBlockType]}
@@ -1669,7 +1989,7 @@ export default function CreatePortfolio() {
                   </div>
                 )}
 
-                {isEditingIntroOne ? <div className="-mx-3 -mb-3">{renderEditorForm()}</div> : renderEditorForm()}
+                {isUsingDedicatedEditor ? <div className="-mx-3 -mb-3">{renderEditorForm()}</div> : renderEditorForm()}
               </div>
             )}
           </aside>

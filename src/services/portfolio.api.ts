@@ -22,6 +22,13 @@ export type PortfolioMainBlockItem = {
   blocks: PortfolioBlock;
 };
 
+export type SavePortfolioPayload = {
+  userId: number;
+  name: string;
+  status?: number;
+  blocks: PortfolioBlock[];
+};
+
 export type ExperienceItem = {
   jobName: string;
   address: string;
@@ -984,6 +991,109 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   },
 ];
 
+const cloneData = <T>(value: T): T => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value)) as T;
+  } catch {
+    return value;
+  }
+};
+
+const cloneBlock = (block: PortfolioBlock): PortfolioBlock => {
+  return {
+    ...block,
+    data: cloneData(block.data),
+  };
+};
+
+const sortAndReindexBlocks = (blocks: PortfolioBlock[]): PortfolioBlock[] => {
+  return [...blocks]
+    .sort((a, b) => a.order - b.order)
+    .map((block, index) => ({
+      ...block,
+      order: index + 1,
+    }));
+};
+
+const getNextPortfolioId = (): number => {
+  const portfolioIds = PORTFOLIO_MOCK.map((item) => item.portfolioId);
+  return (portfolioIds.length > 0 ? Math.max(...portfolioIds) : 0) + 1;
+};
+
+let nextPortfolioBlockId = (() => {
+  const allBlockIds = PORTFOLIO_MOCK.flatMap((item) =>
+    item.blocks.map((block) => block.id),
+  );
+  return (allBlockIds.length > 0 ? Math.max(...allBlockIds) : 0) + 1;
+})();
+
+const allocatePortfolioBlockId = (): number => {
+  const nextId = nextPortfolioBlockId;
+  nextPortfolioBlockId += 1;
+  return nextId;
+};
+
+const sanitizeBlocksForStore = (
+  blocks: PortfolioBlock[],
+  shouldGenerateFreshIds: boolean,
+): PortfolioBlock[] => {
+  return sortAndReindexBlocks(blocks).map((block, index) => ({
+    id:
+      shouldGenerateFreshIds || block.id <= 0
+        ? allocatePortfolioBlockId()
+        : block.id,
+    type: block.type.toUpperCase(),
+    variant: block.variant.toUpperCase(),
+    order: index + 1,
+    data: cloneData(block.data),
+  }));
+};
+
+const getMainBlockForList = (blocks: PortfolioBlock[]): PortfolioBlock => {
+  if (blocks.length > 0) {
+    return cloneBlock(blocks[0]);
+  }
+
+  return {
+    id: allocatePortfolioBlockId(),
+    type: "INTRO",
+    variant: "INTROONE",
+    order: 1,
+    data: {},
+  };
+};
+
+const upsertPortfolioListItem = (
+  portfolio: PortfolioResponse,
+  portfolioName: string,
+  status: number,
+) => {
+  const listItem: PortfolioMainBlockItem = {
+    portfolioId: portfolio.portfolioId,
+    userId: portfolio.userId,
+    portfolio: {
+      name: portfolioName,
+      status,
+    },
+    blocks: getMainBlockForList(portfolio.blocks),
+  };
+
+  const existingIndex = PORTFOLIO_LIST_MOCK.findIndex(
+    (item) => item.portfolioId === portfolio.portfolioId,
+  );
+
+  if (existingIndex === -1) {
+    PORTFOLIO_LIST_MOCK.push(listItem);
+    return;
+  }
+
+  PORTFOLIO_LIST_MOCK[existingIndex] = listItem;
+};
+
 const normalizeIntroData = (data: unknown) => {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return data;
@@ -1073,6 +1183,77 @@ export const fetchPortfolioById = async (portfolioId: number) => {
   });
 };
 
+export const fetchPortfolioTemplates = async () => {
+  return new Promise<PortfolioResponse[]>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        PORTFOLIO_MOCK.map((portfolio) => ({
+          ...portfolio,
+          blocks: normalizePortfolioBlocks(portfolio.blocks).map(cloneBlock),
+        })),
+      );
+    }, 1);
+  });
+};
+
+export const createPortfolio = async (
+  payload: SavePortfolioPayload,
+): Promise<PortfolioResponse> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const created: PortfolioResponse = {
+        portfolioId: getNextPortfolioId(),
+        userId: payload.userId,
+        blocks: sanitizeBlocksForStore(payload.blocks, true),
+      };
+
+      PORTFOLIO_MOCK.push(created);
+      upsertPortfolioListItem(created, payload.name, payload.status ?? 0);
+
+      resolve({
+        ...created,
+        blocks: normalizePortfolioBlocks(created.blocks),
+      });
+    }, 1);
+  });
+};
+
+export const updatePortfolioById = async (
+  portfolioId: number,
+  payload: SavePortfolioPayload,
+): Promise<PortfolioResponse | undefined> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const portfolioIndex = PORTFOLIO_MOCK.findIndex(
+        (item) => item.portfolioId === portfolioId,
+      );
+
+      if (portfolioIndex === -1) {
+        resolve(undefined);
+        return;
+      }
+
+      const updatedPortfolio: PortfolioResponse = {
+        portfolioId,
+        userId: payload.userId,
+        blocks: sanitizeBlocksForStore(payload.blocks, false),
+      };
+
+      PORTFOLIO_MOCK[portfolioIndex] = updatedPortfolio;
+      upsertPortfolioListItem(
+        updatedPortfolio,
+        payload.name,
+        payload.status ?? 0,
+      );
+
+      resolve({
+        ...updatedPortfolio,
+        blocks: normalizePortfolioBlocks(updatedPortfolio.blocks),
+      });
+    }, 1);
+  });
+};
+
 export const fetchMainBlockPortfolioByUserId = async (userId: number) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -1103,6 +1284,9 @@ export const fetchMainPortfoliosManagerByUser = async (
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
+  fetchPortfolioTemplates,
   fetchMainBlockPortfolioByUserId,
   fetchMainPortfoliosManagerByUser,
+  createPortfolio,
+  updatePortfolioById,
 };

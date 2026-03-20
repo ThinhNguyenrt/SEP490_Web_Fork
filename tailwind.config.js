@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Public Sans"', "Inter", "system-ui", "sans-serif"],
+        sans: ["Calibri", "Arial", '"Helvetica Neue"', "Helvetica", "sans-serif"],
       },
     },
   },

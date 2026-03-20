@@ -9,6 +9,7 @@ import ProfilePage from "./components/pages/profile/Profile";
 import RecruiterProfile from "./components/pages/recruiter/profile/RecruiterProfile";
 import PortfolioManagement from "./components/pages/portfolio/PortfolioManagement";
 import EmptyPortfolioPage from "./components/pages/portfolio/EmptyPortfolio";
+import CreatePortfolio from "./components/pages/portfolio/CreatePortfolio";
 import TalentHome from "./components/pages/talent/TalentHome";
 import RecruiterHome from "./components/pages/recruiter/home/RecruiterHome";
 import RecruitmentManagement from "./components/pages/recruiter/recruitment/RecruitmentManagement";
@@ -18,6 +19,8 @@ import { PostDetail } from "./components/pages/talent/PostDetail";
 import ChatRoom from "./components/pages/talent/ChatRoom";
 import ApplicationHistory from "./components/pages/talent/ApplicationHistory";
 import ApplicationManagement from "./components/pages/recruiter/application/ApplicationManagement";
+import CandidateManagement from "./components/pages/recruiter/recruitment/CandidateManagement";
+import InterviewSchedule from "./components/pages/recruiter/recruitment/InterviewSchedule";
 
 import CommunityPost from "./components/pages/community/CommunityPost";
 import CommunityPostDetail from "./components/pages/community/CommunityPostDetail";
@@ -41,7 +44,7 @@ function App() {
         <LoadingWrapper>
           <Routes>
             {/* Route trang Login tách biệt hoàn toàn */}
-            <Route path="/" element={<LoginPage />} />{" "}
+            <Route path="/" element={<LoginPage />} />
             <Route element={<WebLayout />}>
               <Route path="talent-home" element={<TalentHome />} />
               <Route path="recruiter-home" element={<RecruiterHome />} />
@@ -57,8 +60,8 @@ function App() {
                 element={<ApplicationManagement />}
               />
               <Route path="/recruiter-profile" element={<RecruiterProfile />} />
-              {/* <Route path="/candicate-management" element={<CandidateManagement />} />
-          <Route path="/interview-schedule" element={<InterviewSchedule />} /> */}
+              <Route path="/candicate-management" element={<CandidateManagement />} />
+              <Route path="/interview-schedule" element={<InterviewSchedule />} />
               <Route path="/company-saved" element={<CompanySavePost />} />
               <Route path="/talent-saved" element={<TalentSavePost />} />
               <Route path="/welcome" element={<WelcomePage />} />
@@ -78,6 +81,8 @@ function App() {
                 path="/portfolioManagement"
                 element={<PortfolioManagement />}
               />
+              <Route path="/portfolio/create" element={<CreatePortfolio />} />
+              <Route path="/portfolio/:id/edit" element={<CreatePortfolio />} />
               <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
               <Route path="/community" element={<CommunityPost />} />
               <Route path="/community/:id" element={<CommunityPostDetail />} />

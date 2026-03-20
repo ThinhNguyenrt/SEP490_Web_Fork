@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, Phone, Mail, Plus, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
 import SortIcon from "../../../../assets/myWeb/sort.png";
@@ -12,6 +12,7 @@ import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 // Mock data cho ứng viên
 interface Candidate {
   id: string;
+  portfolioId: number;
   name: string;
   email: string;
   phone: string;
@@ -33,6 +34,7 @@ interface Candidate {
 const mockCandidates: Candidate[] = [
   {
     id: "1",
+    portfolioId: 12,
     name: "Phạm An Nhiên",
     email: "annhien@gmail.com",
     phone: "0123456789",
@@ -55,6 +57,7 @@ const mockCandidates: Candidate[] = [
   },
   {
     id: "2",
+    portfolioId: 20,
     name: "Nguyễn Văn A",
     email: "nguyenvana@gmail.com",
     phone: "0987654321",
@@ -77,6 +80,7 @@ const mockCandidates: Candidate[] = [
   },
   {
     id: "3",
+    portfolioId: 30,
     name: "Trần Thị B",
     email: "tranthib@gmail.com",
     phone: "0912345678",
@@ -110,17 +114,15 @@ export default function RecruiterHome() {
   const [isLoading, setIsLoading] = useState(false);
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const currentCandidate = filteredCandidates[currentIndex];
+  const activePortfolioId = currentCandidate?.portfolioId;
 
   const handleNext = () => {
     if (currentIndex < filteredCandidates.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setIsExpanded(false);
       setPortfolio(null);
     }
   };
@@ -128,7 +130,6 @@ export default function RecruiterHome() {
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setIsExpanded(false);
       setPortfolio(null);
     }
   };
@@ -189,31 +190,40 @@ export default function RecruiterHome() {
     handleNext();
   };
 
-  const handleViewMore = async () => {
-    if (!isExpanded) {
+  useEffect(() => {
+    if (!activePortfolioId) {
+      setPortfolio(null);
+      setLoadingPortfolio(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadPortfolio = async () => {
       setLoadingPortfolio(true);
       try {
-        // Fetch portfolio data - using candidate id as portfolio id
-        const portfolioId = parseInt(currentCandidate.id);
-        const data = await portfolioService.fetchPortfolioById(portfolioId);
-        if (data) {
-          setPortfolio(data);
+        const data = await portfolioService.fetchPortfolioById(activePortfolioId);
+        if (!isCancelled) {
+          setPortfolio(data ?? null);
         }
-        setIsExpanded(true);
       } catch (error) {
         console.error('Error loading portfolio:', error);
-        // If portfolio not found, still expand with basic info
-        setIsExpanded(true);
+        if (!isCancelled) {
+          setPortfolio(null);
+        }
       } finally {
-        setLoadingPortfolio(false);
+        if (!isCancelled) {
+          setLoadingPortfolio(false);
+        }
       }
-    } else {
-      // Scroll down to see more content
-      if (contentRef.current) {
-        contentRef.current.scrollBy({ top: 300, behavior: 'smooth' });
-      }
-    }
-  };
+    };
+
+    void loadPortfolio();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activePortfolioId]);
 
   const handleRefresh = () => {
     // Refresh candidate list
@@ -245,11 +255,11 @@ export default function RecruiterHome() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <div className="flex gap-0 pt-10 min-h-screen">
         {/* Left Filter Sidebar */}
-        <div className="fixed left-3 h-screen z-10">
-          <div className="w-89 bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2">
+        <div className="fixed left-3 top-24 z-10 hidden xl:block">
+          <div className="w-[20rem] bg-white rounded-lg p-6 shadow-md max-h-[calc(100vh-7rem)] overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-2 mb-6">
               <img src={SortIcon} alt="Sort" className="w-8 h-8"/>
               <h2 className="text-2xl font-bold text-gray-900">Bộ lọc ứng viên</h2>
@@ -335,7 +345,7 @@ export default function RecruiterHome() {
         </div>
 
         {/* Main Content - Candidate Card */}
-        <div className="flex-1 flex items-center justify-center gap-8 ml-72 mr-8">
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-4 xl:gap-6 xl:ml-88 mr-2 lg:mr-4">
           {/* Left Arrow */}
           <button 
             onClick={handlePrev}
@@ -348,7 +358,7 @@ export default function RecruiterHome() {
           {/* Candidate Card or Empty State */}
           {filteredCandidates.length === 0 ? (
             // Màn hình không tìm thấy
-            <div className="relative w-125 h-205 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-white flex flex-col items-center justify-center">
+            <div className="relative w-full max-w-3xl min-h-128 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-white flex flex-col items-center justify-center">
               <div className="text-center space-y-6 px-8">
                 <div className="text-6xl">😕</div>
                 <h2 className="text-3xl font-bold text-gray-900">Không tìm thấy ứng viên</h2>
@@ -365,7 +375,7 @@ export default function RecruiterHome() {
             </div>
           ) : (
             // Candidate Card
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-3xl min-w-0">
             {/* Navigation Counter */}
             <div className="flex justify-center items-center mb-4">
               <span className="text-sm text-gray-600">
@@ -375,10 +385,7 @@ export default function RecruiterHome() {
 
             {/* Candidate Card with Scroll */}
             <div 
-              ref={contentRef}
-              className={`bg-white rounded-2xl shadow-lg p-8 relative transition-all duration-300 ${
-                isExpanded ? 'max-h-150 overflow-y-auto' : 'max-h-auto'
-              }`}
+              className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative transition-all duration-300 max-h-[calc(100vh-11rem)] overflow-y-auto overflow-x-hidden"
             >
               {/* Premium Badge */}
               {currentCandidate.isPremium && (
@@ -387,109 +394,25 @@ export default function RecruiterHome() {
                 </div>
               )}
 
-              {/* Header with Avatar and Name */}
-              <div className="flex flex-col items-center mb-6">
-                <img
-                  src={currentCandidate.avatar}
-                  alt={currentCandidate.name}
-                  className="w-32 h-32 rounded-full object-cover mb-4"
-                />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  {currentCandidate.name}
-                </h1>
-                <p className="text-[#0288D1] text-center font-medium mb-4">
-                  {currentCandidate.title}
-                </p>
-                <p className="text-gray-600 text-center text-sm leading-relaxed">
-                  {currentCandidate.description}
-                </p>
-              </div>
-
-              {/* Contact Info */}
-              <div className="flex justify-center gap-8 mb-6 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Mail size={16} />
-                  <span>{currentCandidate.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone size={16} />
-                  <span>{currentCandidate.phone}</span>
-                </div>
-              </div>
-
-              {/* Skills Section */}
+              {/* Portfolio Content */}
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">⚡</span>
+                {loadingPortfolio ? (
+                  <div className="py-16 flex items-center justify-center gap-3 text-gray-600">
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Đang tải portfolio...</span>
                   </div>
-                  <h2 className="text-lg font-bold text-gray-900">Kỹ năng kỹ thuật</h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentCandidate.skills.map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Education Section */}
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">🎓</span>
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900">Học vấn</h2>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-bold text-gray-900 mb-1">
-                    {currentCandidate.education.degree}
-                  </h3>
-                  <p className="text-blue-600 text-sm mb-1">
-                    {currentCandidate.education.school}
-                  </p>
-                  <p className="text-gray-700 text-sm mb-2">
-                    Chuyên ngành: {currentCandidate.education.major}
-                  </p>
-                  <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                    {currentCandidate.education.achievements.map((achievement, index) => (
-                      <li key={index}>{achievement}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Portfolio Section - Only show when expanded */}
-              {isExpanded && portfolio && (
-                <div className="mb-8 pt-6 border-t border-gray-200">
+                ) : portfolio?.blocks?.length ? (
                   <PortfolioRenderer blocks={portfolio.blocks} />
-                </div>
-              )}
-
-              {/* View More Button */}
-              <div className="mb-6">
-                <Button
-                  onClick={handleViewMore}
-                  disabled={loadingPortfolio}
-                  className="w-full bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
-                >
-                  {loadingPortfolio ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Đang tải...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Xem thêm</span>
-                      <ChevronDown size={16} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    </>
-                  )}
-                </Button>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{currentCandidate.name}</h3>
+                    <p className="text-sm text-gray-600">Ứng viên này chưa có portfolio để hiển thị.</p>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-center items-center gap-8 py-6 rounded-lg" style={{ backgroundColor: '#EFF6FF' }}>
+              <div className="flex justify-center items-center gap-6 sm:gap-8 py-4 sm:py-6 rounded-lg px-2" style={{ backgroundColor: '#EFF6FF' }}>
                 <button
                   onClick={handleSkip}
                   className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
@@ -534,9 +457,9 @@ export default function RecruiterHome() {
         </div>
 
         {/* Right Premium Section */}
-        <aside className="hidden lg:block w-96 shrink-0 py-6 pr-6">
+        <aside className="hidden 2xl:block w-[20rem] shrink-0 py-6 pr-4">
           <div className="sticky top-24">
-            <div className="bg-white rounded-2xl shadow-md p-8 border border-gray-100">
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
               {/* Premium Badge */}
               <div className="mb-6">
                 <span className="inline-block bg-blue-500 text-white px-6 py-2 rounded-xl text-sm font-bold">

@@ -14,6 +14,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
 import ActivityOneEditor from "./editor/ActivityOneEditor";
 import AwardEditor from "./editor/AwardEditor";
+import OtherInfoOneEditor from "./editor/OtherInfoOneEditor";
+import ReferenceEditor from "./editor/ReferenceEditor";
 import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
 import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
 import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
@@ -32,6 +34,14 @@ import {
   createAwardOneDraft,
   type AwardOneDraft,
 } from "./editor/awardOneDraft";
+import {
+  createOtherInfoOneDraft,
+  type OtherInfoOneDraft,
+} from "./editor/otherInfoOneDraft";
+import {
+  createReferenceOneDraft,
+  type ReferenceOneDraft,
+} from "./editor/referenceOneDraft";
 import {
   createEducationOneDraft,
   type EducationOneDraft,
@@ -84,6 +94,8 @@ type EditableBlockType =
   | "PROJECT"
   | "AWARD"
   | "ACTIVITIES"
+  | "OTHERINFO"
+  | "REFERENCE"
   | "DIPLOMA";
 
 const BLOCK_LABELS: Record<string, string> = {
@@ -110,6 +122,8 @@ const EDITABLE_BLOCK_TYPES: EditableBlockType[] = [
   "PROJECT",
   "AWARD",
   "ACTIVITIES",
+  "OTHERINFO",
+  "REFERENCE",
   "DIPLOMA",
 ];
 
@@ -658,6 +672,28 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingOtherInfoOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
+      && selectedBlock.variant.toUpperCase() === "OTHERONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingReferenceOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "REFERENCE"
+      && selectedBlock.variant.toUpperCase() === "REFERENCEONE"
+    );
+  }, [selectedBlock]);
+
   const isEditingCertificateOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -677,6 +713,8 @@ export default function CreatePortfolio() {
     || isEditingProjectOne
     || isEditingAwardOne
     || isEditingActivityOne
+    || isEditingOtherInfoOne
+    || isEditingReferenceOne
     || isEditingCertificateOne;
 
   const introOneInitialData = useMemo(() => {
@@ -790,6 +828,38 @@ export default function CreatePortfolio() {
 
     return `activity-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingActivityOne, selectedBlock]);
+
+  const otherInfoOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoOne) {
+      return null;
+    }
+
+    return createOtherInfoOneDraft(selectedBlock.data);
+  }, [isEditingOtherInfoOne, selectedBlock]);
+
+  const otherInfoOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoOne) {
+      return "otherinfo-one-editor";
+    }
+
+    return `otherinfo-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingOtherInfoOne, selectedBlock]);
+
+  const referenceOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingReferenceOne) {
+      return null;
+    }
+
+    return createReferenceOneDraft(selectedBlock.data);
+  }, [isEditingReferenceOne, selectedBlock]);
+
+  const referenceOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingReferenceOne) {
+      return "reference-one-editor";
+    }
+
+    return `reference-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingReferenceOne, selectedBlock]);
 
   const certificateOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingCertificateOne) {
@@ -1186,6 +1256,49 @@ export default function CreatePortfolio() {
   };
 
   const handleActivityOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleOtherInfoOneSave = (nextDraft: OtherInfoOneDraft) => {
+    if (!selectedBlock || !isEditingOtherInfoOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return nextDraft.interests.map((interestName) => ({ detail: interestName }));
+    });
+  };
+
+  const handleOtherInfoOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleReferenceOneSave = (nextDraft: ReferenceOneDraft) => {
+    if (!selectedBlock || !isEditingReferenceOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const currentItem = currentItems[0] ?? {};
+
+      return [
+        {
+          ...currentItem,
+          name: nextDraft.name,
+          position: nextDraft.position,
+          mail: nextDraft.email,
+          email: nextDraft.email,
+          phone: nextDraft.contactInfo,
+          detail: nextDraft.contactInfo,
+        },
+      ];
+    });
+  };
+
+  const handleReferenceOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1641,6 +1754,36 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderOtherInfoOneEditor = () => {
+    if (!otherInfoOneInitialData) {
+      return null;
+    }
+
+    return (
+      <OtherInfoOneEditor
+        key={otherInfoOneEditorKey}
+        initialData={otherInfoOneInitialData}
+        onSave={handleOtherInfoOneSave}
+        onCancel={handleOtherInfoOneCancel}
+      />
+    );
+  };
+
+  const renderReferenceOneEditor = () => {
+    if (!referenceOneInitialData) {
+      return null;
+    }
+
+    return (
+      <ReferenceEditor
+        key={referenceOneEditorKey}
+        initialData={referenceOneInitialData}
+        onSave={handleReferenceOneSave}
+        onCancel={handleReferenceOneCancel}
+      />
+    );
+  };
+
   const renderCertificateOneEditor = () => {
     if (!certificateOneInitialData) {
       return null;
@@ -1694,6 +1837,14 @@ export default function CreatePortfolio() {
 
     if (blockType === "ACTIVITIES" && variant === "ACTIVITYONE") {
       return renderActivityOneEditor();
+    }
+
+    if (blockType === "OTHERINFO" && variant === "OTHERONE") {
+      return renderOtherInfoOneEditor();
+    }
+
+    if (blockType === "REFERENCE" && variant === "REFERENCEONE") {
+      return renderReferenceOneEditor();
     }
 
     if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {

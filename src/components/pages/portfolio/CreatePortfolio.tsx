@@ -14,7 +14,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
 import ActivityOneEditor from "./editor/ActivityOneEditor";
 import AwardEditor from "./editor/AwardEditor";
+import IntroTwoEditor from "./editor/IntroTwoEditor";
 import OtherInfoOneEditor from "./editor/OtherInfoOneEditor";
+import OtherInfoTwoEditor from "./editor/OtherInfoTwoEditor";
 import ReferenceEditor from "./editor/ReferenceEditor";
 import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
 import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
@@ -39,6 +41,10 @@ import {
   type OtherInfoOneDraft,
 } from "./editor/otherInfoOneDraft";
 import {
+  createOtherInfoTwoDraft,
+  type OtherInfoTwoDraft,
+} from "./editor/otherInfoTwoDraft";
+import {
   createReferenceOneDraft,
   type ReferenceOneDraft,
 } from "./editor/referenceOneDraft";
@@ -55,6 +61,10 @@ import {
   createIntroOneDraft,
   type IntroOneDraft,
 } from "@/components/pages/portfolio/editor/introOneDraft";
+import {
+  createIntroTwoDraft,
+  type IntroTwoDraft,
+} from "./editor/introTwoDraft";
 import {
   createSkillOneDraft,
   type SkillOneDraft,
@@ -606,6 +616,17 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingIntroTwo = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "INTRO"
+      && selectedBlock.variant.toUpperCase() === "INTROTWO"
+    );
+  }, [selectedBlock]);
+
   const isEditingSkillOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -683,6 +704,17 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingOtherInfoTwo = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
+      && selectedBlock.variant.toUpperCase() === "OTHERTWO"
+    );
+  }, [selectedBlock]);
+
   const isEditingReferenceOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -707,6 +739,7 @@ export default function CreatePortfolio() {
 
   const isUsingDedicatedEditor =
     isEditingIntroOne
+    || isEditingIntroTwo
     || isEditingSkillOne
     || isEditingEducationOne
     || isEditingExperienceOne
@@ -714,6 +747,7 @@ export default function CreatePortfolio() {
     || isEditingAwardOne
     || isEditingActivityOne
     || isEditingOtherInfoOne
+    || isEditingOtherInfoTwo
     || isEditingReferenceOne
     || isEditingCertificateOne;
 
@@ -732,6 +766,22 @@ export default function CreatePortfolio() {
 
     return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingIntroOne, selectedBlock]);
+
+  const introTwoInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroTwo) {
+      return null;
+    }
+
+    return createIntroTwoDraft(selectedBlock.data);
+  }, [isEditingIntroTwo, selectedBlock]);
+
+  const introTwoEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroTwo) {
+      return "intro-two-editor";
+    }
+
+    return `intro-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingIntroTwo, selectedBlock]);
 
   const skillOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingSkillOne) {
@@ -844,6 +894,22 @@ export default function CreatePortfolio() {
 
     return `otherinfo-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingOtherInfoOne, selectedBlock]);
+
+  const otherInfoTwoInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoTwo) {
+      return null;
+    }
+
+    return createOtherInfoTwoDraft(selectedBlock.data);
+  }, [isEditingOtherInfoTwo, selectedBlock]);
+
+  const otherInfoTwoEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoTwo) {
+      return "otherinfo-two-editor";
+    }
+
+    return `otherinfo-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingOtherInfoTwo, selectedBlock]);
 
   const referenceOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingReferenceOne) {
@@ -1096,6 +1162,30 @@ export default function CreatePortfolio() {
     setShowBlockSelector(true);
   };
 
+  const handleIntroTwoSave = (nextDraft: IntroTwoDraft) => {
+    if (!selectedBlock || !isEditingIntroTwo) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.fullName = nextDraft.fullName;
+      nextData.name = nextDraft.fullName;
+      nextData.school = nextDraft.school;
+      nextData.department = nextDraft.department;
+      nextData.studyField = nextDraft.studyField;
+      nextData.title = nextDraft.studyField;
+      nextData.gpa = nextDraft.gpa;
+      nextData.avatar = nextDraft.avatar;
+      return nextData;
+    });
+  };
+
+  const handleIntroTwoCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
   const handleSkillOneSave = (nextDraft: SkillOneDraft) => {
     if (!selectedBlock || !isEditingSkillOne) {
       return;
@@ -1271,6 +1361,23 @@ export default function CreatePortfolio() {
   };
 
   const handleOtherInfoOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleOtherInfoTwoSave = (nextDraft: OtherInfoTwoDraft) => {
+    if (!selectedBlock || !isEditingOtherInfoTwo) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.detail = nextDraft.detail;
+      return nextData;
+    });
+  };
+
+  const handleOtherInfoTwoCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1664,6 +1771,21 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderIntroTwoEditor = () => {
+    if (!introTwoInitialData) {
+      return null;
+    }
+
+    return (
+      <IntroTwoEditor
+        key={introTwoEditorKey}
+        initialData={introTwoInitialData}
+        onSave={handleIntroTwoSave}
+        onCancel={handleIntroTwoCancel}
+      />
+    );
+  };
+
   const renderSkillOneEditor = () => {
     if (!skillOneInitialData) {
       return null;
@@ -1769,6 +1891,21 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderOtherInfoTwoEditor = () => {
+    if (!otherInfoTwoInitialData) {
+      return null;
+    }
+
+    return (
+      <OtherInfoTwoEditor
+        key={otherInfoTwoEditorKey}
+        initialData={otherInfoTwoInitialData}
+        onSave={handleOtherInfoTwoSave}
+        onCancel={handleOtherInfoTwoCancel}
+      />
+    );
+  };
+
   const renderReferenceOneEditor = () => {
     if (!referenceOneInitialData) {
       return null;
@@ -1815,6 +1952,10 @@ export default function CreatePortfolio() {
       return renderIntroOneEditor();
     }
 
+    if (blockType === "INTRO" && variant === "INTROTWO") {
+      return renderIntroTwoEditor();
+    }
+
     if (blockType === "SKILL" && variant === "SKILLONE") {
       return renderSkillOneEditor();
     }
@@ -1841,6 +1982,10 @@ export default function CreatePortfolio() {
 
     if (blockType === "OTHERINFO" && variant === "OTHERONE") {
       return renderOtherInfoOneEditor();
+    }
+
+    if (blockType === "OTHERINFO" && variant === "OTHERTWO") {
+      return renderOtherInfoTwoEditor();
     }
 
     if (blockType === "REFERENCE" && variant === "REFERENCEONE") {

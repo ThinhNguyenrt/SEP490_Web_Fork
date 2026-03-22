@@ -15,17 +15,30 @@ import TemplatePreviewImage from "@/assets/testImage/testImage.png";
 import ActivityOneEditor from "./editor/ActivityOneEditor";
 import AwardEditor from "./editor/AwardEditor";
 import IntroTwoEditor from "./editor/IntroTwoEditor";
+import OtherFiveEditor from "./editor/OtherFiveEditor";
 import OtherInfoOneEditor from "./editor/OtherInfoOneEditor";
+import OtherEightEditor from "./editor/OtherEightEditor";
+import OtherInfoSevenEditor from "./editor/OtherInfoSevenEditor";
 import OtherInfoTwoEditor from "./editor/OtherInfoTwoEditor";
 import OtherInfoSixEditor from "./editor/OtherInfoSixEditor";
+import ResearchOneEditor from "./editor/ResearchOneEditor";
 import ReferenceEditor from "./editor/ReferenceEditor";
 import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
 import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
+import EducationThreeEditor from "@/components/pages/portfolio/editor/EducationThreeEditor";
 import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
 import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
+import IntroFourEditor from "@/components/pages/portfolio/editor/IntroFourEditor";
+import IntroFiveEditor from "@/components/pages/portfolio/editor/IntroFiveEditor";
+import IntroThreeEditor from "@/components/pages/portfolio/editor/IntroThreeEditor";
 import SkillOneEditor from "@/components/pages/portfolio/editor/SkillOneEditor";
+import SkillThreeEditor from "@/components/pages/portfolio/editor/SkillThreeEditor";
 import SkillTwoEditor from "@/components/pages/portfolio/editor/SkillTwoEditor";
+import TeachingOneEditor from "@/components/pages/portfolio/editor/TeachingOneEditor";
+import TypicalCaseOneEditor from "@/components/pages/portfolio/editor/TypicalCaseOneEditor";
 import ProjectOneEditor from "./editor/ProjectOneEditor";
+import ProjectTwoEditor from "./editor/ProjectTwoEditor";
+import ProjectThreeEditor from "./editor/ProjectThreeEditor";
 import {
   createCertificateOneDraft,
   type CertificateOneDraft,
@@ -39,6 +52,15 @@ import {
   type AwardOneDraft,
 } from "./editor/awardOneDraft";
 import {
+  createOtherFiveDraft,
+  type OtherFiveDraft,
+} from "./editor/otherFiveDraft";
+import {
+  createEmptyOtherEightDraft,
+  createOtherEightDraft,
+  type OtherEightDraft,
+} from "./editor/otherEightDraft";
+import {
   createOtherInfoOneDraft,
   type OtherInfoOneDraft,
 } from "./editor/otherInfoOneDraft";
@@ -51,6 +73,15 @@ import {
   type OtherInfoSixDraft,
 } from "./editor/otherInfoSixDraft";
 import {
+  createOtherSevenDraft,
+  createEmptyOtherSevenDraft,
+  type OtherSevenDraft,
+} from "./editor/otherSevenDraft";
+import {
+  createResearchOneDraft,
+  type ResearchOneDraft,
+} from "./editor/researchOneDraft";
+import {
   createReferenceOneDraft,
   type ReferenceOneDraft,
 } from "./editor/referenceOneDraft";
@@ -58,6 +89,11 @@ import {
   createEducationOneDraft,
   type EducationOneDraft,
 } from "@/components/pages/portfolio/editor/educationOneDraft";
+import {
+  createEducationThreeDraft,
+  createEmptyEducationThreeDraft,
+  type EducationThreeDraft,
+} from "@/components/pages/portfolio/editor/educationThreeDraft";
 import {
   createExperienceOneDraft,
   splitExperienceOneTimeRange,
@@ -68,6 +104,18 @@ import {
   type IntroOneDraft,
 } from "@/components/pages/portfolio/editor/introOneDraft";
 import {
+  createIntroFourDraft,
+  type IntroFourDraft,
+} from "@/components/pages/portfolio/editor/introFourDraft";
+import {
+  createIntroFiveDraft,
+  type IntroFiveDraft,
+} from "@/components/pages/portfolio/editor/introFiveDraft";
+import {
+  createIntroThreeDraft,
+  type IntroThreeDraft,
+} from "@/components/pages/portfolio/editor/introThreeDraft";
+import {
   createIntroTwoDraft,
   type IntroTwoDraft,
 } from "./editor/introTwoDraft";
@@ -76,13 +124,34 @@ import {
   type SkillOneDraft,
 } from "@/components/pages/portfolio/editor/skillOneDraft";
 import {
+  createEmptySkillThreeDraft,
+  type SkillThreeDraft,
+} from "@/components/pages/portfolio/editor/skillThreeDraft";
+import {
   createSkillTwoDraft,
   type SkillTwoDraft,
 } from "@/components/pages/portfolio/editor/skillTwoDraft";
 import {
+  createEmptyTeachingOneDraft,
+  type TeachingOneDraft,
+} from "@/components/pages/portfolio/editor/teachingOneDraft";
+import {
+  createEmptyTypicalCaseOneDraft,
+  type TypicalCaseOneDraft,
+} from "@/components/pages/portfolio/editor/typicalCaseOneDraft";
+import {
+  createEmptyProjectThreeDraft,
+  createProjectThreeDraft,
+  type ProjectThreeDraft,
+} from "./editor/projectThreeDraft";
+import {
   createProjectOneDraft,
   type ProjectOneDraft,
 } from "./editor/projectOneDraft";
+import {
+  createProjectTwoDraft,
+  type ProjectTwoDraft,
+} from "./editor/projectTwoDraft";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { cn } from "@/lib/utils";
 import {
@@ -118,6 +187,16 @@ type EditableBlockType =
   | "REFERENCE"
   | "DIPLOMA";
 
+type ExtendedEditorBlockType = EditableBlockType | "RESEARCH" | "TEACHING" | "TYPICALCASE";
+
+type EditorSlot = {
+  type: ExtendedEditorBlockType;
+  label: string;
+  variant?: string;
+};
+
+type EditorSlotPreset = "default" | "template2" | "template3" | "template4" | "template5";
+
 const BLOCK_LABELS: Record<string, string> = {
   INTRO: "Giới thiệu",
   SKILL: "Kỹ năng",
@@ -145,7 +224,69 @@ const EDITABLE_BLOCK_TYPES: EditableBlockType[] = [
   "OTHERINFO",
   "REFERENCE",
   "DIPLOMA",
+
 ];
+
+const TEMPLATE_TWO_EDITOR_SLOTS: EditorSlot[] = [
+  { type: "INTRO", variant: "INTROTWO", label: "Giới thiệu" },
+  { type: "OTHERINFO", variant: "OTHERTWO", label: "Mục tiêu nghề nghiệp" },
+  { type: "SKILL", variant: "SKILLTWO", label: "Kỹ năng nền tảng" },
+  { type: "PROJECT", variant: "PROJECTONE", label: "Dự án nổi bật" },
+  { type: "EDUCATION", variant: "EDUCATIONONE", label: "Học vấn" },
+  { type: "ACTIVITIES", variant: "ACTIVITYTWO", label: "Hoạt động ngoại khóa" },
+  { type: "DIPLOMA", variant: "DIPLOMAONE", label: "Chứng chỉ" },
+  { type: "OTHERINFO", variant: "OTHERSIX", label: "Kỹ năng mềm" },
+  { type: "OTHERINFO", variant: "OTHERONE", label: "Sở thích cá nhân" },
+  { type: "REFERENCE", variant: "REFERENCEONE", label: "Người giới thiệu" },
+];
+
+const TEMPLATE_TWO_REQUIRED_VARIANTS = new Set(
+  TEMPLATE_TWO_EDITOR_SLOTS.map((slot) => slot.variant?.toUpperCase()).filter(Boolean) as string[],
+);
+
+const TEMPLATE_THREE_EDITOR_SLOTS: EditorSlot[] = [
+  { type: "INTRO", variant: "INTROTHREE", label: "Giới thiệu" },
+  { type: "OTHERINFO", variant: "OTHERTHREE", label: "Tầm nhìn và động lực" },
+  { type: "EDUCATION", variant: "EDUCATIONTHREE", label: "Thành tích học tập" },
+  { type: "PROJECT", variant: "PROJECTTWO", label: "Dự án nghiên cứu" },
+  { type: "ACTIVITIES", variant: "ACTIVITYONE", label: "Hoạt động" },
+  { type: "DIPLOMA", variant: "DIPLOMAONE", label: "Chứng chỉ" },
+  { type: "REFERENCE", variant: "REFERENCEONE", label: "Người giới thiệu" },
+  { type: "OTHERINFO", variant: "OTHERSEVEN", label: "Tài liệu bổ sung" },
+];
+
+const TEMPLATE_THREE_REQUIRED_VARIANTS = new Set(
+  TEMPLATE_THREE_EDITOR_SLOTS.map((slot) => slot.variant?.toUpperCase()).filter(Boolean) as string[],
+);
+
+const TEMPLATE_FOUR_EDITOR_SLOTS: EditorSlot[] = [
+  { type: "INTRO", variant: "INTROFOUR", label: "Giới thiệu" },
+  { type: "OTHERINFO", variant: "OTHERFOUR", label: "Giới thiệu chuyên môn" },
+  { type: "OTHERINFO", variant: "OTHERFIVE", label: "Lĩnh vực nghiên cứu" },
+  { type: "RESEARCH", variant: "RESEARCHONE", label: "Công bố khoa học" },
+  { type: "PROJECT", variant: "PROJECTTHREE", label: "Dự án & đề tài" },
+  { type: "EDUCATION", variant: "EDUCATIONTWO", label: "Quá trình đào tạo" },
+  { type: "TEACHING", variant: "TEACHINGONE", label: "Giảng dạy" },
+];
+
+const TEMPLATE_FOUR_REQUIRED_VARIANTS = new Set(
+  TEMPLATE_FOUR_EDITOR_SLOTS.map((slot) => slot.variant?.toUpperCase()).filter(Boolean) as string[],
+);
+
+const TEMPLATE_FIVE_EDITOR_SLOTS: EditorSlot[] = [
+  { type: "INTRO", variant: "INTROFIVE", label: "Giới thiệu" },
+  { type: "OTHERINFO", variant: "OTHERFOUR", label: "Giới thiệu chuyên môn" },
+  { type: "SKILL", variant: "SKILLTHREE", label: "Kỹ năng lâm sàng" },
+  { type: "EXPERIMENT", variant: "EXPERIMENTONE", label: "Kinh nghiệm làm việc" },
+  { type: "TYPICALCASE", variant: "TYPICALCASEONE", label: "Trường hợp điển hình" },
+  { type: "DIPLOMA", variant: "DIPLOMAONE", label: "Chứng chỉ" },
+  { type: "OTHERINFO", variant: "OTHEREIGHT", label: "Giấy phép hành nghề" },
+];
+
+const TEMPLATE_FIVE_REQUIRED_VARIANTS = new Set(
+  TEMPLATE_FIVE_EDITOR_SLOTS.map((slot) => slot.variant?.toUpperCase()).filter(Boolean) as string[],
+);
+
 
 const BLOCK_VARIANTS: Record<string, string[]> = {
   INTRO: ["INTROONE", "INTROTWO", "INTROTHREE", "INTROFOUR", "INTROFIVE"],
@@ -215,6 +356,10 @@ const getDefaultVariant = (type: string): string => {
 
 const isEditableBlockType = (type: string): type is EditableBlockType => {
   return EDITABLE_BLOCK_TYPES.includes(type as EditableBlockType);
+};
+
+const isExtendedEditorBlockType = (type: string): type is ExtendedEditorBlockType => {
+  return isEditableBlockType(type) || type === "RESEARCH" || type === "TEACHING" || type === "TYPICALCASE";
 };
 
 const getPreferredEditableType = (blocks: PortfolioBlock[]): EditableBlockType => {
@@ -470,15 +615,18 @@ const getFirstProjectLink = (item: Record<string, unknown>): string => {
 export default function CreatePortfolio() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
 
-  const [activeTab, setActiveTab] = useState<EditorTab>("template");
+  const [activeTab, setActiveTab] = useState<EditorTab>(isEditMode ? "component" : "template");
   const [templates, setTemplates] = useState<PortfolioResponse[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
   const [allowedBlockTypes, setAllowedBlockTypes] = useState<Set<string>>(new Set());
   const [portfolioNames, setPortfolioNames] = useState<Map<number, string>>(new Map());
   const [portfolioName, setPortfolioName] = useState("Hồ sơ mới");
   const [activeEditorBlockType, setActiveEditorBlockType] =
-    useState<EditableBlockType>("INTRO");
+    useState<ExtendedEditorBlockType>("INTRO");
+  const [activeEditorBlockVariant, setActiveEditorBlockVariant] = useState<string | null>(null);
+  const [editorSlotPreset, setEditorSlotPreset] = useState<EditorSlotPreset>("default");
   const [blocks, setBlocks] = useState<PortfolioBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
   const [showBlockSelector, setShowBlockSelector] = useState(false);
@@ -487,8 +635,6 @@ export default function CreatePortfolio() {
   const [error, setError] = useState<string | null>(null);
 
   const nextTempBlockIdRef = useRef(-1);
-
-  const isEditMode = Boolean(id);
 
   const allocateTempBlockId = (): number => {
     const nextId = nextTempBlockIdRef.current;
@@ -535,7 +681,10 @@ export default function CreatePortfolio() {
             )?.id ?? sortedBlocks[0]?.id ?? null;
 
           setBlocks(sortedBlocks);
+          setActiveTab("component");
           setActiveEditorBlockType(preferredType);
+          setActiveEditorBlockVariant(null);
+          setEditorSlotPreset("default");
           setSelectedBlockId(preferredBlockId);
           setShowBlockSelector(false);
           setPortfolioName(
@@ -546,6 +695,8 @@ export default function CreatePortfolio() {
 
         setBlocks([]);
         setActiveEditorBlockType("INTRO");
+        setActiveEditorBlockVariant(null);
+        setEditorSlotPreset("default");
         setSelectedBlockId(null);
         setShowBlockSelector(false);
         setPortfolioName("Hồ sơ mới");
@@ -576,12 +727,20 @@ export default function CreatePortfolio() {
     }
 
     const preferredBlock = blocks.find(
+      (block) =>
+        normalizeBlockType(block.type) === activeEditorBlockType
+        && (!activeEditorBlockVariant || block.variant.toUpperCase() === activeEditorBlockVariant),
+    );
+
+    const fallbackBlock = blocks.find(
       (block) => normalizeBlockType(block.type) === activeEditorBlockType,
     );
 
-    if (preferredBlock) {
-      if (selectedBlockId !== preferredBlock.id) {
-        setSelectedBlockId(preferredBlock.id);
+    const targetBlock = preferredBlock ?? fallbackBlock;
+
+    if (targetBlock) {
+      if (selectedBlockId !== targetBlock.id) {
+        setSelectedBlockId(targetBlock.id);
       }
       return;
     }
@@ -589,7 +748,7 @@ export default function CreatePortfolio() {
     if (selectedBlockId === null || !blocks.some((block) => block.id === selectedBlockId)) {
       setSelectedBlockId(blocks[0].id);
     }
-  }, [activeEditorBlockType, blocks, selectedBlockId, showBlockSelector]);
+  }, [activeEditorBlockType, activeEditorBlockVariant, blocks, selectedBlockId, showBlockSelector]);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? null,
@@ -599,10 +758,52 @@ export default function CreatePortfolio() {
   const activeEditorBlock = useMemo(
     () =>
       blocks.find(
-        (block) => normalizeBlockType(block.type) === activeEditorBlockType,
+        (block) =>
+          normalizeBlockType(block.type) === activeEditorBlockType
+          && (!activeEditorBlockVariant || block.variant.toUpperCase() === activeEditorBlockVariant),
       ) ?? null,
-    [activeEditorBlockType, blocks],
+    [activeEditorBlockType, activeEditorBlockVariant, blocks],
   );
+
+  const isTemplateBasedEditorSlots = !isEditMode && editorSlotPreset !== "default";
+
+  const editorSlots = useMemo<EditorSlot[]>(() => {
+    if (editorSlotPreset === "template2") {
+      return TEMPLATE_TWO_EDITOR_SLOTS;
+    }
+
+    if (editorSlotPreset === "template3") {
+      return TEMPLATE_THREE_EDITOR_SLOTS;
+    }
+
+    if (editorSlotPreset === "template4") {
+      return TEMPLATE_FOUR_EDITOR_SLOTS;
+    }
+
+    if (editorSlotPreset === "template5") {
+      return TEMPLATE_FIVE_EDITOR_SLOTS;
+    }
+
+    return EDITABLE_BLOCK_TYPES.map((type) => ({
+      type,
+      label: BLOCK_LABELS[type],
+    }));
+  }, [editorSlotPreset]);
+
+  const activeEditorSlot = useMemo(() => {
+    return (
+      editorSlots.find((slot) => {
+        const normalizedVariant = slot.variant?.toUpperCase();
+
+        return (
+          slot.type === activeEditorBlockType
+          && (!normalizedVariant || normalizedVariant === activeEditorBlockVariant)
+        );
+      }) ?? null
+    );
+  }, [activeEditorBlockType, activeEditorBlockVariant, editorSlots]);
+
+  const activeEditorLabel = activeEditorSlot?.label ?? BLOCK_LABELS[activeEditorBlockType];
 
   const selectedBlockVariantKey = useMemo(() => {
     if (!selectedBlock) {
@@ -634,9 +835,44 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingIntroThree = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "INTRO"
+      && selectedBlock.variant.toUpperCase() === "INTROTHREE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingIntroFour = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "INTRO"
+      && selectedBlock.variant.toUpperCase() === "INTROFOUR"
+    );
+  }, [selectedBlock]);
+
+  const isEditingIntroFive = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "INTRO"
+      && selectedBlock.variant.toUpperCase() === "INTROFIVE"
+    );
+  }, [selectedBlock]);
+
   const isEditingSkillOne = selectedBlockVariantKey === "SKILL.SKILLONE";
 
   const isEditingSkillTwo = selectedBlockVariantKey === "SKILL.SKILLTWO";
+
+  const isEditingSkillThree = selectedBlockVariantKey === "SKILL.SKILLTHREE";
 
   const isEditingEducationOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
@@ -646,6 +882,17 @@ export default function CreatePortfolio() {
     return (
       normalizeBlockType(selectedBlock.type) === "EDUCATION"
       && selectedBlock.variant.toUpperCase() === "EDUCATIONONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingEducationThree = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "EDUCATION"
+      && selectedBlock.variant.toUpperCase() === "EDUCATIONTHREE"
     );
   }, [selectedBlock]);
 
@@ -668,6 +915,28 @@ export default function CreatePortfolio() {
     return (
       normalizeBlockType(selectedBlock.type) === "PROJECT"
       && selectedBlock.variant.toUpperCase() === "PROJECTONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingProjectTwo = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "PROJECT"
+      && selectedBlock.variant.toUpperCase() === "PROJECTTWO"
+    );
+  }, [selectedBlock]);
+
+  const isEditingProjectThree = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "PROJECT"
+      && selectedBlock.variant.toUpperCase() === "PROJECTTHREE"
     );
   }, [selectedBlock]);
 
@@ -726,6 +995,39 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingOtherInfoSeven = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
+      && selectedBlock.variant.toUpperCase() === "OTHERSEVEN"
+    );
+  }, [selectedBlock]);
+
+  const isEditingOtherInfoFive = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
+      && selectedBlock.variant.toUpperCase() === "OTHERFIVE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingOtherInfoEight = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
+      && selectedBlock.variant.toUpperCase() === "OTHEREIGHT"
+    );
+  }, [selectedBlock]);
+
   const isEditingReferenceOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -748,21 +1050,67 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingTeachingOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "TEACHING"
+      && selectedBlock.variant.toUpperCase() === "TEACHINGONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingTypicalCaseOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "TYPICALCASE"
+      && selectedBlock.variant.toUpperCase() === "TYPICALCASEONE"
+    );
+  }, [selectedBlock]);
+
+  const isEditingResearchOne = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "RESEARCH"
+      && selectedBlock.variant.toUpperCase() === "RESEARCHONE"
+    );
+  }, [selectedBlock]);
+
   const isUsingDedicatedEditor =
     isEditingIntroOne
     || isEditingIntroTwo
+    || isEditingIntroThree
+    || isEditingIntroFour
+    || isEditingIntroFive
     || isEditingSkillOne
     || isEditingSkillTwo
+    || isEditingSkillThree
     || isEditingEducationOne
+    || isEditingEducationThree
     || isEditingExperienceOne
     || isEditingProjectOne
+    || isEditingProjectTwo
+    || isEditingProjectThree
     || isEditingAwardOne
     || isEditingActivityOne
     || isEditingOtherInfoOne
     || isEditingOtherInfoTwo
+    || isEditingOtherInfoFive
     || isEditingOtherInfoSix
+    || isEditingOtherInfoSeven
+    || isEditingOtherInfoEight
     || isEditingReferenceOne
-    || isEditingCertificateOne;
+    || isEditingCertificateOne
+    || isEditingTeachingOne
+    || isEditingTypicalCaseOne
+    || isEditingResearchOne;
 
   const introOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingIntroOne) {
@@ -796,6 +1144,54 @@ export default function CreatePortfolio() {
     return `intro-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingIntroTwo, selectedBlock]);
 
+  const introThreeInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroThree) {
+      return null;
+    }
+
+    return createIntroThreeDraft(selectedBlock.data);
+  }, [isEditingIntroThree, selectedBlock]);
+
+  const introThreeEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroThree) {
+      return "intro-three-editor";
+    }
+
+    return `intro-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingIntroThree, selectedBlock]);
+
+  const introFourInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroFour) {
+      return null;
+    }
+
+    return createIntroFourDraft(selectedBlock.data);
+  }, [isEditingIntroFour, selectedBlock]);
+
+  const introFourEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroFour) {
+      return "intro-four-editor";
+    }
+
+    return `intro-four-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingIntroFour, selectedBlock]);
+
+  const introFiveInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroFive) {
+      return null;
+    }
+
+    return createIntroFiveDraft(selectedBlock.data);
+  }, [isEditingIntroFive, selectedBlock]);
+
+  const introFiveEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingIntroFive) {
+      return "intro-five-editor";
+    }
+
+    return `intro-five-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingIntroFive, selectedBlock]);
+
   const educationOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingEducationOne) {
       return null;
@@ -811,6 +1207,22 @@ export default function CreatePortfolio() {
 
     return `education-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingEducationOne, selectedBlock]);
+
+  const educationThreeInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationThree) {
+      return null;
+    }
+
+    return createEducationThreeDraft(selectedBlock.data);
+  }, [isEditingEducationThree, selectedBlock]);
+
+  const educationThreeEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationThree) {
+      return "education-three-editor";
+    }
+
+    return `education-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingEducationThree, selectedBlock]);
 
   const experienceOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingExperienceOne) {
@@ -843,6 +1255,38 @@ export default function CreatePortfolio() {
 
     return `project-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingProjectOne, selectedBlock]);
+
+  const projectTwoInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectTwo) {
+      return null;
+    }
+
+    return createProjectTwoDraft(selectedBlock.data);
+  }, [isEditingProjectTwo, selectedBlock]);
+
+  const projectTwoEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectTwo) {
+      return "project-two-editor";
+    }
+
+    return `project-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingProjectTwo, selectedBlock]);
+
+  const projectThreeInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectThree) {
+      return null;
+    }
+
+    return createProjectThreeDraft(selectedBlock.data);
+  }, [isEditingProjectThree, selectedBlock]);
+
+  const projectThreeEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectThree) {
+      return "project-three-editor";
+    }
+
+    return `project-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingProjectThree, selectedBlock]);
 
   const awardOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingAwardOne) {
@@ -908,6 +1352,22 @@ export default function CreatePortfolio() {
     return `otherinfo-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingOtherInfoTwo, selectedBlock]);
 
+  const otherInfoFiveInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoFive) {
+      return null;
+    }
+
+    return createOtherFiveDraft(selectedBlock.data);
+  }, [isEditingOtherInfoFive, selectedBlock]);
+
+  const otherInfoFiveEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoFive) {
+      return "otherinfo-five-editor";
+    }
+
+    return `otherinfo-five-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingOtherInfoFive, selectedBlock]);
+
   const otherInfoSixInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingOtherInfoSix) {
       return null;
@@ -923,6 +1383,38 @@ export default function CreatePortfolio() {
 
     return `otherinfo-six-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingOtherInfoSix, selectedBlock]);
+
+  const otherInfoSevenInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoSeven) {
+      return null;
+    }
+
+    return createOtherSevenDraft(selectedBlock.data);
+  }, [isEditingOtherInfoSeven, selectedBlock]);
+
+  const otherInfoSevenEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoSeven) {
+      return "otherinfo-seven-editor";
+    }
+
+    return `otherinfo-seven-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingOtherInfoSeven, selectedBlock]);
+
+  const otherInfoEightInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoEight) {
+      return null;
+    }
+
+    return createOtherEightDraft(selectedBlock.data);
+  }, [isEditingOtherInfoEight, selectedBlock]);
+
+  const otherInfoEightEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingOtherInfoEight) {
+      return "otherinfo-eight-editor";
+    }
+
+    return `otherinfo-eight-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingOtherInfoEight, selectedBlock]);
 
   const referenceOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingReferenceOne) {
@@ -955,6 +1447,42 @@ export default function CreatePortfolio() {
 
     return `certificate-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingCertificateOne, selectedBlock]);
+
+  const skillThreeEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingSkillThree) {
+      return "skill-three-editor";
+    }
+
+    const entryCount = toRecordArray(selectedBlock.data).length;
+    return `skill-three-${selectedBlock.id}-${entryCount}`;
+  }, [isEditingSkillThree, selectedBlock]);
+
+  const teachingOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingTeachingOne) {
+      return "teaching-one-editor";
+    }
+
+    const entryCount = toRecordArray(selectedBlock.data).length;
+    return `teaching-one-${selectedBlock.id}-${entryCount}`;
+  }, [isEditingTeachingOne, selectedBlock]);
+
+  const typicalCaseOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingTypicalCaseOne) {
+      return "typical-case-one-editor";
+    }
+
+    const entryCount = toRecordArray(selectedBlock.data).length;
+    return `typical-case-one-${selectedBlock.id}-${entryCount}`;
+  }, [isEditingTypicalCaseOne, selectedBlock]);
+
+  const researchOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return "research-one-editor";
+    }
+
+    const entryCount = toRecordArray(selectedBlock.data).length;
+    return `research-one-${selectedBlock.id}-${entryCount}`;
+  }, [isEditingResearchOne, selectedBlock]);
 
   const updateSelectedBlockData = (updater: (current: unknown) => unknown) => {
     if (selectedBlockId === null) {
@@ -1034,13 +1562,56 @@ export default function CreatePortfolio() {
     setAllowedBlockTypes(blockTypes);
     setBlocks([]);
     setActiveTemplateId(template.portfolioId);
-    setActiveEditorBlockType("INTRO");
+    const selectedTemplateIndex = templates.findIndex(
+      (item) => item.portfolioId === template.portfolioId,
+    );
+    const templateVariants = new Set(
+      template.blocks.map((block) => block.variant.toUpperCase()),
+    );
+    const hasTemplateTwoVariantSet =
+      templateVariants.size === TEMPLATE_TWO_REQUIRED_VARIANTS.size
+      && Array.from(TEMPLATE_TWO_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+    const hasTemplateThreeVariantSet =
+      templateVariants.size === TEMPLATE_THREE_REQUIRED_VARIANTS.size
+      && Array.from(TEMPLATE_THREE_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+    const hasTemplateFourVariantSet =
+      templateVariants.size === TEMPLATE_FOUR_REQUIRED_VARIANTS.size
+      && Array.from(TEMPLATE_FOUR_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+    const hasTemplateFiveVariantSet =
+      templateVariants.size === TEMPLATE_FIVE_REQUIRED_VARIANTS.size
+      && Array.from(TEMPLATE_FIVE_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+    const shouldUseTemplateTwoSlots = selectedTemplateIndex === 1 || hasTemplateTwoVariantSet;
+    const shouldUseTemplateThreeSlots = selectedTemplateIndex === 2 || hasTemplateThreeVariantSet;
+    const shouldUseTemplateFourSlots = selectedTemplateIndex === 3 || hasTemplateFourVariantSet;
+    const shouldUseTemplateFiveSlots = selectedTemplateIndex === 4 || hasTemplateFiveVariantSet;
+
+    if (shouldUseTemplateTwoSlots) {
+      setEditorSlotPreset("template2");
+      setActiveEditorBlockType(TEMPLATE_TWO_EDITOR_SLOTS[0].type);
+      setActiveEditorBlockVariant(TEMPLATE_TWO_EDITOR_SLOTS[0].variant ?? null);
+    } else if (shouldUseTemplateThreeSlots) {
+      setEditorSlotPreset("template3");
+      setActiveEditorBlockType(TEMPLATE_THREE_EDITOR_SLOTS[0].type);
+      setActiveEditorBlockVariant(TEMPLATE_THREE_EDITOR_SLOTS[0].variant ?? null);
+    } else if (shouldUseTemplateFourSlots) {
+      setEditorSlotPreset("template4");
+      setActiveEditorBlockType(TEMPLATE_FOUR_EDITOR_SLOTS[0].type);
+      setActiveEditorBlockVariant(TEMPLATE_FOUR_EDITOR_SLOTS[0].variant ?? null);
+    } else if (shouldUseTemplateFiveSlots) {
+      setEditorSlotPreset("template5");
+      setActiveEditorBlockType(TEMPLATE_FIVE_EDITOR_SLOTS[0].type);
+      setActiveEditorBlockVariant(TEMPLATE_FIVE_EDITOR_SLOTS[0].variant ?? null);
+    } else {
+      setEditorSlotPreset("default");
+      setActiveEditorBlockType("INTRO");
+      setActiveEditorBlockVariant(null);
+    }
     setSelectedBlockId(null);
     setShowBlockSelector(true);
     setActiveTab("component");
   };
 
-  const addBlockFromCatalog = (type: string) => {
+  const addBlockFromCatalog = (type: string, forcedVariant?: string) => {
     const normalizedType = normalizeBlockType(type);
     // In create mode with template, check if block type is allowed
     if (!isEditMode && activeTemplateId && !allowedBlockTypes.has(normalizedType)) {
@@ -1048,7 +1619,7 @@ export default function CreatePortfolio() {
       return;
     }
 
-    const variant = getDefaultVariant(type);
+    const variant = (forcedVariant?.toUpperCase() || getDefaultVariant(type)).toUpperCase();
     const newBlock: PortfolioBlock = {
       id: allocateTempBlockId(),
       type: normalizedType,
@@ -1057,8 +1628,9 @@ export default function CreatePortfolio() {
       data: createDefaultBlockData(type, variant),
     };
 
-    if (isEditableBlockType(normalizedType)) {
+    if (isExtendedEditorBlockType(normalizedType)) {
       setActiveEditorBlockType(normalizedType);
+      setActiveEditorBlockVariant(forcedVariant?.toUpperCase() ?? null);
     }
 
     setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
@@ -1196,6 +1768,78 @@ export default function CreatePortfolio() {
     setShowBlockSelector(true);
   };
 
+  const handleIntroThreeSave = (nextDraft: IntroThreeDraft) => {
+    if (!selectedBlock || !isEditingIntroThree) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.fullName = nextDraft.fullName;
+      nextData.name = nextDraft.fullName;
+      nextData.school = nextDraft.school;
+      nextData.department = nextDraft.department;
+      nextData.studyField = nextDraft.studyField;
+      nextData.title = nextDraft.studyField;
+      nextData.gpa = nextDraft.gpa;
+      nextData.avatar = nextDraft.avatar;
+      return nextData;
+    });
+  };
+
+  const handleIntroThreeCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleIntroFourSave = (nextDraft: IntroFourDraft) => {
+    if (!selectedBlock || !isEditingIntroFour) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.fullName = nextDraft.fullName;
+      nextData.name = nextDraft.fullName;
+      nextData.school = nextDraft.school;
+      nextData.department = nextDraft.department;
+      nextData.studyField = nextDraft.studyField;
+      nextData.title = nextDraft.studyField;
+      nextData.gpa = nextDraft.gpa;
+      nextData.avatar = nextDraft.avatar;
+      return nextData;
+    });
+  };
+
+  const handleIntroFourCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleIntroFiveSave = (nextDraft: IntroFiveDraft) => {
+    if (!selectedBlock || !isEditingIntroFive) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.fullName = nextDraft.fullName;
+      nextData.name = nextDraft.fullName;
+      nextData.school = nextDraft.school;
+      nextData.department = nextDraft.department;
+      nextData.studyField = nextDraft.studyField;
+      nextData.title = nextDraft.studyField;
+      nextData.gpa = nextDraft.gpa;
+      nextData.avatar = nextDraft.avatar;
+      return nextData;
+    });
+  };
+
+  const handleIntroFiveCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
   const handleSkillOneSave = (nextDraft: SkillOneDraft) => {
     if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLONE") {
       return;
@@ -1230,6 +1874,29 @@ export default function CreatePortfolio() {
     setShowBlockSelector(true);
   };
 
+  const handleSkillThreeSave = (nextDraft: SkillThreeDraft) => {
+    if (!selectedBlock || !isEditingSkillThree) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          name: nextDraft.name,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleSkillThreeCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
   const handleEducationOneSave = (nextDraft: EducationOneDraft) => {
     if (!selectedBlock || !isEditingEducationOne) {
       return;
@@ -1255,6 +1922,31 @@ export default function CreatePortfolio() {
   };
 
   const handleEducationOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleEducationThreeSave = (nextDraft: EducationThreeDraft) => {
+    if (!selectedBlock || !isEditingEducationThree) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          time: nextDraft.time,
+          gpa: nextDraft.gpa,
+          qualified: nextDraft.qualified,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleEducationThreeCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1321,6 +2013,64 @@ export default function CreatePortfolio() {
   };
 
   const handleProjectOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleProjectTwoSave = (nextDraft: ProjectTwoDraft) => {
+    if (!selectedBlock || !isEditingProjectTwo) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const normalizedLink = nextDraft.link.trim();
+      const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
+
+      return [
+        ...currentItems,
+        {
+          name: nextDraft.name,
+          action: nextDraft.action,
+          publisher: nextDraft.publisher,
+          description: nextDraft.description,
+          projectLinks: linkItems,
+          links: linkItems,
+        },
+      ];
+    });
+  };
+
+  const handleProjectTwoCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleProjectThreeSave = (nextDraft: ProjectThreeDraft) => {
+    if (!selectedBlock || !isEditingProjectThree) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+      const normalizedLink = nextDraft.link.trim();
+      const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
+
+      return [
+        ...currentItems,
+        {
+          name: nextDraft.name,
+          action: nextDraft.action,
+          publisher: nextDraft.publisher,
+          description: nextDraft.description,
+          projectLinks: linkItems,
+          links: linkItems,
+        },
+      ];
+    });
+  };
+
+  const handleProjectThreeCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1411,6 +2161,21 @@ export default function CreatePortfolio() {
     setShowBlockSelector(true);
   };
 
+  const handleOtherInfoFiveSave = (nextDraft: OtherFiveDraft) => {
+    if (!selectedBlock || !isEditingOtherInfoFive) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return nextDraft.topics.map((topicName) => ({ name: topicName }));
+    });
+  };
+
+  const handleOtherInfoFiveCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
   const handleOtherInfoSixSave = (nextDraft: OtherInfoSixDraft) => {
     if (!selectedBlock || !isEditingOtherInfoSix) {
       return;
@@ -1422,6 +2187,46 @@ export default function CreatePortfolio() {
   };
 
   const handleOtherInfoSixCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleOtherInfoSevenSave = (nextDraft: OtherSevenDraft) => {
+    if (!selectedBlock || !isEditingOtherInfoSeven) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          name: nextDraft.name,
+          detail: nextDraft.detail,
+        },
+      ];
+    });
+  };
+
+  const handleOtherInfoSevenCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleOtherInfoEightSave = (nextDraft: OtherEightDraft) => {
+    if (!selectedBlock || !isEditingOtherInfoEight) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const nextData = toRecord(current);
+      nextData.detail = nextDraft.detail;
+      return nextData;
+    });
+  };
+
+  const handleOtherInfoEightCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1478,6 +2283,81 @@ export default function CreatePortfolio() {
   };
 
   const handleCertificateOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleTeachingOneSave = (nextDraft: TeachingOneDraft) => {
+    if (!selectedBlock || !isEditingTeachingOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          subject: nextDraft.subject,
+          teachingplace: nextDraft.teachingplace,
+        },
+      ];
+    });
+  };
+
+  const handleTeachingOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleTypicalCaseOneSave = (nextDraft: TypicalCaseOneDraft) => {
+    if (!selectedBlock || !isEditingTypicalCaseOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          patient: nextDraft.patient,
+          age: nextDraft.age,
+          caseName: nextDraft.caseName,
+          stage: nextDraft.stage,
+          regiment: nextDraft.regiment,
+        },
+      ];
+    });
+  };
+
+  const handleTypicalCaseOneCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleResearchOneSave = (nextDraft: ResearchOneDraft) => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          name: nextDraft.title,
+          time: nextDraft.date,
+          description: nextDraft.conference,
+          link: nextDraft.link,
+          conference: nextDraft.conference,
+        },
+      ];
+    });
+  };
+
+  const handleResearchOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -1830,6 +2710,51 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderIntroThreeEditor = () => {
+    if (!introThreeInitialData) {
+      return null;
+    }
+
+    return (
+      <IntroThreeEditor
+        key={introThreeEditorKey}
+        initialData={introThreeInitialData}
+        onSave={handleIntroThreeSave}
+        onCancel={handleIntroThreeCancel}
+      />
+    );
+  };
+
+  const renderIntroFourEditor = () => {
+    if (!introFourInitialData) {
+      return null;
+    }
+
+    return (
+      <IntroFourEditor
+        key={introFourEditorKey}
+        initialData={introFourInitialData}
+        onSave={handleIntroFourSave}
+        onCancel={handleIntroFourCancel}
+      />
+    );
+  };
+
+  const renderIntroFiveEditor = () => {
+    if (!introFiveInitialData) {
+      return null;
+    }
+
+    return (
+      <IntroFiveEditor
+        key={introFiveEditorKey}
+        initialData={introFiveInitialData}
+        onSave={handleIntroFiveSave}
+        onCancel={handleIntroFiveCancel}
+      />
+    );
+  };
+
   const renderSkillOneEditor = () => {
     if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLONE") {
       return null;
@@ -1864,12 +2789,29 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderSkillThreeEditor = () => {
+    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLTHREE") {
+      return null;
+    }
+
+    return (
+      <SkillThreeEditor
+        key={skillThreeEditorKey}
+        initialData={createEmptySkillThreeDraft()}
+        onSave={handleSkillThreeSave}
+        onCancel={handleSkillThreeCancel}
+      />
+    );
+  };
+
   const renderSkillDedicatedEditor = () => {
     switch (selectedBlockVariantKey) {
       case "SKILL.SKILLONE":
         return renderSkillOneEditor();
       case "SKILL.SKILLTWO":
         return renderSkillTwoEditor();
+      case "SKILL.SKILLTHREE":
+        return renderSkillThreeEditor();
       default:
         return null;
     }
@@ -1886,6 +2828,22 @@ export default function CreatePortfolio() {
         initialData={educationOneInitialData}
         onSave={handleEducationOneSave}
         onCancel={handleEducationOneCancel}
+      />
+    );
+  };
+
+  const renderEducationThreeEditor = () => {
+    if (!educationThreeInitialData) {
+      return null;
+    }
+
+    return (
+      <EducationThreeEditor
+        key={educationThreeEditorKey}
+        initialData={createEmptyEducationThreeDraft()}
+        latestData={educationThreeInitialData}
+        onSave={handleEducationThreeSave}
+        onCancel={handleEducationThreeCancel}
       />
     );
   };
@@ -1916,6 +2874,36 @@ export default function CreatePortfolio() {
         initialData={projectOneInitialData}
         onSave={handleProjectOneSave}
         onCancel={handleProjectOneCancel}
+      />
+    );
+  };
+
+  const renderProjectTwoEditor = () => {
+    if (!projectTwoInitialData) {
+      return null;
+    }
+
+    return (
+      <ProjectTwoEditor
+        key={projectTwoEditorKey}
+        initialData={projectTwoInitialData}
+        onSave={handleProjectTwoSave}
+        onCancel={handleProjectTwoCancel}
+      />
+    );
+  };
+
+  const renderProjectThreeEditor = () => {
+    if (!projectThreeInitialData) {
+      return null;
+    }
+
+    return (
+      <ProjectThreeEditor
+        key={projectThreeEditorKey}
+        initialData={projectThreeInitialData ?? createEmptyProjectThreeDraft()}
+        onSave={handleProjectThreeSave}
+        onCancel={handleProjectThreeCancel}
       />
     );
   };
@@ -1980,6 +2968,21 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderOtherInfoFiveEditor = () => {
+    if (!otherInfoFiveInitialData) {
+      return null;
+    }
+
+    return (
+      <OtherFiveEditor
+        key={otherInfoFiveEditorKey}
+        initialData={otherInfoFiveInitialData}
+        onSave={handleOtherInfoFiveSave}
+        onCancel={handleOtherInfoFiveCancel}
+      />
+    );
+  };
+
   const renderOtherInfoSixEditor = () => {
     if (!otherInfoSixInitialData) {
       return null;
@@ -1991,6 +2994,36 @@ export default function CreatePortfolio() {
         initialData={otherInfoSixInitialData}
         onSave={handleOtherInfoSixSave}
         onCancel={handleOtherInfoSixCancel}
+      />
+    );
+  };
+
+  const renderOtherInfoSevenEditor = () => {
+    if (!otherInfoSevenInitialData) {
+      return null;
+    }
+
+    return (
+      <OtherInfoSevenEditor
+        key={otherInfoSevenEditorKey}
+        initialData={createEmptyOtherSevenDraft()}
+        onSave={handleOtherInfoSevenSave}
+        onCancel={handleOtherInfoSevenCancel}
+      />
+    );
+  };
+
+  const renderOtherInfoEightEditor = () => {
+    if (!otherInfoEightInitialData) {
+      return null;
+    }
+
+    return (
+      <OtherEightEditor
+        key={otherInfoEightEditorKey}
+        initialData={otherInfoEightInitialData ?? createEmptyOtherEightDraft()}
+        onSave={handleOtherInfoEightSave}
+        onCancel={handleOtherInfoEightCancel}
       />
     );
   };
@@ -2025,6 +3058,53 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderTeachingOneEditor = () => {
+    if (!isEditingTeachingOne) {
+      return null;
+    }
+
+    return (
+      <TeachingOneEditor
+        key={teachingOneEditorKey}
+        initialData={createEmptyTeachingOneDraft()}
+        onSave={handleTeachingOneSave}
+        onCancel={handleTeachingOneCancel}
+      />
+    );
+  };
+
+  const renderTypicalCaseOneEditor = () => {
+    if (!isEditingTypicalCaseOne) {
+      return null;
+    }
+
+    return (
+      <TypicalCaseOneEditor
+        key={typicalCaseOneEditorKey}
+        initialData={createEmptyTypicalCaseOneDraft()}
+        onSave={handleTypicalCaseOneSave}
+        onCancel={handleTypicalCaseOneCancel}
+      />
+    );
+  };
+
+  const renderResearchOneEditor = () => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return null;
+    }
+
+    const initialData = createResearchOneDraft(selectedBlock.data);
+
+    return (
+      <ResearchOneEditor
+        key={researchOneEditorKey}
+        initialData={initialData}
+        onSave={handleResearchOneSave}
+        onCancel={handleResearchOneCancel}
+      />
+    );
+  };
+
   const renderEditorForm = () => {
     if (!selectedBlock) {
       return (
@@ -2045,6 +3125,18 @@ export default function CreatePortfolio() {
       return renderIntroTwoEditor();
     }
 
+    if (blockType === "INTRO" && variant === "INTROTHREE") {
+      return renderIntroThreeEditor();
+    }
+
+    if (blockType === "INTRO" && variant === "INTROFOUR") {
+      return renderIntroFourEditor();
+    }
+
+    if (blockType === "INTRO" && variant === "INTROFIVE") {
+      return renderIntroFiveEditor();
+    }
+
     const skillDedicatedEditor = renderSkillDedicatedEditor();
     if (skillDedicatedEditor) {
       return skillDedicatedEditor;
@@ -2054,12 +3146,24 @@ export default function CreatePortfolio() {
       return renderEducationOneEditor();
     }
 
+    if (blockType === "EDUCATION" && variant === "EDUCATIONTHREE") {
+      return renderEducationThreeEditor();
+    }
+
     if (blockType === "EXPERIMENT" && variant === "EXPERIMENTONE") {
       return renderExperienceOneEditor();
     }
 
     if (blockType === "PROJECT" && variant === "PROJECTONE") {
       return renderProjectOneEditor();
+    }
+
+    if (blockType === "PROJECT" && variant === "PROJECTTWO") {
+      return renderProjectTwoEditor();
+    }
+
+    if (blockType === "PROJECT" && variant === "PROJECTTHREE") {
+      return renderProjectThreeEditor();
     }
 
     if (blockType === "AWARD" && variant === "AWARDONE") {
@@ -2078,8 +3182,20 @@ export default function CreatePortfolio() {
       return renderOtherInfoTwoEditor();
     }
 
+    if (blockType === "OTHERINFO" && variant === "OTHERFIVE") {
+      return renderOtherInfoFiveEditor();
+    }
+
     if (blockType === "OTHERINFO" && variant === "OTHERSIX") {
       return renderOtherInfoSixEditor();
+    }
+
+    if (blockType === "OTHERINFO" && variant === "OTHERSEVEN") {
+      return renderOtherInfoSevenEditor();
+    }
+
+    if (blockType === "OTHERINFO" && variant === "OTHEREIGHT") {
+      return renderOtherInfoEightEditor();
     }
 
     if (blockType === "REFERENCE" && variant === "REFERENCEONE") {
@@ -2088,6 +3204,18 @@ export default function CreatePortfolio() {
 
     if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {
       return renderCertificateOneEditor();
+    }
+
+    if (blockType === "TEACHING" && variant === "TEACHINGONE") {
+      return renderTeachingOneEditor();
+    }
+
+    if (blockType === "TYPICALCASE" && variant === "TYPICALCASEONE") {
+      return renderTypicalCaseOneEditor();
+    }
+
+    if (blockType === "RESEARCH" && variant === "RESEARCHONE") {
+      return renderResearchOneEditor();
     }
 
     if (blockType === "INTRO") {
@@ -2124,20 +3252,6 @@ export default function CreatePortfolio() {
         () => ({ name: "" }),
         "Thêm kỹ năng",
         "Chưa có kỹ năng nào.",
-      );
-    }
-
-    if (blockType === "EDUCATION" && variant === "EDUCATIONTHREE") {
-      return renderArrayFields(
-        [
-          { key: "time", label: "Thời gian" },
-          { key: "gpa", label: "GPA" },
-          { key: "qualified", label: "Xếp loại" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({ time: "", gpa: "", qualified: "", description: "" }),
-        "Thêm thành tích",
-        "Chưa có thành tích học tập.",
       );
     }
 
@@ -2242,18 +3356,6 @@ export default function CreatePortfolio() {
         () => ({ name: "" }),
         "Thêm mục",
         "Chưa có mục thông tin.",
-      );
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERSEVEN") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên tài liệu" },
-          { key: "detail", label: "Link tài liệu" },
-        ],
-        () => ({ name: "", detail: "" }),
-        "Thêm tài liệu",
-        "Chưa có tài liệu.",
       );
     }
 
@@ -2562,34 +3664,47 @@ export default function CreatePortfolio() {
             </div>
 
             <div className={cn("mb-3 grid grid-cols-3 gap-2", isUsingDedicatedEditor && "hidden")}>
-              {EDITABLE_BLOCK_TYPES.map((type) => {
+              {editorSlots.map((slot) => {
+                const slotVariant = slot.variant?.toUpperCase();
                 const hasBlock = blocks.some(
-                  (block) => normalizeBlockType(block.type) === type,
+                  (block) =>
+                    normalizeBlockType(block.type) === slot.type
+                    && (!slotVariant || block.variant.toUpperCase() === slotVariant),
                 );
+
+                const isActiveSlot =
+                  activeEditorBlockType === slot.type
+                  && ((slotVariant ?? null) === activeEditorBlockVariant);
 
                 return (
                   <button
-                    key={type}
+                    key={`${slot.type}.${slotVariant ?? "default"}`}
                     type="button"
                     onClick={() => {
-                      setActiveEditorBlockType(type);
+                      setActiveEditorBlockType(slot.type);
+                      setActiveEditorBlockVariant(slotVariant ?? null);
                       const targetBlockId = blocks.find(
-                        (block) => normalizeBlockType(block.type) === type,
+                        (block) =>
+                          normalizeBlockType(block.type) === slot.type
+                          && (!slotVariant || block.variant.toUpperCase() === slotVariant),
                       )?.id;
 
                       if (targetBlockId) {
                         setSelectedBlockId(targetBlockId);
                         setShowBlockSelector(false);
+                      } else {
+                        setSelectedBlockId(null);
+                        setShowBlockSelector(true);
                       }
                     }}
                     className={cn(
                       "rounded-xl border px-2 py-2 text-xs font-semibold transition-colors",
-                      activeEditorBlockType === type
+                      isActiveSlot
                         ? "border-blue-400 bg-blue-50 text-blue-700"
                         : "border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50",
                     )}
                   >
-                    <div>{BLOCK_LABELS[type]}</div>
+                    <div>{slot.label}</div>
                     <div className={cn("mt-0.5 text-[10px]", hasBlock ? "text-emerald-600" : "text-slate-400")}>
                       {hasBlock ? "Đã có" : "Chưa có"}
                     </div>
@@ -2601,17 +3716,17 @@ export default function CreatePortfolio() {
             {!activeEditorBlock && (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4">
                 <p className="text-sm font-semibold text-slate-700">
-                  Chưa có block {BLOCK_LABELS[activeEditorBlockType]}.
+                  Chưa có block {activeEditorLabel}.
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   Bạn có thể thêm từ tab Thành phần hoặc bấm nút bên dưới.
                 </p>
                 <button
                   type="button"
-                  onClick={() => addBlockFromCatalog(activeEditorBlockType)}
+                  onClick={() => addBlockFromCatalog(activeEditorBlockType, activeEditorBlockVariant ?? undefined)}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
                 >
-                  <Plus size={14} /> Thêm {BLOCK_LABELS[activeEditorBlockType]}
+                  <Plus size={14} /> Thêm {activeEditorLabel}
                 </button>
               </div>
             )}
@@ -2621,15 +3736,18 @@ export default function CreatePortfolio() {
                 {!isUsingDedicatedEditor && (
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <h3 className="text-sm font-bold text-slate-900">
-                      Thông tin {BLOCK_LABELS[activeEditorBlockType]}
+                      Thông tin {activeEditorLabel}
                     </h3>
                     {selectedBlock && (
                       <select
                         value={selectedBlock.variant.toUpperCase()}
                         onChange={(event) => updateSelectedVariant(event.target.value)}
+                        disabled={isTemplateBasedEditorSlots && Boolean(activeEditorBlockVariant)}
                         className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 outline-none focus:border-blue-400"
                       >
-                        {(BLOCK_VARIANTS[normalizeBlockType(selectedBlock.type)] ?? [selectedBlock.variant]).map((variantOption) => (
+                        {((isTemplateBasedEditorSlots && activeEditorBlockVariant)
+                          ? [activeEditorBlockVariant]
+                          : (BLOCK_VARIANTS[normalizeBlockType(selectedBlock.type)] ?? [selectedBlock.variant])).map((variantOption) => (
                           <option key={variantOption} value={variantOption}>
                             {variantOption}
                           </option>

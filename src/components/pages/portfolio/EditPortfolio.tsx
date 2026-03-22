@@ -467,11 +467,11 @@ const getFirstProjectLink = (item: Record<string, unknown>): string => {
   return "";
 };
 
-export default function CreatePortfolio() {
+export default function EditPortfolio() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const [activeTab, setActiveTab] = useState<EditorTab>("template");
+  const [activeTab, setActiveTab] = useState<EditorTab>("component");
   const [templates, setTemplates] = useState<PortfolioResponse[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
   const [allowedBlockTypes, setAllowedBlockTypes] = useState<Set<string>>(new Set());
@@ -488,7 +488,7 @@ export default function CreatePortfolio() {
 
   const nextTempBlockIdRef = useRef(-1);
 
-  const isEditMode = Boolean(id);
+  const isEditMode = true;
 
   const allocateTempBlockId = (): number => {
     const nextId = nextTempBlockIdRef.current;
@@ -515,7 +515,11 @@ export default function CreatePortfolio() {
         });
         setPortfolioNames(nextPortfolioNames);
 
-        if (isEditMode && id) {
+        if (!id) {
+          throw new Error("Thiếu mã portfolio để chỉnh sửa.");
+        }
+
+        if (isEditMode) {
           const portfolioId = Number(id);
           const detail = await portfolioService.fetchPortfolioById(portfolioId);
 

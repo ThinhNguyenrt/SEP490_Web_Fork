@@ -1,8 +1,4 @@
-import {
-  Routes,
-  Route,
-  BrowserRouter,
-} from "react-router-dom";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
 import LoginPage from "./components/pages/login/Login";
 import { WebLayout } from "./components/common/WebLayout";
 import ProfilePage from "./components/pages/profile/Profile";
@@ -38,20 +34,21 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Suspense } from "react";
 import LoadingWrapper from "./components/Loading/LoadingWrapper";
+import LandingPage from "./components/pages/LandingPage";
 function App() {
   return (
     <BrowserRouter>
       <Suspense fallback={<LoadingWrapper />}>
         <LoadingWrapper>
           <Routes>
-            {/* Route trang Login tách biệt hoàn toàn */}
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route element={<WebLayout />}>
               <Route path="talent-home" element={<TalentHome />} />
               <Route path="recruiter-home" element={<RecruiterHome />} />
               <Route path="/job/:postId" element={<PostDetail />} />
               <Route path="/chat" element={<ChatRoom />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/" element={<LandingPage />} />
               <Route
                 path="/application-history"
                 element={<ApplicationHistory />}
@@ -61,8 +58,14 @@ function App() {
                 element={<ApplicationManagement />}
               />
               <Route path="/recruiter-profile" element={<RecruiterProfile />} />
-              <Route path="/candicate-management" element={<CandidateManagement />} />
-              <Route path="/interview-schedule" element={<InterviewSchedule />} />
+              <Route
+                path="/candicate-management"
+                element={<CandidateManagement />}
+              />
+              <Route
+                path="/interview-schedule"
+                element={<InterviewSchedule />}
+              />
               <Route path="/company-saved" element={<CompanySavePost />} />
               <Route path="/talent-saved" element={<TalentSavePost />} />
               <Route path="/welcome" element={<WelcomePage />} />

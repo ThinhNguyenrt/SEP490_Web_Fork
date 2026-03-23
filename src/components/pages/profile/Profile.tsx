@@ -10,6 +10,9 @@ import {
   LogOut,
   Award,
   Calendar,
+  Mail,
+  Phone,
+  Briefcase,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,11 +20,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { portfolioService } from "@/services/portfolio.api";
-import CompanyProfile from "./CompanyProfile";
+import TalentProfile from "./TalentProfile";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { logout } from "@/store/features/auth/authSlice";
+import { notify } from "@/lib/toast";
+import { useDispatch } from "react-redux";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-
+  const dispatch = useDispatch();
   const handlePortfolioClick = async () => {
     try {
       const userId = 2; // Mock user ID
@@ -50,17 +57,19 @@ export default function ProfilePage() {
   const handleLogout = () => {
     // Clear any stored authentication data if needed
     // localStorage.removeItem('token');
+    dispatch(logout());
+    notify.success("Đã đăng xuất. Hẹn gặp lại bạn!");
     navigate("/");
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500">
-      {/* <TalentProfile /> */}
-      <CompanyProfile />
+      <TalentProfile />
+      {/* <CompanyProfile /> */}
       {/* CỘT GIỮA - Main Profile & Services */}
       <div className="lg:col-span-6 space-y-6">
         {/* Bio Card */}
-        {/* <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-8 pb-4 bg-white">
+        <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-8 pb-4 bg-white">
           <CardContent className="p-0 flex flex-col items-center text-center space-y-4">
             <Avatar className="h-24 w-24 border-2 border-slate-200 shadow-sm">
               <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=AnNhien" />
@@ -107,7 +116,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </CardContent>
-        </Card> */}
+        </Card>
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 gap-4">
@@ -124,6 +133,7 @@ export default function ProfilePage() {
             onClick={handleCommunityPostClick}
           />
           <ServiceCard
+            icon={<Briefcase className="text-blue-600" />}
             title="Quản lí ứng tuyển"
             desc="Quản lí, theo dõi ứng tuyển"
             onClick={handleApplicationHistoryClick}

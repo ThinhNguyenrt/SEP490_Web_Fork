@@ -35,7 +35,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen transition-colors duration-300">
       {/* Header Section */}
-      <div className="sticky top-14 z-50">
+      <div className="sticky top-16 z-50">
         <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 bg-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -62,7 +62,7 @@ export default function NotificationsPage() {
           {/* Left Column: Notifications List */}
 
           <div className="grow">
-            <div className="sticky top-38 bg-white z-50">
+            <div className="sticky top-40 bg-white z-50">
               <div className="flex border-b border-gray-200  mb-6">
                 <TabButton
                   label="Hệ thống"

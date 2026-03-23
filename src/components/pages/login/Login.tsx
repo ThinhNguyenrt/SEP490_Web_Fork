@@ -1,4 +1,4 @@
-import LoginPlaceholder from "@/assets/login-page-image-placeholder.png";
+import LoginPlaceholder from "/login-page-image-placeholder.png";
 import { useState } from "react";
 import { Card } from "../../ui/card";
 import { cn } from "@/lib/utils";

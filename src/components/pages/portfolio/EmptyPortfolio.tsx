@@ -1,6 +1,6 @@
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import EmptyImg from "@/assets/empty-portfolio-img.png";
+import EmptyImg from "/empty-portfolio-img.png";
 import { PremiumAndTips } from "@/components/common/Premium";
 
 export default function EmptyPortfolioPage() {

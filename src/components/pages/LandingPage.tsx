@@ -2,19 +2,19 @@ import React from "react";
 // 1. Dữ liệu giả lập cho các thẻ giá trị (để code gọn sạch hơn)
 const valueCards = [
   {
-    iconUrl: "/src/assets/landing-page-value-1.png", // Thay bằng đường dẫn ảnh icon profile của bạn
+    iconUrl: "/landing-page-value-1.png", // Thay bằng đường dẫn ảnh icon profile của bạn
     title: "Xây dựng hồ sơ ấn tượng",
     description:
       "Dễ dàng tạo và tùy chỉnh hồ sơ thể hiện toàn bộ kĩ năng và các dự án tâm đắc của bạn",
   },
   {
-    iconUrl: "/src/assets/landing-page-value-2.png", // Thay bằng đường dẫn ảnh icon phân tích
+    iconUrl: "/landing-page-value-2.png", // Thay bằng đường dẫn ảnh icon phân tích
     title: "Phân tích tiến độ",
     description:
       "Theo dõi sự phát triển kĩ năng của bạn qua thời gian với các báo cáo trực quan và chi tiết",
   },
   {
-    iconUrl: "/src/assets/landing-page-value-3.png", // Thay bằng đường dẫn ảnh icon cặp táp
+    iconUrl: "/landing-page-value-3.png", // Thay bằng đường dẫn ảnh icon cặp táp
     title: "Khám phá cơ hội",
     description:
       "Tiếp cận các cơ hội việc làm, dự án và hợp tác phù hợp nhất với bộ kĩ năng của bạn",
@@ -198,7 +198,7 @@ const AppDownloadSection: React.FC = () => {
             <div className="relative w-full max-w-[220px]">
               {/* Hình ảnh giả lập màn hình điện thoại */}
               <img
-                src="/src/assets/landing-page-phone.png"
+                src="/landing-page-phone.png"
                 alt="SkillSnap App Mockup"
                 className="w-full h-auto drop-shadow-2xl"
               />
@@ -324,7 +324,7 @@ const LandingPage: React.FC = () => {
           {/* Image Placeholder - Thay src bằng link ảnh thực tế của bạn */}
           <div className="mt-12 rounded-xl overflow-hidden shadow-2xl max-w-4xl mx-auto">
             <img
-              src="/src/assets/landing-page-img.png"
+              src="/landing-page-img.png"
               alt="Skills Visualization"
               className="w-full h-auto object-cover"
             />

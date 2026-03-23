@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 // 1. Dữ liệu giả lập cho các thẻ giá trị (để code gọn sạch hơn)
 const valueCards = [
   {

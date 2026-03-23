@@ -1,7 +1,7 @@
 export type EducationTwoDraft = {
   time: string;
-  gpa: string;
-  qualified: string;
+  department: string;
+  schoolName: string;
   description: string;
 };
 
@@ -27,8 +27,8 @@ const toText = (value: unknown): string => {
 
 export const createEmptyEducationTwoDraft = (): EducationTwoDraft => ({
   time: "",
-  gpa: "",
-  qualified: "",
+  department: "",
+  schoolName: "",
   description: "",
 });
 
@@ -37,12 +37,14 @@ const getEducationTwoSource = (value: unknown): Record<string, unknown> => {
 };
 
 export const createEducationTwoDraft = (value: unknown): EducationTwoDraft => {
-  const source = getEducationTwoSource(value);
+  const source = Array.isArray(value)
+    ? getEducationTwoSource(value[value.length - 1])
+    : getEducationTwoSource(value);
 
   return {
     time: toText(source.time),
-    gpa: toText(source.gpa),
-    qualified: toText(source.qualified),
+    department: toText(source.department),
+    schoolName: toText(source.schoolName),
     description: toText(source.description),
   };
 };

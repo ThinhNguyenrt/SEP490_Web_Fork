@@ -24,6 +24,7 @@ const ProfileCard = ({
   isPrimary,
   onSetPrimary,
   onUnsetPrimary,
+  portfolioCategoryLabel,
 }: {
   data: PortfolioMainBlockItem;
   onViewDetail: (portfolioId: number) => void;
@@ -31,6 +32,7 @@ const ProfileCard = ({
   isPrimary: boolean;
   onSetPrimary: (portfolioId: number) => void;
   onUnsetPrimary: (portfolioId: number) => void;
+  portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const { fullName, title, email, phone, avatar } = data.blocks.data;
@@ -159,7 +161,7 @@ const ProfileCard = ({
         </div>
 
         <div className="w-full pt-6 border-t border-slate-100  text-slate-400 text-sm font-medium">
-          Hồ sơ xin việc
+          {portfolioCategoryLabel}
         </div>
       </div>
     </div>
@@ -173,6 +175,14 @@ export default function ProfileManagement() {
   const [primaryPortfolioId, setPrimaryPortfolioId] = useState<number | null>(
     null,
   );
+
+  const orderedCategoryLabels = [
+    "Hồ sơ xin việc",
+    "Hồ sơ thực tập",
+    "Hồ sơ học bổng",
+    "Hồ sơ học bổng",
+    "Hồ sơ thực tập",
+  ];
 
   useEffect(() => {
     const fetchPortfolios = async () => {
@@ -249,7 +259,7 @@ export default function ProfileManagement() {
             </div>
           ) : portfolios.length > 0 ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {portfolios.map((portfolio) => (
+              {portfolios.map((portfolio, index) => (
                 <ProfileCard
                   key={portfolio.portfolioId}
                   data={portfolio}
@@ -258,6 +268,7 @@ export default function ProfileManagement() {
                   isPrimary={primaryPortfolioId === portfolio.portfolioId}
                   onSetPrimary={handleSetPrimary}
                   onUnsetPrimary={handleUnsetPrimary}
+                  portfolioCategoryLabel={orderedCategoryLabels[index] ?? "Hồ sơ xin việc"}
                 />
               ))}
             </div>

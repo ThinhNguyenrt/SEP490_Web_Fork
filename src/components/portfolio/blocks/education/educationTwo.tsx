@@ -1,5 +1,5 @@
 import React from 'react';
-import SchoolIcon from '../../../../assets/myWeb/school 1.png';
+import SchoolIcon from '../../../../assets/myWeb/graduation-cap-1 1.png';
 
 type TrainingItem = {
   time?: string;

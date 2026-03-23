@@ -25,6 +25,7 @@ import ResearchOneEditor from "./editor/ResearchOneEditor";
 import ReferenceEditor from "./editor/ReferenceEditor";
 import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
 import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
+import EducationTwoEditor from "@/components/pages/portfolio/editor/EducationTwoEditor";
 import EducationThreeEditor from "@/components/pages/portfolio/editor/EducationThreeEditor";
 import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
 import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
@@ -89,6 +90,10 @@ import {
   createEducationOneDraft,
   type EducationOneDraft,
 } from "@/components/pages/portfolio/editor/educationOneDraft";
+import {
+  createEducationTwoDraft,
+  type EducationTwoDraft,
+} from "@/components/pages/portfolio/editor/educationTwoDraft";
 import {
   createEducationThreeDraft,
   createEmptyEducationThreeDraft,
@@ -465,6 +470,10 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
         return [{ time: "", gpa: "", qualified: "", description: "" }];
       }
 
+      if (normalizedVariant === "EDUCATIONTWO") {
+        return [{ schoolName: "", time: "", department: "", description: "" }];
+      }
+
       return [{ schoolName: "", time: "", department: "", description: "" }];
 
     case "EXPERIMENT":
@@ -610,6 +619,58 @@ const getFirstProjectLink = (item: Record<string, unknown>): string => {
   }
 
   return "";
+};
+
+const LOCAL_PORTFOLIO_STORAGE_KEY = "portfolio.editor.local.v1";
+
+type LocalPortfolioItem = {
+  portfolioId: number;
+  userId: number;
+  name: string;
+  status: number;
+  blocks: PortfolioBlock[];
+  savedAt: string;
+};
+
+const savePortfolioToLocalStorage = (
+  portfolioId: number,
+  payload: {
+    userId: number;
+    name: string;
+    status: number;
+    blocks: PortfolioBlock[];
+  },
+): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PORTFOLIO_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as LocalPortfolioItem[]) : [];
+    const existingItems = Array.isArray(parsed) ? parsed : [];
+
+    const nextItem: LocalPortfolioItem = {
+      portfolioId,
+      userId: payload.userId,
+      name: payload.name,
+      status: payload.status,
+      blocks: payload.blocks.map((block) => ({
+        ...block,
+        data: deepClone(block.data),
+      })),
+      savedAt: new Date().toISOString(),
+    };
+
+    const nextItems = existingItems.some((item) => item.portfolioId === portfolioId)
+      ? existingItems.map((item) => (item.portfolioId === portfolioId ? nextItem : item))
+      : [...existingItems, nextItem];
+
+    window.localStorage.setItem(LOCAL_PORTFOLIO_STORAGE_KEY, JSON.stringify(nextItems));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export default function CreatePortfolio() {
@@ -896,6 +957,17 @@ export default function CreatePortfolio() {
     );
   }, [selectedBlock]);
 
+  const isEditingEducationTwo = useMemo<boolean>(() => {
+    if (!selectedBlock) {
+      return false;
+    }
+
+    return (
+      normalizeBlockType(selectedBlock.type) === "EDUCATION"
+      && selectedBlock.variant.toUpperCase() === "EDUCATIONTWO"
+    );
+  }, [selectedBlock]);
+
   const isEditingExperienceOne = useMemo<boolean>(() => {
     if (!selectedBlock) {
       return false;
@@ -1093,6 +1165,7 @@ export default function CreatePortfolio() {
     || isEditingSkillTwo
     || isEditingSkillThree
     || isEditingEducationOne
+    || isEditingEducationTwo
     || isEditingEducationThree
     || isEditingExperienceOne
     || isEditingProjectOne
@@ -1223,6 +1296,22 @@ export default function CreatePortfolio() {
 
     return `education-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingEducationThree, selectedBlock]);
+
+  const educationTwoInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationTwo) {
+      return null;
+    }
+
+    return createEducationTwoDraft(selectedBlock.data);
+  }, [isEditingEducationTwo, selectedBlock]);
+
+  const educationTwoEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationTwo) {
+      return "education-two-editor";
+    }
+
+    return `education-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingEducationTwo, selectedBlock]);
 
   const experienceOneInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingExperienceOne) {
@@ -1703,16 +1792,28 @@ export default function CreatePortfolio() {
         })),
       };
 
-      const saved =
-        isEditMode && id
-          ? await portfolioService.updatePortfolioById(Number(id), payload)
-          : await portfolioService.createPortfolio(payload);
+      const fallbackLocalId = isEditMode && id ? Number(id) : Date.now();
 
-      if (!saved) {
-        throw new Error("Lưu portfolio thất bại.");
+      try {
+        const saved =
+          isEditMode && id
+            ? await portfolioService.updatePortfolioById(Number(id), payload)
+            : await portfolioService.createPortfolio(payload);
+
+        if (!saved) {
+          throw new Error("Lưu portfolio thất bại.");
+        }
+
+        savePortfolioToLocalStorage(saved.portfolioId, payload);
+        navigate(`/portfolio/${saved.portfolioId}`);
+      } catch (serverError) {
+        const localSaved = savePortfolioToLocalStorage(fallbackLocalId, payload);
+        if (!localSaved) {
+          throw serverError;
+        }
+
+        setError("Không thể lưu lên máy chủ. Dữ liệu đã được lưu cục bộ trên trình duyệt.");
       }
-
-      navigate(`/portfolio/${saved.portfolioId}`);
     } catch (saveError) {
       const message =
         saveError instanceof Error ? saveError.message : "Không thể lưu portfolio.";
@@ -1947,6 +2048,31 @@ export default function CreatePortfolio() {
   };
 
   const handleEducationThreeCancel = () => {
+    setSelectedBlockId(null);
+    setShowBlockSelector(true);
+  };
+
+  const handleEducationTwoSave = (nextDraft: EducationTwoDraft) => {
+    if (!selectedBlock || !isEditingEducationTwo) {
+      return;
+    }
+
+    updateSelectedBlockData((current) => {
+      const currentItems = toRecordArray(current);
+
+      return [
+        ...currentItems,
+        {
+          time: nextDraft.time,
+          department: nextDraft.department,
+          schoolName: nextDraft.schoolName,
+          description: nextDraft.description,
+        },
+      ];
+    });
+  };
+
+  const handleEducationTwoCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
   };
@@ -2848,6 +2974,21 @@ export default function CreatePortfolio() {
     );
   };
 
+  const renderEducationTwoEditor = () => {
+    if (!educationTwoInitialData) {
+      return null;
+    }
+
+    return (
+      <EducationTwoEditor
+        key={educationTwoEditorKey}
+        initialData={educationTwoInitialData}
+        onSave={handleEducationTwoSave}
+        onCancel={handleEducationTwoCancel}
+      />
+    );
+  };
+
   const renderExperienceOneEditor = () => {
     if (!experienceOneInitialData) {
       return null;
@@ -3144,6 +3285,10 @@ export default function CreatePortfolio() {
 
     if (blockType === "EDUCATION" && variant === "EDUCATIONONE") {
       return renderEducationOneEditor();
+    }
+
+    if (blockType === "EDUCATION" && variant === "EDUCATIONTWO") {
+      return renderEducationTwoEditor();
     }
 
     if (blockType === "EDUCATION" && variant === "EDUCATIONTHREE") {

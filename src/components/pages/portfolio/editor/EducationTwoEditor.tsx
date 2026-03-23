@@ -24,8 +24,8 @@ export default function EducationTwoEditor({
 
   const hasContent = [
     draft.time,
-    draft.gpa,
-    draft.qualified,
+    draft.department,
+    draft.schoolName,
     draft.description,
   ].some((value) => value.trim().length > 0);
 
@@ -43,8 +43,8 @@ export default function EducationTwoEditor({
 
     onSave({
       time: draft.time.trim(),
-      gpa: draft.gpa.trim(),
-      qualified: draft.qualified.trim(),
+      department: draft.department.trim(),
+      schoolName: draft.schoolName.trim(),
       description: draft.description.trim(),
     });
     setDraft(createEmptyEducationTwoDraft());
@@ -54,7 +54,7 @@ export default function EducationTwoEditor({
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
       <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">
         <div>
-          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Quá trình đào tạo</h3>
+          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Thêm quá trình đào tạo</h3>
           <p className="mt-1 text-sm text-slate-500">
             Hãy điền thêm quá trình đào tạo để hiển thị trong hồ sơ của bạn
           </p>
@@ -81,21 +81,21 @@ export default function EducationTwoEditor({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Điểm GPA</label>
+          <label className="text-sm font-semibold text-slate-600">Chuyên ngành</label>
           <input
-            value={draft.gpa}
-            onChange={(event) => updateDraftField("gpa", event.target.value)}
-            placeholder="Nhập điểm GPA"
+            value={draft.department}
+            onChange={(event) => updateDraftField("department", event.target.value)}
+            placeholder="Nhập chuyên ngành bạn đã hoàn thành"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Xếp loại</label>
+          <label className="text-sm font-semibold text-slate-600">Tên trường / cơ sở / tổ chức</label>
           <input
-            value={draft.qualified}
-            onChange={(event) => updateDraftField("qualified", event.target.value)}
-            placeholder="Nhập xếp loại"
+            value={draft.schoolName}
+            onChange={(event) => updateDraftField("schoolName", event.target.value)}
+            placeholder="Nhập tên trường / cơ sở / tổ chức bạn đã học"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
@@ -105,7 +105,7 @@ export default function EducationTwoEditor({
           <textarea
             value={draft.description}
             onChange={(event) => updateDraftField("description", event.target.value)}
-            placeholder="Thêm chút giới thiệu quá trình đào tạo"
+            placeholder="Thêm chút giới thiệu những gì bạn đã đạt được"
             className="min-h-28 w-full resize-none rounded-xl border border-[#d1d5db] bg-white p-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>

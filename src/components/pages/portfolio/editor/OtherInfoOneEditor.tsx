@@ -100,7 +100,7 @@ export default function OtherInfoOneEditor({
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
       <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">
         <div>
-          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Chọn sở thích cá nhân của bạn</h3>
+          <h3 className="text-[26px] font-bold leading-tight text-slate-800">Chọn sở thích cá nhân của bạn</h3>
           <p className="mt-1 text-sm text-slate-500">
             Chọn một hoặc nhiều sở thích để thêm vào hồ sơ của bạn
           </p>
@@ -117,7 +117,7 @@ export default function OtherInfoOneEditor({
 
       <div className="space-y-4 p-3">
         <div>
-          <h4 className="text-[34px] font-bold leading-tight text-slate-800">Gợi ý cho bạn</h4>
+          <h4 className="text-[26px] font-bold leading-tight text-slate-800">Gợi ý cho bạn</h4>
           <div className="mt-3 flex flex-wrap gap-2">
             {SUGGESTED_INTERESTS.map((interestName) => {
               const selected = hasInterest(selectedInterests, interestName);
@@ -142,7 +142,7 @@ export default function OtherInfoOneEditor({
         </div>
 
         <div className="rounded-xl border border-[#d7dfeb] bg-[#f1f4f9] p-3">
-          <h5 className="text-[35px] font-bold leading-tight text-slate-700">Không tìm thấy sở thích của bạn ?</h5>
+          <h5 className="text-[26px] font-bold leading-tight text-slate-700">Không tìm thấy sở thích của bạn ?</h5>
           <label className="mt-2 block text-sm font-semibold text-slate-500">Sở thích mới</label>
           <input
             value={newInterestName}

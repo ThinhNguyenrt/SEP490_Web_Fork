@@ -18,9 +18,13 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "@/store/features/auth/authSlice";
+import { notify } from "@/lib/toast";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleEditProfile = () => {
     // Navigate to edit profile (to be implemented)
@@ -57,6 +61,8 @@ export default function RecruiterProfile() {
   const handleLogout = () => {
     // Clear any stored authentication data if needed
     // localStorage.removeItem('token');
+    dispatch(logout());
+    notify.success("Đã đăng xuất. Hẹn gặp lại bạn!");
     navigate("/");
   };
 
@@ -75,7 +81,9 @@ export default function RecruiterProfile() {
           </div>
           <CardContent className="pt-12 pb-6 px-6">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <h3 className="font-bold text-lg text-slate-800 text-center">Google</h3>
+              <h3 className="font-bold text-lg text-slate-800 text-center">
+                Google
+              </h3>
               <button onClick={handleEditProfile}>
                 <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
                   <Edit3
@@ -90,7 +98,9 @@ export default function RecruiterProfile() {
             <div className="space-y-2 mb-6">
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <Building2 size={16} className="text-slate-400 shrink-0" />
-                <span className="truncate">Lĩnh vực: Tên lĩnh vực hoạt động của công ty</span>
+                <span className="truncate">
+                  Lĩnh vực: Tên lĩnh vực hoạt động của công ty
+                </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <MapPin size={16} className="text-slate-400 shrink-0" />
@@ -100,7 +110,9 @@ export default function RecruiterProfile() {
 
             {/* Introduction */}
             <p className="text-xs text-slate-600 leading-relaxed">
-              Google Inc. là một công ty công nghệ đa quốc gia chuyên về các dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ quảng cáo.
+              Google Inc. là một công ty công nghệ đa quốc gia chuyên về các
+              dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ
+              quảng cáo.
             </p>
           </CardContent>
         </Card>

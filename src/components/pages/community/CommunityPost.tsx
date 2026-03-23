@@ -29,11 +29,17 @@ export default function CommunityPost() {
           </div>
           <div className="flex items-center justify-between pt-2">
             <div className="flex space-x-1">
-              <button className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+              <button
+                className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
                 <ImageIcon size={18} className="text-blue-500" />
                 <span className="text-sm font-medium">Thêm ảnh</span>
               </button>
-              <button className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+              <button
+                className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
                 <Contact size={18} className="text-green-500" />
                 <span className="text-sm font-medium">Hồ sơ</span>
               </button>

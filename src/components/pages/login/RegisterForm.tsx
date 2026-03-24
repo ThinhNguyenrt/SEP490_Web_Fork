@@ -8,7 +8,7 @@ export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <form className="space-y-4 animate-in slide-in-from-right-4 duration-500">
+    <form className="space-y-4">
       {/* <div className="space-y-1.5">
         <Label htmlFor="username">Tên hiển thị</Label>
         <div className="relative">

@@ -58,7 +58,7 @@ export const LoginForm = () => {
   return (
     <form
       onSubmit={handleLogin}
-      className="space-y-4 animate-in fade-in duration-500"
+      className="space-y-4"
     >
       {/* email */}
       <div className="space-y-1.5">

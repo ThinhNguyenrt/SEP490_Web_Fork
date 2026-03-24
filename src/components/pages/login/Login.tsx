@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 import { RecruiterForm } from "./RecruiterForm";
+import { motion, AnimatePresence } from "framer-motion";
 type AuthMode = "login" | "register" | "recruiter";
 
 export default function LoginPage() {
@@ -71,14 +72,42 @@ export default function LoginPage() {
               </div>
 
               {/* Render Component tương ứng */}
-              <div className="min-h-100 flex flex-col justify-start">
-                {mode === "login" && <LoginForm />}
-                {mode === "register" && (
-                  <RegisterForm onSwitch={() => setMode("recruiter")} />
-                )}
-                {mode === "recruiter" && (
-                  <RecruiterForm onSwitch={() => setMode("register")} />
-                )}
+              <div className="min-h-100 flex flex-col justify-start relative overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {mode === "login" && (
+                    <motion.div
+                      key="login"
+                      initial={{ x: -300, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: 300, opacity: 0 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                    >
+                      <LoginForm />
+                    </motion.div>
+                  )}
+                  {mode === "register" && (
+                    <motion.div
+                      key="register"
+                      initial={{ x: 300, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -300, opacity: 0 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                    >
+                      <RegisterForm onSwitch={() => setMode("recruiter")} />
+                    </motion.div>
+                  )}
+                  {mode === "recruiter" && (
+                    <motion.div
+                      key="recruiter"
+                      initial={{ x: 300, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -300, opacity: 0 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                    >
+                      <RecruiterForm onSwitch={() => setMode("register")} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>

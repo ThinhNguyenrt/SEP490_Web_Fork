@@ -117,7 +117,7 @@ export function Header() {
             </span>
             <div className="h-8 w-8 rounded-full overflow-hidden border-2 border-white shadow-sm group-hover:rotate-12 transition-transform">
               <img
-                src="src/assets/user_placeholder.png"
+                src="/user_placeholder.png"
                 alt="Guest"
                 className="h-full w-full object-cover opacity-80"
               />

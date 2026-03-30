@@ -54,6 +54,13 @@ export default function ProfilePage() {
     navigate("/application-history");
   };
 
+  const handleSavedClick = () => {
+    navigate("/talent-saved");
+  };
+  const handleApplicationManagementClick = () => {
+    navigate("/application-management");
+  };
+
   const handleLogout = () => {
     // Clear any stored authentication data if needed
     // localStorage.removeItem('token');
@@ -63,7 +70,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 ">
       <TalentProfile />
       {/* <CompanyProfile /> */}
       {/* CỘT GIỮA - Main Profile & Services */}
@@ -142,11 +149,13 @@ export default function ProfilePage() {
             icon={<Bookmark className="text-blue-600" />}
             title="Quan tâm"
             desc="Danh sách đã lưu"
+            onClick={handleSavedClick}
           />
           <ServiceCard
             icon={<Calendar className="text-blue-600" />}
             title="Quản lý lịch phỏng vấn"
             desc="Quản lý, theo dõi lịch trình phỏng vấn"
+            onClick={handleApplicationManagementClick}
           />
         </div>
 
@@ -173,35 +182,37 @@ export default function ProfilePage() {
 
       {/* CỘT PHẢI - Settings & Support */}
       <div className="lg:col-span-3">
-        <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-6 bg-white">
-          <h3 className="font-bold text-xl text-slate-800 mb-6 border-b-2 border-slate-100 pb-2">
-            Cài đặt & hỗ trợ
-          </h3>
-          <div className="space-y-3">
-            <SettingsItem
-              icon={<HelpCircle size={18} />}
-              label="Trung tâm hỗ trợ"
-            />
-            <SettingsItem
-              icon={<Lock size={18} />}
-              label="Trung tâm quyền riêng tư"
-            />
-            <SettingsItem
-              icon={<Info size={18} />}
-              label="Điều khoản & chính sách"
-            />
-            <SettingsItem icon={<Key size={18} />} label="Đổi mật khẩu" />
-            <SettingsItem
-              icon={<LogOut size={18} />}
-              label="Đăng xuất"
-              isDanger
-              onClick={handleLogout}
-            />
-          </div>
-          <p className="text-center text-[10px] text-slate-400 mt-12">
-            SkillSnap Desktop V1.0.2
-          </p>
-        </Card>
+        <div className="sticky top-16 z-20">
+          <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-6 bg-white">
+            <h3 className="font-bold text-xl text-slate-800 mb-6 border-b-2 border-slate-100 pb-2">
+              Cài đặt & hỗ trợ
+            </h3>
+            <div className="space-y-3">
+              <SettingsItem
+                icon={<HelpCircle size={18} />}
+                label="Trung tâm hỗ trợ"
+              />
+              <SettingsItem
+                icon={<Lock size={18} />}
+                label="Trung tâm quyền riêng tư"
+              />
+              <SettingsItem
+                icon={<Info size={18} />}
+                label="Điều khoản & chính sách"
+              />
+              <SettingsItem icon={<Key size={18} />} label="Đổi mật khẩu" />
+              <SettingsItem
+                icon={<LogOut size={18} />}
+                label="Đăng xuất"
+                isDanger
+                onClick={handleLogout}
+              />
+            </div>
+            <p className="text-center text-[10px] text-slate-400 mt-12">
+              SkillSnap Desktop V1.0.2
+            </p>
+          </Card>
+        </div>
       </div>
     </div>
   );

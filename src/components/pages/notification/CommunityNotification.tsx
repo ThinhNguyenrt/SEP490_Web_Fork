@@ -17,7 +17,8 @@ const CommunityNotification = () => {
     {
       id: 1,
       userName: "Phạm Cường",
-      userAvatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBsNUWRQMyW6ZiTNRuBJ_lHeNdO5Vw3t276JN4Lh2oa2R7r3Gsb5YTHn_7VnV4LO70f8zv1iymTn-zdNgbfwIxNXg3KZ84Hayw0B_xxn3kLYFCTckLuokLxaKtMJb41rfWrOvkUuffi6qecGniHGdQZddaBVgxJbsN7ssmhHtJ-oB9RudeNAV7CBUKsvgzrOFcnlLCJZE2j6p5nmGCOJjIdyOzZTmtXiNCBi3A5orYvq27LR8S44zaGDLkkxuogq9c6f9dTOHWTSa4",
+      userAvatar:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuBsNUWRQMyW6ZiTNRuBJ_lHeNdO5Vw3t276JN4Lh2oa2R7r3Gsb5YTHn_7VnV4LO70f8zv1iymTn-zdNgbfwIxNXg3KZ84Hayw0B_xxn3kLYFCTckLuokLxaKtMJb41rfWrOvkUuffi6qecGniHGdQZddaBVgxJbsN7ssmhHtJ-oB9RudeNAV7CBUKsvgzrOFcnlLCJZE2j6p5nmGCOJjIdyOzZTmtXiNCBi3A5orYvq27LR8S44zaGDLkkxuogq9c6f9dTOHWTSa4",
       content: "đã thích bài viết của bạn.",
       time: "2 giờ trước",
       isUnread: true,
@@ -26,7 +27,8 @@ const CommunityNotification = () => {
     {
       id: 2,
       userName: "Nguyễn Lan",
-      userAvatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAgNbjcy3FSq_LFseGkzZyneTybEF3nEuEaXqG51zeqk88gUqkF1k9TahazUAJ5WW-6BtTUQSSSU0cSvRdByeMIRSnY2ux7alSK1-pzKgTcBojfTQy5fuHCRI0MAi0knDWwMUnp3tbGK2v8YD8PpDpP25IcpyzTaDiVRm1OyWOUeJ1OpQHiD50-nSRW3JS6P2XSjevjq9HEAkYT-lLAc2ZceAUl171F0T45x34_vkf5CTSgIqNxHBRgXCsoTaIO7PGA31Tev_egx4Y",
+      userAvatar:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuAgNbjcy3FSq_LFseGkzZyneTybEF3nEuEaXqG51zeqk88gUqkF1k9TahazUAJ5WW-6BtTUQSSSU0cSvRdByeMIRSnY2ux7alSK1-pzKgTcBojfTQy5fuHCRI0MAi0knDWwMUnp3tbGK2v8YD8PpDpP25IcpyzTaDiVRm1OyWOUeJ1OpQHiD50-nSRW3JS6P2XSjevjq9HEAkYT-lLAc2ZceAUl171F0T45x34_vkf5CTSgIqNxHBRgXCsoTaIO7PGA31Tev_egx4Y",
       content: 'đã bình luận: "Thật tuyệt vời!"',
       time: "5 giờ trước",
       type: "comment",
@@ -79,7 +81,6 @@ const CommunityNotification = () => {
       time: "1 ngày trước",
       type: "group",
     },
-
   ];
 
   return (
@@ -89,17 +90,28 @@ const CommunityNotification = () => {
           key={notif.id}
           className="bg-white  p-4 rounded-xl shadow-sm border border-gray-100  flex items-center gap-4 max-w-2xl hover:border-blue-400/50 transition-all cursor-pointer group"
         >
-          {/* Avatar hoặc Icon tùy theo loại thông báo */}
           {notif.type === "group" ? (
-            <div className="w-12 h-12 rounded-full bg-blue-100  flex items-center justify-center text-blue-600  shrink-0">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
               <Users size={24} />
             </div>
           ) : (
-            <img
-              alt={notif.userName}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100  shrink-0"
-              src={notif.userAvatar}
-            />
+            <div className="relative inline-block shrink-0">
+              {/* Avatar người dùng */}
+              <img
+                alt={notif.userName}
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
+                src={notif.userAvatar}
+              />
+
+              {/* Tick xanh nằm ở góc phải dưới */}
+              <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 z-10">
+                <img
+                  src="/blue-tick-company.png"
+                  alt="Verified"
+                  className="w-5 h-5 bg-white rounded-full border-2 border-white"
+                />
+              </div>
+            </div>
           )}
 
           {/* Nội dung thông báo */}
@@ -112,7 +124,9 @@ const CommunityNotification = () => {
               )}
               {notif.content}
             </p>
-            <span className="text-xs text-gray-500 mt-1 block">{notif.time}</span>
+            <span className="text-xs text-gray-500 mt-1 block">
+              {notif.time}
+            </span>
           </div>
 
           {/* Chấm xanh báo hiệu chưa đọc */}

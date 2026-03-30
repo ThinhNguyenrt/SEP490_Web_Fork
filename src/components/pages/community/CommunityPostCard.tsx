@@ -52,7 +52,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
               {isVerified && (
                 <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4">
                   <img
-                    src="/src/assets/blue-tick-company.png"
+                    src="/blue-tick-company.png"
                     alt="Verified"
                     className="w-5 h-5 bg-white rounded-full border-2 border-white"
                   />

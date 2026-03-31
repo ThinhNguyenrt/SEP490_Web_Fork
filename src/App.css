@@ -21,3 +21,7 @@
   background-color: #f8fafc !important; /* slate-50 */
 }
 
+.Toastify__toast-container--top-right {
+  top: 8rem !important; /* Tương đương top-32 */
+  right: 2rem !important; /* Tương đương right-8 */
+}

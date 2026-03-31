@@ -86,8 +86,8 @@ export default function TalentHome() {
     setCurrentIndex(0);
   };
 
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  console.log("Current User:", user, "Is Authenticated:", isAuthenticated);
+  const { user} = useAppSelector((state) => state.auth);
+  console.log("Current User:", user);
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Main Content with Filter on Left */}

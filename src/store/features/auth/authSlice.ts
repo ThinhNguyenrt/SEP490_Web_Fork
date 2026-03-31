@@ -1,13 +1,21 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AuthState } from "./authTypes";
-import { MockUser } from "@/data/mockUser";
+import { AuthUser } from "@/types/auth";
 
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   loading: false,
   error: null,
+  accessToken: null,
+  refreshToken: null,
 };
+
+interface LoginSuccessPayload {
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+}
 
 const authSlice = createSlice({
   name: "auth",
@@ -19,8 +27,10 @@ const authSlice = createSlice({
       state.error = null;
     },
     // đăng nhập thành công
-    loginSuccess: (state, action: PayloadAction<MockUser>) => {
-      state.user = action.payload;
+    loginSuccess: (state, action: PayloadAction<LoginSuccessPayload>) => {
+      state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
       state.loading = false; 
       state.error = null;
@@ -37,6 +47,8 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
+      state.accessToken = null;
+      state.refreshToken = null;
     },
   },
 });

@@ -1,8 +1,10 @@
-import { MockUser } from "@/data/mockUser";
+import { AuthUser } from "@/types/auth";
 
 export interface AuthState {
-  user: MockUser | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
 }

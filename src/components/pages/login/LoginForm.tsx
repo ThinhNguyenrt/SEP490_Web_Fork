@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockLoginAccounts } from "@/data/mockUser";
+import { authAPI } from "../../../services/auth.api";
 
 import { useAppDispatch, useAppSelector } from "@/store/hook";
 import {
@@ -25,34 +25,70 @@ export const LoginForm = () => {
   // xử lí error và loading
   const { error, loading } = useAppSelector((state) => state.auth);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email || !password) {
+      dispatch(loginFailure("Vui lòng nhập email và mật khẩu!"));
+      return;
+    }
 
     // hiện loading "Đang xác thực..."
     dispatch(loginStart());
+    console.log("🔄 Bắt đầu login process cho email:", email);
 
-    setTimeout(() => {
-      const account = mockLoginAccounts.find(
-        (acc) => acc.email === email && acc.password === password,
-      );
+    try {
+      const response = await authAPI.login({ email, password });
 
-      if (account) {
-        // lưu user
-        dispatch(loginSuccess(account));
+      // Kiểm tra response hợp lệ
+      if (!response) {
+        console.error("❌ No response received");
+        dispatch(loginFailure("Không nhận được response từ server"));
+        return;
+      }
 
-        // Recruiter vào recruiter-home, User vào talent-home
-        if (account.role === "recruiter") {
-          // Thông báo thành công
-          notify.success("Login thành công!");
+      console.log("📊 Response received:", { 
+        success: response.success, 
+        hasData: !!response.data,
+        hasUser: !!response.data?.user
+      });
+
+      if (response.success && response.data && response.data.user) {
+        // lưu user và tokens
+        console.log("✅ Login validation passed, saving user data");
+        dispatch(
+          loginSuccess({
+            user: response.data.user,
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+          })
+        );
+
+        // Role = 1 là talent, 2 là recruiter
+        const role = response.data.user.role;
+        console.log("👤 User role:", role);
+        
+        notify.success("Login thành công!");
+        
+        if (role === 2) {
+          console.log("→ Navigating to recruiter-home");
           navigate("/recruiter-home");
         } else {
-          notify.success("Login thành công!");
+          console.log("→ Navigating to talent-home");
           navigate("/talent-home");
         }
       } else {
-        dispatch(loginFailure("Email hoặc mật khẩu không chính xác!"));
+        // API trả về success: false hoặc format không đúng
+        const errorMsg = response.message || "Email hoặc mật khẩu không chính xác!";
+        console.warn("⚠️ Login failed - success:", response.success, "message:", errorMsg);
+        dispatch(loginFailure(errorMsg));
       }
-    }, 2000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Email hoặc mật khẩu không chính xác!";
+      console.error("❌ Login exception:", errorMessage, err);
+      dispatch(loginFailure(errorMessage));
+    }
   };
 
   return (

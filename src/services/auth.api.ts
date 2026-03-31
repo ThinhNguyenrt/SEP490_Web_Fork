@@ -1,7 +1,9 @@
 import { LoginRequest, LoginResponse, RegisterRequest } from "@/types/auth";
 
-// Dùng relative path để tận dụng Vite proxy
-const API_BASE_URL = "/api";
+// API_BASE_URL được cấu hình từ environment:
+// - Development: /api (sử dụng Vite proxy)
+// - Production: full URL từ VITE_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -26,8 +28,23 @@ export const authAPI = {
       clearTimeout(timeoutId);
       
       console.log("📡 Response status:", response.status);
-      const data: LoginResponse = await response.json();
-      console.log("📦 Response data:", { success: data.success, message: data.message, errors: data.errors });
+      
+      // Kiểm tra nếu response có content trước khi parse JSON
+      const contentType = response.headers.get("content-type");
+      let data: LoginResponse;
+      
+      if (contentType?.includes("application/json")) {
+        try {
+          data = await response.json();
+          console.log("📦 Response data:", { success: data.success, message: data.message, errors: data.errors });
+        } catch (parseError) {
+          console.error("❌ JSON parse error:", parseError);
+          throw new Error("Invalid response format from server (JSON parse failed)");
+        }
+      } else {
+        console.error("❌ Invalid response content type:", contentType);
+        throw new Error("Server returned non-JSON response");
+      }
 
       if (!response.ok) {
         const errorMsg = data.errors?.[0] || data.message || "Login failed. Please try again.";
@@ -84,8 +101,23 @@ export const authAPI = {
       clearTimeout(timeoutId);
       
       console.log("📡 Response status:", response.status);
-      const data: LoginResponse = await response.json();
-      console.log("📦 Response data:", { success: data.success, message: data.message, errors: data.errors });
+      
+      // Kiểm tra nếu response có content trước khi parse JSON
+      const contentType = response.headers.get("content-type");
+      let data: LoginResponse;
+      
+      if (contentType?.includes("application/json")) {
+        try {
+          data = await response.json();
+          console.log("📦 Response data:", { success: data.success, message: data.message, errors: data.errors });
+        } catch (parseError) {
+          console.error("❌ JSON parse error:", parseError);
+          throw new Error("Invalid response format from server (JSON parse failed)");
+        }
+      } else {
+        console.error("❌ Invalid response content type:", contentType);
+        throw new Error("Server returned non-JSON response");
+      }
 
       if (!response.ok) {
         const errorMsg = data.errors?.[0] || data.message || "Register failed. Please try again.";

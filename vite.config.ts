@@ -12,10 +12,15 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://auth-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
     },
+  },
+  define: {
+    "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
+      process.env.VITE_API_BASE_URL || "/api"
+    ),
   },
 })

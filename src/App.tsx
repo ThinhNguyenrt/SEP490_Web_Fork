@@ -33,14 +33,12 @@ import ErrorPage from "./components/pages/ErrorPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Suspense } from "react";
-import LoadingWrapper from "./components/Loading/LoadingWrapper";
 import LandingPage from "./components/pages/LandingPage";
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingWrapper />}>
-        <LoadingWrapper>
-          <Routes>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<WebLayout />}>
               <Route path="talent-home" element={<TalentHome />} />
@@ -97,7 +95,7 @@ function App() {
             </Route>
             <Route path="*" element={<ErrorPage />} />
           </Routes>
-          <ToastContainer
+        <ToastContainer
             position="top-right"
             autoClose={3000}
             hideProgressBar={false}
@@ -109,7 +107,6 @@ function App() {
             pauseOnHover
             theme="light" // Hoặc "dark" tùy UI của bạn
           />
-        </LoadingWrapper>
       </Suspense>
     </BrowserRouter>
   );

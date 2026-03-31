@@ -141,10 +141,10 @@ export default function ChatRoom({ conversations = mockConversations }: ChatRoom
 
   // Lọc conversations dựa trên role của user
   const filteredByRole = conversations.filter((conv) => {
-    if (user?.role === 'user') {
+    if (user?.role === 1) {
       // Nếu là user/talent, chỉ hiển thị tin nhắn từ recruiter
       return conv.connectionRole === 'recruiter';
-    } else if (user?.role === 'recruiter') {
+    } else if (user?.role === 2) {
       // Nếu là recruiter, hiển thị tin nhắn từ user/candidate
       return conv.connectionRole === 'user';
     }

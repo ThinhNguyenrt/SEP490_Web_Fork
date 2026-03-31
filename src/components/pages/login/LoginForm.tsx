@@ -2,7 +2,7 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../../../services/auth.api";
 
@@ -24,7 +24,13 @@ export const LoginForm = () => {
 
   // xử lí error và loading
   const { error, loading } = useAppSelector((state) => state.auth);
-
+  useEffect(() => {
+    // Khi vừa vào trang Login, nếu thấy loading đang true mà không rõ lý do,
+    // ta ép nó về false để người dùng còn nhìn thấy form.
+    if (loading) {
+      dispatch(loginFailure(""));
+    }
+  }, []);
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -39,7 +45,7 @@ export const LoginForm = () => {
 
     try {
       const response = await authAPI.login({ email, password });
-
+      console.log("📥 API response:", response);
       // Kiểm tra response hợp lệ
       if (!response) {
         console.error("❌ No response received");
@@ -47,10 +53,10 @@ export const LoginForm = () => {
         return;
       }
 
-      console.log("📊 Response received:", { 
-        success: response.success, 
+      console.log("📊 Response received:", {
+        success: response.success,
         hasData: !!response.data,
-        hasUser: !!response.data?.user
+        hasUser: !!response.data?.user,
       });
 
       if (response.success && response.data && response.data.user) {
@@ -61,15 +67,15 @@ export const LoginForm = () => {
             user: response.data.user,
             accessToken: response.data.accessToken,
             refreshToken: response.data.refreshToken,
-          })
+          }),
         );
 
         // Role = 1 là talent, 2 là recruiter
         const role = response.data.user.role;
         console.log("👤 User role:", role);
-        
+
         notify.success("Login thành công!");
-        
+
         if (role === 2) {
           console.log("→ Navigating to recruiter-home");
           navigate("/recruiter-home");
@@ -79,23 +85,28 @@ export const LoginForm = () => {
         }
       } else {
         // API trả về success: false hoặc format không đúng
-        const errorMsg = response.message || "Email hoặc mật khẩu không chính xác!";
-        console.warn("⚠️ Login failed - success:", response.success, "message:", errorMsg);
+        const errorMsg =
+          response.message || "Email hoặc mật khẩu không chính xác!";
+        console.warn(
+          "⚠️ Login failed - success:",
+          response.success,
+          "message:",
+          errorMsg,
+        );
         dispatch(loginFailure(errorMsg));
       }
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Email hoặc mật khẩu không chính xác!";
+        err instanceof Error
+          ? err.message
+          : "Email hoặc mật khẩu không chính xác!";
       console.error("❌ Login exception:", errorMessage, err);
       dispatch(loginFailure(errorMessage));
     }
   };
 
   return (
-    <form
-      onSubmit={handleLogin}
-      className="space-y-4"
-    >
+    <form onSubmit={handleLogin} className="space-y-4">
       {/* email */}
       <div className="space-y-1.5">
         <Label htmlFor="email">Email</Label>

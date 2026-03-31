@@ -28,17 +28,19 @@ import MyCommunityPost from "./components/pages/community/MyCommunityPost";
 import MySavePost from "./components/pages/community/save/TalentSavePost";
 import CompanySavePost from "./components/pages/community/save/CompanySavePost";
 import TalentSavePost from "./components/pages/community/save/TalentSavePost";
-import WelcomePage from "./components/pages/login/WelcomePage";
 import ErrorPage from "./components/pages/ErrorPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Suspense } from "react";
 import LandingPage from "./components/pages/LandingPage";
+import LoadingWrapper from "./components/Loading/LoadingWrapper";
+import SetupTalentProfile from "./components/pages/login/SetupTalentProfile";
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Routes>
+      <Suspense fallback={<LoadingWrapper />}>
+        <LoadingWrapper>
+          <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<WebLayout />}>
               <Route path="talent-home" element={<TalentHome />} />
@@ -66,7 +68,7 @@ function App() {
               />
               <Route path="/company-saved" element={<CompanySavePost />} />
               <Route path="/talent-saved" element={<TalentSavePost />} />
-              <Route path="/welcome" element={<WelcomePage />} />
+              <Route path="/setup-talent-profile" element={<SetupTalentProfile />} />
               <Route
                 path="/recruitment-management"
                 element={<RecruitmentManagement />}
@@ -95,9 +97,13 @@ function App() {
             </Route>
             <Route path="*" element={<ErrorPage />} />
           </Routes>
-        <ToastContainer
+          <ToastContainer
             position="top-right"
             autoClose={3000}
+            // Thêm style trực tiếp vào đây
+            // Header của bạn thường cao khoảng 56px - 64px,
+            // set top khoảng 80px - 100px là đẹp.
+            style={{ top: "85px" }}
             hideProgressBar={false}
             newestOnTop={false}
             closeOnClick
@@ -105,8 +111,9 @@ function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="light" // Hoặc "dark" tùy UI của bạn
+            theme="light"
           />
+        </LoadingWrapper>
       </Suspense>
     </BrowserRouter>
   );

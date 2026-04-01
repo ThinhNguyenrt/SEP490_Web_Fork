@@ -1,16 +1,23 @@
-import { useState, useRef } from "react"; // Thêm useRef để focus
+import { useState, useRef, useEffect } from "react"; // Thêm useRef để focus
 import { ArrowLeft, Send, X } from "lucide-react"; // Thêm icon X để hủy
 import { CommunityPostComment } from "./CommunityPostComment";
 import { useNavigate, useParams } from "react-router-dom";
-import { communityPosts, POST_COMMENTS_MOCK } from "@/data/mockComment";
+import { POST_COMMENTS_MOCK } from "@/data/mockComment";
+// import { communityPosts } from "@/data/mockComment";
 import { CommunityPostCard } from "./CommunityPostCard";
+import { CommunityPost } from "@/types/communityPost";
+// import { PostComment } from "@/types/communityPost";
+import { useUserProfile } from "@/hook/useUserProfile";
 
 export default function CommunityPostDetail() {
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const postId = Number(id);
+  const [isLoading, setIsLoading] = useState(false);
+  const [post, setPost] = useState<CommunityPost>(); // Lưu chi tiết bài viết
+  // const [postComments, setPostComments] = useState<PostComment[]>([]); // Lưu danh sách bình luận
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
+  const postId = Number(id);
   const handleInput = () => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -20,6 +27,44 @@ export default function CommunityPostDetail() {
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   };
+  const postCommentsData = POST_COMMENTS_MOCK.find(
+    (item) => item.postId === postId,
+  );
+  const fetchDetailCommunityPosts = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      // API sẽ nhận cursor để biết lấy tiếp từ đâu
+      const postDetailResponse = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}`,
+      );
+      // const secondResponse = await fetch(
+      //   `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/comments`,
+      // );
+
+      console.log("Response: ", postDetailResponse);
+      if (postDetailResponse.ok) {
+        const postDetailData = await postDetailResponse.json();
+        console.log("Data", postDetailData);
+        setPost(postDetailData);
+      }
+      // if (secondResponse.ok) {
+      //   const commentsData = await secondResponse.json();
+      //   console.log("Comments Data", commentsData);
+      //   setPostComments(commentsData);
+      // }
+    } catch (error) {
+      console.error("Lỗi khi fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch lần đầu tiên
+  useEffect(() => {
+    fetchDetailCommunityPosts();
+  }, []);
 
   // --- State cho việc phản hồi ---
   const [replyTarget, setReplyTarget] = useState<{
@@ -27,19 +72,12 @@ export default function CommunityPostDetail() {
     name: string;
   } | null>(null);
 
-  const post = communityPosts.find((p) => p.id === postId);
-  const postCommentsData = POST_COMMENTS_MOCK.find(
-    (item) => item.postId === postId,
-  );
-
   // Hàm xử lý khi click nút Phản hồi từ component con
   const handleReplyInitiated = (authorId: number, authorName: string) => {
     setReplyTarget({ id: authorId, name: authorName });
     // Tự động focus vào ô nhập liệu
     textareaRef.current?.focus();
   };
-
-  if (!post) return <div>...</div>;
 
   return (
     <div className="max-w-2xl mx-auto min-h-screen bg-white border-x border-slate-200 shadow-sm">
@@ -58,16 +96,16 @@ export default function CommunityPostDetail() {
         {/* Hiển thị lại PostCard gốc */}
         <div className="mb-6">
           <CommunityPostCard
-            id={post.id.toString()}
-            author={post.author.name}
-            time={post.createdAt}
-            avatar={post.author.avatar}
-            isVerified={post.author.role === "COMPANY"}
-            content={post.description || ""}
-            image={post.media && post.media.length > 0 ? post.media[0] : ""}
-            imageTitle={post.portfolioPreview?.data?.title || ""}
-            likes={post.favoriteCount}
-            comments={post.commentCount}
+            id={post?.id.toString() || ""}
+            author={post?.author.name || ""}
+            time={post?.createdAt || ""}
+            avatar={post?.author.avatar || ""}
+            isVerified={post?.author.role === "COMPANY"}
+            content={post?.description || ""}
+            image={post?.media && post?.media.length > 0 ? post?.media[0] : ""}
+            imageTitle={post?.portfolioPreview?.data?.title || ""}
+            likes={post?.favoriteCount || 0}
+            comments={post?.commentCount || 0}
           />
         </div>
 
@@ -110,7 +148,7 @@ export default function CommunityPostDetail() {
 
           <div className="flex items-center gap-3">
             <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+              src={profile?.avatar || "/default-avatar.png"}
               className="w-10 h-10 rounded-full border border-black"
               alt="My Avatar"
             />

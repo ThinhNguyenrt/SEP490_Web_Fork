@@ -164,6 +164,8 @@ import {
   PortfolioResponse,
   portfolioService,
 } from "@/services/portfolio.api";
+import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
 
 type EditorTab = "template" | "component";
 
@@ -621,68 +623,21 @@ const getFirstProjectLink = (item: Record<string, unknown>): string => {
   return "";
 };
 
-const LOCAL_PORTFOLIO_STORAGE_KEY = "portfolio.editor.local.v1";
-
-type LocalPortfolioItem = {
-  portfolioId: number;
-  userId: number;
-  name: string;
-  status: number;
-  blocks: PortfolioBlock[];
-  savedAt: string;
-};
-
-const savePortfolioToLocalStorage = (
-  portfolioId: number,
-  payload: {
-    userId: number;
-    name: string;
-    status: number;
-    blocks: PortfolioBlock[];
-  },
-): boolean => {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(LOCAL_PORTFOLIO_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as LocalPortfolioItem[]) : [];
-    const existingItems = Array.isArray(parsed) ? parsed : [];
-
-    const nextItem: LocalPortfolioItem = {
-      portfolioId,
-      userId: payload.userId,
-      name: payload.name,
-      status: payload.status,
-      blocks: payload.blocks.map((block) => ({
-        ...block,
-        data: deepClone(block.data),
-      })),
-      savedAt: new Date().toISOString(),
-    };
-
-    const nextItems = existingItems.some((item) => item.portfolioId === portfolioId)
-      ? existingItems.map((item) => (item.portfolioId === portfolioId ? nextItem : item))
-      : [...existingItems, nextItem];
-
-    window.localStorage.setItem(LOCAL_PORTFOLIO_STORAGE_KEY, JSON.stringify(nextItems));
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export default function CreatePortfolio() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
+  // Get user authentication data
+  const { user, accessToken } = useAppSelector((state) => state.auth);
+
+  // Empty portfolio names map (templates are displayed with default names)
+  const portfolioNames: Map<number, string> = new Map();
+
   const [activeTab, setActiveTab] = useState<EditorTab>(isEditMode ? "component" : "template");
   const [templates, setTemplates] = useState<PortfolioResponse[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
   const [allowedBlockTypes, setAllowedBlockTypes] = useState<Set<string>>(new Set());
-  const [portfolioNames, setPortfolioNames] = useState<Map<number, string>>(new Map());
   const [portfolioName, setPortfolioName] = useState("Hồ sơ mới");
   const [activeEditorBlockType, setActiveEditorBlockType] =
     useState<ExtendedEditorBlockType>("INTRO");
@@ -694,6 +649,7 @@ export default function CreatePortfolio() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editorResetKey, setEditorResetKey] = useState(0);
 
   const nextTempBlockIdRef = useRef(-1);
 
@@ -709,18 +665,9 @@ export default function CreatePortfolio() {
         setLoading(true);
         setError(null);
 
-        const [templateData, portfolioList] = await Promise.all([
-          portfolioService.fetchPortfolioTemplates(),
-          portfolioService.fetchMainPortfoliosManagerByUser(2),
-        ]);
-
+        // Fetch portfolio templates
+        const templateData = await portfolioService.fetchPortfolioTemplates();
         setTemplates(templateData.slice(0, 5));
-
-        const nextPortfolioNames = new Map<number, string>();
-        portfolioList.forEach((item) => {
-          nextPortfolioNames.set(item.portfolioId, item.portfolio.name);
-        });
-        setPortfolioNames(nextPortfolioNames);
 
         if (isEditMode && id) {
           const portfolioId = Number(id);
@@ -748,9 +695,7 @@ export default function CreatePortfolio() {
           setEditorSlotPreset("default");
           setSelectedBlockId(preferredBlockId);
           setShowBlockSelector(false);
-          setPortfolioName(
-            nextPortfolioNames.get(portfolioId) ?? `Portfolio ${portfolioId}`,
-          );
+          setPortfolioName(`Portfolio ${portfolioId}`);
           return;
         }
 
@@ -1198,8 +1143,8 @@ export default function CreatePortfolio() {
       return "intro-one-editor";
     }
 
-    return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingIntroOne, selectedBlock]);
+    return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`;
+  }, [isEditingIntroOne, selectedBlock, editorResetKey]);
 
   const introTwoInitialData = useMemo(() => {
     if (!selectedBlock || !isEditingIntroTwo) {
@@ -1590,6 +1535,11 @@ export default function CreatePortfolio() {
     );
   };
 
+  // Helper function to reset editor form after saving
+  const resetEditorFormAfterSave = () => {
+    setEditorResetKey((prev) => prev + 1);
+  };
+
   const updateSelectedObjectField = (field: string, value: string) => {
     updateSelectedBlockData((current) => {
       const nextData = toRecord(current);
@@ -1771,6 +1721,13 @@ export default function CreatePortfolio() {
 
 
   const handleSave = async () => {
+    // Check if user is authenticated
+    if (!user || !accessToken) {
+      setError("Bạn cần đăng nhập để lưu hồ sơ.");
+      navigate("/login");
+      return;
+    }
+
     if (blocks.length === 0) {
       setError("Bạn cần thêm ít nhất một block trước khi lưu.");
       return;
@@ -1780,44 +1737,46 @@ export default function CreatePortfolio() {
       setSaving(true);
       setError(null);
 
-      const payload = {
-        userId: 2,
+      // Prepare the portfolio data structure
+      const portfolioData = {
+        employeeId: user.employeeId || 0,
         name: portfolioName.trim() || "Hồ sơ mới",
-        status: 0,
         blocks: sortAndReindexBlocks(blocks).map((block) => ({
-          ...block,
           type: normalizeBlockType(block.type),
           variant: block.variant.toUpperCase(),
+          order: block.order,
           data: deepClone(block.data),
         })),
       };
 
-      const fallbackLocalId = isEditMode && id ? Number(id) : Date.now();
+      console.log("💾 Saving portfolio:", portfolioData);
 
+      // Call real API to create portfolio
       try {
-        const saved =
-          isEditMode && id
-            ? await portfolioService.updatePortfolioById(Number(id), payload)
-            : await portfolioService.createPortfolio(payload);
+        const result = await portfolioService.createPortfolioAPI(
+          portfolioData,
+          accessToken,
+        );
 
-        if (!saved) {
-          throw new Error("Lưu portfolio thất bại.");
-        }
+        console.log("✅ Portfolio created successfully:", result);
+        notify.success("Hồ sơ đã được lưu thành công!");
 
-        savePortfolioToLocalStorage(saved.portfolioId, payload);
-        navigate(`/portfolio/${saved.portfolioId}`);
-      } catch (serverError) {
-        const localSaved = savePortfolioToLocalStorage(fallbackLocalId, payload);
-        if (!localSaved) {
-          throw serverError;
-        }
-
-        setError("Không thể lưu lên máy chủ. Dữ liệu đã được lưu cục bộ trên trình duyệt.");
+        // Navigate to portfolio management page
+        navigate("/portfolio-management", { replace: true });
+      } catch (apiError) {
+        const errorMessage =
+          apiError instanceof Error
+            ? apiError.message
+            : "Không thể lưu hồ sơ lên máy chủ";
+        console.error("❌ API Error:", errorMessage);
+        setError(errorMessage);
+        notify.error(errorMessage);
       }
     } catch (saveError) {
       const message =
         saveError instanceof Error ? saveError.message : "Không thể lưu portfolio.";
       setError(message);
+      notify.error(message);
     } finally {
       setSaving(false);
     }
@@ -1949,6 +1908,7 @@ export default function CreatePortfolio() {
     updateSelectedBlockData(() => {
       return nextDraft.skills.map((skillName) => ({ name: skillName }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleSkillOneCancel = () => {
@@ -1968,6 +1928,7 @@ export default function CreatePortfolio() {
       nextData.tools = nextDraft.tools;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleSkillTwoCancel = () => {
@@ -1991,6 +1952,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleSkillThreeCancel = () => {
@@ -2890,7 +2852,7 @@ export default function CreatePortfolio() {
 
     return (
       <SkillOneEditor
-        key={`skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`}
+        key={`skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`}
         initialData={initialData}
         onSave={handleSkillOneSave}
         onCancel={handleSkillOneCancel}

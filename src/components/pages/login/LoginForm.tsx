@@ -76,6 +76,18 @@ export const LoginForm = () => {
 
         notify.success("Login thành công!");
 
+        if (role === 1 && response.data.user.employeeId === null) {
+          console.log("→ Talent chưa có profile, đi setup");
+          navigate("/setup-talent-profile");
+          return;
+        }
+
+        if (role === 2 && response.data.user.companyId === null) {
+          console.log("→ Recruiter chưa có profile công ty, đi setup");
+          navigate("/setup-company-profile");
+          return;
+        }
+
         if (role === 2) {
           console.log("→ Navigating to recruiter-home");
           navigate("/recruiter-home");

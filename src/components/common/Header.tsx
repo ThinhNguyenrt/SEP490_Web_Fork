@@ -12,40 +12,58 @@ export function Header() {
   // Lấy user từ store
   const { user, accessToken } = useAppSelector((state) => state.auth);
   const [profile, setProfile] = useState<{
-    name?: string;
+    displayName?: string;
     avatar?: string;
-    coverImage?: string;
   } | null>(null);
   const isLoggedIn = !!user; // Kiểm tra xem user có tồn tại không
-// 1. Hàm gọi API lấy Profile
-  const fetchUserProfile = async () => {
-    if (!user?.employeeId) return;
-    
+  // 1. Hàm gọi API lấy Profile
+  // 2. Hàm gọi API linh hoạt theo Role
+  const fetchProfileData = async () => {
+    // Xác định Endpoint và ID dựa trên role (1: Talent, 2: Company/Recruiter)
+    let endpoint = "";
+    if (user?.role === 1 && user?.employeeId) {
+      endpoint = `api/Employee/${user.employeeId}`;
+    } else if (user?.role === 2 && user?.companyId) {
+      endpoint = `api/Company/${user.companyId}`;
+    }
+
+    if (!endpoint) return;
+
     try {
-      // Thay URL bằng API thật của bạn
-      const response = await fetch(`https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee/${user.employeeId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetch(
+        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/${endpoint}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-      });
+      );
+
       if (response.ok) {
         const data = await response.json();
-        setProfile(data);
+
+        // Map dữ liệu về một cấu trúc chung để hiển thị
+        // Company dùng 'companyName', Employee dùng 'name' (tùy API của bạn)
+        setProfile({
+          displayName: data.companyName || data.name || data.fullName,
+          avatar: data.avatar,
+        });
       }
     } catch (error) {
-      console.error("Lỗi khi lấy avatar:", error);
+      console.error("Lỗi khi fetch profile header:", error);
     }
   };
+
   useEffect(() => {
     if (isLoggedIn) {
-      fetchUserProfile();
+      fetchProfileData();
+    } else {
+      setProfile(null); // Reset khi logout
     }
-  }, [isLoggedIn, user?.employeeId]);
+  }, [isLoggedIn, user?.employeeId, user?.companyId]);
   // Xác định trang home/profile dựa trên role
-  const homeHref =
-    user?.role === 2 ? "/recruiter-home" : "/talent-home";
-  const profileHref =
-    user?.role === 2 ? "/recruiter-profile" : "/profile";
+  const homeHref = user?.role === 2 ? "/recruiter-home" : "/talent-home";
+  const profileHref = user?.role === 2 ? "/recruiter-profile" : "/profile";
 
   // Danh sách các tab điều hướng trung tâm
   const allNavItems = [
@@ -102,7 +120,9 @@ export function Header() {
                     : "text-slate-400 group-hover:text-blue-500",
                 )}
               />
-              <span className="text-[16px] tracking-tight group-hover:text-blue-500">{item.label}</span>
+              <span className="text-[16px] tracking-tight group-hover:text-blue-500">
+                {item.label}
+              </span>
             </Link>
           );
         })}
@@ -118,7 +138,7 @@ export function Header() {
           >
             <div className="text-right hidden md:block">
               <p className="text-[16px] font-black text-slate-800 leading-none">
-                {profile?.name}
+                {profile?.displayName}
               </p>
             </div>
             {/* <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-200 group-hover:ring-blue-500/30 transition-all">

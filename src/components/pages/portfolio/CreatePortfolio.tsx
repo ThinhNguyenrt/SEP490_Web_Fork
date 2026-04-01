@@ -1737,9 +1737,15 @@ export default function CreatePortfolio() {
       setSaving(true);
       setError(null);
 
+      // Debug: Log user info
+      console.log("👤 Current user object:", user);
+      console.log("👤 Employee ID:", user.employeeId);
+      console.log("👤 User ID:", user.id);
+      console.log("👤 User email:", user.email);
+
       // Prepare the portfolio data structure
       const portfolioData = {
-        employeeId: user.employeeId || 0,
+        employeeId: user.id,  // Use user.id since employeeId is null from backend
         name: portfolioName.trim() || "Hồ sơ mới",
         blocks: sortAndReindexBlocks(blocks).map((block) => ({
           type: normalizeBlockType(block.type),

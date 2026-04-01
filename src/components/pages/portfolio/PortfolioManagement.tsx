@@ -37,7 +37,14 @@ const ProfileCard = ({
   portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const { fullName, title, email, phone, avatar } = data.blocks.data;
+  // Extract data from INTRO block - handle both name/fullName, studyField/title
+  const introData = data.blocks.data || {};
+  const fullName = introData.fullName || introData.name || "Chưa cập nhật tên";
+  const title = introData.title || introData.studyField || "Chưa cập nhật chức vụ";
+  const email = introData.email || "";
+  const phone = introData.phone || "";
+  const avatar = introData.avatar || "";
+  
   const statusLabel = isPrimary ? "Bản chính" : "Bản nháp";
   const status = isPrimary ? "active" : "draft";
 

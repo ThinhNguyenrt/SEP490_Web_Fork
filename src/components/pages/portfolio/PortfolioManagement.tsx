@@ -16,6 +16,8 @@ import {
   portfolioService,
 } from "@/services/portfolio.api";
 import { PremiumAndTips } from "@/components/common/Premium";
+import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
 
 const ProfileCard = ({
   data,
@@ -35,7 +37,14 @@ const ProfileCard = ({
   portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const { fullName, title, email, phone, avatar } = data.blocks.data;
+  // Extract data from INTRO block - handle both name/fullName, studyField/title
+  const introData = data.blocks.data || {};
+  const fullName = introData.fullName || introData.name || "Chưa cập nhật tên";
+  const title = introData.title || introData.studyField || "Chưa cập nhật chức vụ";
+  const email = introData.email || "";
+  const phone = introData.phone || "";
+  const avatar = introData.avatar || "";
+  
   const statusLabel = isPrimary ? "Bản chính" : "Bản nháp";
   const status = isPrimary ? "active" : "draft";
 
@@ -172,9 +181,13 @@ export default function ProfileManagement() {
   const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [primaryPortfolioId, setPrimaryPortfolioId] = useState<number | null>(
     null,
   );
+
+  // Get accessToken from Redux store
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   const orderedCategoryLabels = [
     "Hồ sơ xin việc",
@@ -188,23 +201,41 @@ export default function ProfileManagement() {
     const fetchPortfolios = async () => {
       try {
         setLoading(true);
-        const userId = 2; // Mock user ID
-        const data =
-          await portfolioService.fetchMainPortfoliosManagerByUser(userId);
+        setError(null);
+
+        // Check if user is authenticated
+        if (!accessToken) {
+          console.warn("⚠️ No access token found. Using mock data.");
+          notify.error("Please login to view your portfolios");
+          navigate("/login");
+          return;
+        }
+
+        console.log("📡 Fetching portfolios with token...");
+
+        // Use real API to fetch current user's portfolios
+        const data = await portfolioService.fetchMyPortfolios(accessToken);
         setPortfolios(data);
-        // Đặt portfolio đầu tiên là bản chính mặc định
+
+        // Set first portfolio as primary by default
         if (data.length > 0) {
           setPrimaryPortfolioId(data[0].portfolioId);
         }
       } catch (error) {
-        console.error("Error fetching portfolios:", error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to load portfolios";
+        console.error("❌ Error fetching portfolios:", errorMessage);
+        setError(errorMessage);
+        notify.error(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPortfolios();
-  }, []);
+  }, [accessToken, navigate]);
 
   const handleViewDetail = (portfolioId: number) => {
     navigate(`/portfolio/${portfolioId}`);
@@ -252,6 +283,12 @@ export default function ProfileManagement() {
               Danh sách hồ sơ ({portfolios.length})
             </h2>
           </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-12">

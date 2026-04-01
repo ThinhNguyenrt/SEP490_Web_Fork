@@ -5,6 +5,7 @@ import { PortfolioResponse, portfolioService } from '@/services/portfolio.api';
 import PortfolioRenderer from '@/components/portfolio/render/PortfolioRenderer';
 import { PremiumAndTips } from '@/components/common/Premium';
 import PencilIcon from '@/assets/myWeb/pencil.png';
+import { useAppSelector } from '@/store/hook';
 
 
 const PortfolioViewPage: React.FC = () => {
@@ -13,6 +14,9 @@ const PortfolioViewPage: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get access token from Redux
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -23,8 +27,24 @@ const PortfolioViewPage: React.FC = () => {
           throw new Error('Portfolio ID is required');
         }
 
+        if (!accessToken) {
+          console.warn("⚠️ No access token. Using mock portfolio data.");
+          // Fallback to mock data if no token
+          const portfolioId = parseInt(id, 10);
+          const data = await portfolioService.fetchPortfolioById(portfolioId);
+          
+          if (!data) {
+            throw new Error('Portfolio not found');
+          }
+          
+          setPortfolio(data);
+          setError(null);
+          return;
+        }
+
+        // Use real API with token
         const portfolioId = parseInt(id, 10);
-        const data = await portfolioService.fetchPortfolioById(portfolioId);
+        const data = await portfolioService.fetchPortfolioByIdAPI(portfolioId, accessToken);
         
         if (!data) {
           throw new Error('Portfolio not found');
@@ -42,7 +62,7 @@ const PortfolioViewPage: React.FC = () => {
     };
 
     fetchPortfolio();
-  }, [id]);
+  }, [id, accessToken]);
 
   const handleEdit = () => {
     if (!portfolio) {

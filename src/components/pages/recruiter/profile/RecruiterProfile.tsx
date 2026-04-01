@@ -21,10 +21,46 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
+import { useEffect, useState } from "react";
+import { useAppSelector } from "@/store/hook";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
+  const { user, accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useDispatch();
+  const [profile, setProfile] = useState<{
+    activityField?: string;
+    companyName?: string;
+    avatar?: string;
+    coverImage?: string;
+    taxIdentification?: string;
+    address?: string;
+    description?: string;
+  } | null>(null);
+  const fetchUserProfile = async () => {
+    if (!user?.companyId) return;
+
+    try {
+      // Thay URL bằng API thật của bạn
+      const response = await fetch(
+        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/${user.companyId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy avatar:", error);
+    }
+  };
+  useEffect(() => {
+    fetchUserProfile();
+  }, [user?.companyId]);
 
   const handleEditProfile = () => {
     // Navigate to edit profile (to be implemented)
@@ -71,10 +107,15 @@ export default function RecruiterProfile() {
       {/* CỘT TRÁI - Company Introduction */}
       <div className="lg:col-span-3 space-y-6">
         <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
-          <div className="h-32 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=500')] bg-cover bg-center relative border-b-2 border-slate-200">
+          <div
+            className="h-32 bg-cover bg-center relative border-b-2 border-slate-200 bg-slate-100" // Thêm bg-slate-100 để làm nền khi chưa load được ảnh
+            style={{
+              backgroundImage: `url('${profile?.coverImage || "https://images.unsplash.com/photo-1503264116251-35a269479413?q=80&w=1080"}')`,
+            }}
+          >
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
               <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=google" />
+                <AvatarImage src={profile?.avatar} className="object-cover" />
                 <AvatarFallback>GG</AvatarFallback>
               </Avatar>
             </div>
@@ -82,7 +123,7 @@ export default function RecruiterProfile() {
           <CardContent className="pt-12 pb-6 px-6">
             <div className="flex items-center justify-center gap-2 mb-4">
               <h3 className="font-bold text-lg text-slate-800 text-center">
-                Google
+                {profile?.companyName}
               </h3>
               <button onClick={handleEditProfile}>
                 <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
@@ -99,20 +140,21 @@ export default function RecruiterProfile() {
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <Building2 size={16} className="text-slate-400 shrink-0" />
                 <span className="truncate">
-                  Lĩnh vực: Tên lĩnh vực hoạt động của công ty
+                  {profile?.activityField ||
+                    "Lĩnh vực hoạt động không xác định"}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <MapPin size={16} className="text-slate-400 shrink-0" />
-                <span className="truncate">TP Hồ Chí Minh</span>
+                <span className="truncate">
+                  {profile?.address || "Địa chỉ không xác định"}
+                </span>
               </div>
             </div>
 
             {/* Introduction */}
             <p className="text-xs text-slate-600 leading-relaxed">
-              Google Inc. là một công ty công nghệ đa quốc gia chuyên về các
-              dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ
-              quảng cáo.
+              {profile?.description || "Mô tả công ty không xác định"}
             </p>
           </CardContent>
         </Card>

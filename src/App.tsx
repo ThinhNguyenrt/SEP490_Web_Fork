@@ -35,6 +35,7 @@ import { Suspense } from "react";
 import LandingPage from "./components/pages/LandingPage";
 import LoadingWrapper from "./components/Loading/LoadingWrapper";
 import SetupTalentProfile from "./components/pages/login/SetupTalentProfile";
+import SetupCompanyProfile from "./components/pages/login/SetupCompanyProfile";
 function App() {
   return (
     <BrowserRouter>
@@ -69,6 +70,7 @@ function App() {
               <Route path="/company-saved" element={<CompanySavePost />} />
               <Route path="/talent-saved" element={<TalentSavePost />} />
               <Route path="/setup-talent-profile" element={<SetupTalentProfile />} />
+              <Route path="/setup-company-profile" element={<SetupCompanyProfile />} />
               <Route
                 path="/recruitment-management"
                 element={<RecruitmentManagement />}

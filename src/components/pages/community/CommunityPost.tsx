@@ -1,13 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ImageIcon, Contact, Send } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
-import { communityPosts } from "@/data/mockComment";
 import type { CommunityPost } from "@/types/communityPost.ts";
 import CreatePostModal from "./CreatePostModal";
 
 export default function CommunityPost() {
+  const [posts, setPosts] = useState<CommunityPost[]>([]); // Lưu trữ danh sách bài viết
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Quản lý phân trang
+  const PAGE_SIZE = 5;
+  const [nextCursor, setNextCursor] = useState<string | number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true); // Để biết còn dữ liệu để fetch không
+
+  const fetchCommunityPosts = async (currentCursor: any) => {
+    if (isLoading || !hasMore) return;
+
+    setIsLoading(true);
+    try {
+      // API sẽ nhận cursor để biết lấy tiếp từ đâu
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts?pageSize=${PAGE_SIZE}&cursor=${currentCursor || ""}`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Giả sử data trả về có dạng: { items: CommunityPost[], nextCursor: string | null }
+        console.log("Data fetched:", data);
+        if (data.items.length > 0) {
+          setPosts((prev) => [...prev, ...data.items]); // Cộng dồn bài viết mới vào list cũ
+          setNextCursor(data.nextCursor); // Lưu cursor cho lần gọi tiếp theo
+        }
+
+        // Nếu số lượng trả về ít hơn PAGE_SIZE, nghĩa là hết dữ liệu
+        if (data.items.length < PAGE_SIZE || !data.nextCursor) {
+          setHasMore(false);
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch lần đầu tiên
+  useEffect(() => {
+    fetchCommunityPosts(null);
+  }, []);
+
+  // Hàm xử lý khi click "Xem thêm" hoặc dùng Intersection Observer cho scroll
+  const handleLoadMore = () => {
+    fetchCommunityPosts(nextCursor);
+  };
   return (
     <div className="bg-slate-50 text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-2xl mx-auto py-4 px-4">
@@ -56,7 +102,7 @@ export default function CommunityPost() {
 
         {/* Feed List - Hiển thị toàn bộ bài viết từ mock data */}
         <div className="space-y-6">
-          {communityPosts.map((post: CommunityPost) => (
+          {posts.map((post: CommunityPost) => (
             <CommunityPostCard
               key={post.id}
               id={post.id.toString()} // Chuyển id sang string nếu component yêu cầu
@@ -74,10 +120,41 @@ export default function CommunityPost() {
         </div>
 
         {/* Footer Link */}
-        <div className="mt-10 text-center pb-12">
+        {/* <div className="mt-10 text-center pb-12">
           <button className="text-sm font-semibold text-gray-500 hover:text-blue-500 transition-colors cursor-pointer">
             Xem thêm bài viết mới
           </button>
+        </div> */}
+        {/* Nút Xem thêm / Loading */}
+        <div className="mt-10 text-center pb-12">
+          {hasMore ? (
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              className="text-sm font-semibold text-blue-500 hover:underline cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                  {/* Container cho Spinner và Text */}
+                  <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+                    {/* Vòng tròn Loading Spinner */}
+                    <div className="relative">
+                      {/* Vòng tròn nhạt phía dưới */}
+                      <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
+                      {/* Vòng xoay chính */}
+                      <div className="absolute top-0 left-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                "Xem thêm bài viết"
+              )}
+            </button>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              Bạn đã xem hết bài viết rồi!!
+            </p>
+          )}
         </div>
       </div>
       <CreatePostModal

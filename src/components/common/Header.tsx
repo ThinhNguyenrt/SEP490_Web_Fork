@@ -3,64 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
-import { useEffect, useState } from "react";
+import { useUserProfile } from "@/hook/useUserProfile";
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Lấy user từ store
-  const { user, accessToken } = useAppSelector((state) => state.auth);
-  const [profile, setProfile] = useState<{
-    displayName?: string;
-    avatar?: string;
-  } | null>(null);
-  const isLoggedIn = !!user; // Kiểm tra xem user có tồn tại không
-  // 1. Hàm gọi API lấy Profile
-  // 2. Hàm gọi API linh hoạt theo Role
-  const fetchProfileData = async () => {
-    // Xác định Endpoint và ID dựa trên role (1: Talent, 2: Company/Recruiter)
-    let endpoint = "";
-    if (user?.role === 1 && user?.employeeId) {
-      endpoint = `api/Employee/${user.employeeId}`;
-    } else if (user?.role === 2 && user?.companyId) {
-      endpoint = `api/Company/${user.companyId}`;
-    }
-
-    if (!endpoint) return;
-
-    try {
-      const response = await fetch(
-        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/${endpoint}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Map dữ liệu về một cấu trúc chung để hiển thị
-        // Company dùng 'companyName', Employee dùng 'name' (tùy API của bạn)
-        setProfile({
-          displayName: data.companyName || data.name || data.fullName,
-          avatar: data.avatar,
-        });
-      }
-    } catch (error) {
-      console.error("Lỗi khi fetch profile header:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchProfileData();
-    } else {
-      setProfile(null); // Reset khi logout
-    }
-  }, [isLoggedIn, user?.employeeId, user?.companyId]);
+  const { user } = useAppSelector((state) => state.auth);
+  const { profile, isLoggedIn } = useUserProfile();
   // Xác định trang home/profile dựa trên role
   const homeHref = user?.role === 2 ? "/recruiter-home" : "/talent-home";
   const profileHref = user?.role === 2 ? "/recruiter-profile" : "/profile";

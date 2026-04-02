@@ -2,7 +2,7 @@ import React from 'react';
 import { Mail, Phone } from 'lucide-react';
 
 interface IntroTwoProps {
-  data: { fullName?: string; title?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  data: { fullName?: string; name?: string; title?: string; studyField?: string; description?: string; avatar?: string; email?: string; phone?: string };
 }
 
 /**
@@ -10,7 +10,12 @@ interface IntroTwoProps {
  * Hiển thị thông tin cá nhân với avatar ở sidebar bên trái
  */
 const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
-  const { fullName, title, description, avatar, email, phone } = data;
+  const { fullName, name, title, studyField, description, avatar, email, phone } = data;
+  
+  // Use fullName first, then fall back to name, then 'Your Name'
+  const displayName = fullName || name || 'Your Name';
+  // Use title first, then fall back to studyField
+  const displayTitle = title || studyField;
 
   return (
     <div className="intro-block flex bg-white border-b border-gray-200 last:border-b-0 mt-10">
@@ -19,7 +24,7 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
         {avatar && (
           <img
             src={avatar}
-            alt={fullName}
+            alt={displayName}
             className="w-40 h-48 object-cover"
           />
         )}
@@ -28,11 +33,11 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
       {/* Right Content */}
       <div className="flex-1 p-8 flex flex-col justify-center">
         {/* Name */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">{displayName}</h1>
 
         {/* Title */}
-        {title && (
-          <p className="text-xl text-blue-500 font-semibold mb-4">{title}</p>
+        {displayTitle && (
+          <p className="text-xl text-blue-500 font-semibold mb-4">{displayTitle}</p>
         )}
 
         {/* Description - Multiple lines */}

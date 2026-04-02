@@ -1734,6 +1734,137 @@ export const fetchMyPortfolios = async (
   }
 };
 
+// Fetch portfolios by explicit employee ID (more reliable than /me endpoint)
+export const fetchPortfoliosByEmployeeId = async (
+  employeeId: number,
+  accessToken: string,
+): Promise<PortfolioMainBlockItem[]> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [fetchPortfoliosByEmployeeId] Starting...");
+    console.log("📡 Employee ID:", employeeId);
+    console.log("📡 API Base URL:", API_BASE_URL);
+    console.log("🔐 Token available:", !!accessToken);
+    console.log("🔐 Token length:", accessToken?.length);
+
+    if (!employeeId) {
+      console.error("❌ No employeeId provided!");
+      throw new Error("Employee ID is missing.");
+    }
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Portfolio fetch timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const fullUrl = `${API_BASE_URL}/portfolio/employee/${employeeId}`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Portfolio API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    // Try to read response body first
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized specifically
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Try to parse JSON if possible
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 Portfolio API response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Portfolio fetch error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Normalize the response data
+    if (Array.isArray(data)) {
+      console.log("📦 Response is array, normalizing", data.length, "items");
+      const normalized = data.map((item) => normalizeMainPortfolioItem(item));
+      console.log("✅ Normalized result count:", normalized.length);
+      return normalized;
+    }
+
+    // If data is wrapped in a response object
+    if (data && Array.isArray(data.data)) {
+      console.log("📦 Response has data.data array, normalizing", data.data.length, "items");
+      const normalized = data.data.map((item: any) =>
+        normalizeMainPortfolioItem(item),
+      );
+      console.log("✅ Normalized result count:", normalized.length);
+      return normalized;
+    }
+
+    console.warn("⚠️ Unexpected response format for fetchPortfoliosByEmployeeId");
+    console.warn("⚠️ data:", data);
+    console.warn("⚠️ data type:", typeof data);
+    console.warn("⚠️ Is array?:", Array.isArray(data));
+    console.warn("⚠️ Has data.data?:", data?.data);
+    return [];
+  } catch (error) {
+    if (
+      error instanceof TypeError &&
+      error.message === "Failed to fetch"
+    ) {
+      console.error("❌ [fetchPortfoliosByEmployeeId] CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      console.error("❌ [fetchPortfoliosByEmployeeId] Error:", error.message);
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -1742,6 +1873,7 @@ export const portfolioService = {
   fetchMainBlockPortfolioByUserId,
   fetchMainPortfoliosManagerByUser,
   fetchMyPortfolios,
+  fetchPortfoliosByEmployeeId,
   createPortfolioAPI,
   createPortfolio,
   updatePortfolioById,

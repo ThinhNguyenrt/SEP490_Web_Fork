@@ -16,11 +16,19 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
+      "/user-profile-api": {
+        target: "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/user-profile-api/, "/api"),
+      },
     },
   },
   define: {
     "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
       process.env.VITE_API_BASE_URL || "/api"
+    ),
+    "import.meta.env.VITE_USER_PROFILE_API_BASE_URL": JSON.stringify(
+      process.env.VITE_USER_PROFILE_API_BASE_URL || "/user-profile-api"
     ),
   },
 })

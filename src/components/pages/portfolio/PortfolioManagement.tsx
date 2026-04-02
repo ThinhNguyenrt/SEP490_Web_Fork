@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   PortfolioMainBlockItem,
   portfolioService,
@@ -179,6 +179,7 @@ const ProfileCard = ({
 
 export default function ProfileManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [portfolios, setPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,8 +187,8 @@ export default function ProfileManagement() {
     null,
   );
 
-  // Get accessToken from Redux store
   const { accessToken } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.auth.user);
 
   const orderedCategoryLabels = [
     "Hồ sơ xin việc",
@@ -197,36 +198,76 @@ export default function ProfileManagement() {
     "Hồ sơ thực tập",
   ];
 
+  // Debug log on mount and when deps change
+  useEffect(() => {
+    console.log("🔍 [PortfolioManagement] Component mounted or deps changed");
+    console.log("🔍 [PortfolioManagement] Current user:", user);
+    console.log("🔍 [PortfolioManagement] Current user?.employeeId:", user?.employeeId);
+    console.log("🔍 [PortfolioManagement] Current accessToken exists:", !!accessToken);
+    console.log("🔍 [PortfolioManagement] Auth state:", {
+      user: user,
+      hasAccessToken: !!accessToken,
+      accessTokenLength: accessToken?.length,
+    });
+  }, [user, accessToken]);
+
+  console.log("🔍 [PortfolioManagement] Render - user:", user);
+  console.log("🔍 [PortfolioManagement] Render - accessToken exists:", !!accessToken);
+
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
+        console.log("🔍 [PortfolioManagement] useEffect triggered");
+        console.log("🔍 [PortfolioManagement] user:", user);
+        console.log("🔍 [PortfolioManagement] accessToken:", !!accessToken);
+
         setLoading(true);
         setError(null);
 
         // Check if user is authenticated
         if (!accessToken) {
-          console.warn("⚠️ No access token found. Using mock data.");
+          console.warn("⚠️ [PortfolioManagement] No access token found");
           notify.error("Please login to view your portfolios");
           navigate("/login");
           return;
         }
 
-        console.log("📡 Fetching portfolios with token...");
+        // Get employeeId from auth state
+        if (!user?.id) {
+          console.warn("⚠️ [PortfolioManagement] No user id found in auth state");
+          console.warn("⚠️ [PortfolioManagement] user object:", user);
+          notify.error("User information not loaded. Please login again");
+          navigate("/login");
+          return;
+        }
 
-        // Use real API to fetch current user's portfolios
-        const data = await portfolioService.fetchMyPortfolios(accessToken);
+        console.log("📡 [PortfolioManagement] Fetching portfolios for employee:", user.id);
+
+        // Use the working employee ID endpoint instead of /me
+        const data = await portfolioService.fetchPortfoliosByEmployeeId(
+          user.id,
+          accessToken,
+        );
+        
+        console.log("📡 [PortfolioManagement] Received data from API:", data);
+        console.log("📡 [PortfolioManagement] Data length:", data?.length);
+        
         setPortfolios(data);
 
         // Set first portfolio as primary by default
         if (data.length > 0) {
+          console.log("📡 [PortfolioManagement] Setting primary portfolio:", data[0].portfolioId);
           setPrimaryPortfolioId(data[0].portfolioId);
+        } else {
+          console.warn("⚠️ [PortfolioManagement] No portfolios returned from API");
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error
             ? error.message
             : "Failed to load portfolios";
-        console.error("❌ Error fetching portfolios:", errorMessage);
+        console.error("❌ [PortfolioManagement] Error fetching portfolios:", errorMessage);
+        console.error("❌ [PortfolioManagement] Error object:", error);
         setError(errorMessage);
         notify.error(errorMessage);
       } finally {
@@ -235,7 +276,7 @@ export default function ProfileManagement() {
     };
 
     fetchPortfolios();
-  }, [accessToken, navigate]);
+  }, [accessToken, user, navigate, searchParams]);
 
   const handleViewDetail = (portfolioId: number) => {
     navigate(`/portfolio/${portfolioId}`);
@@ -253,7 +294,7 @@ export default function ProfileManagement() {
     setPrimaryPortfolioId(portfolioId);
   };
 
-  const handleUnsetPrimary = (_portfolioId: number) => {
+  const handleUnsetPrimary = () => {
     setPrimaryPortfolioId(null);
   };
 

@@ -4,6 +4,7 @@ import StarInsideCircleIcon from '../../../../assets/myWeb/star-inside-circle 1.
 interface IntroThreeProps {
   data: {
     fullName?: string;
+    name?: string;
     avatar?: string;
     school?: string;
     department?: string;
@@ -24,7 +25,8 @@ const formatGpa = (gpa: number | string | undefined): string | null => {
 };
 
 const IntroThree: React.FC<IntroThreeProps> = ({ data }) => {
-  const { fullName, avatar, school, department, gpa } = data;
+  const { fullName, name, avatar, school, department, gpa } = data;
+  const displayName = fullName || name || 'Your Name';
   const educationLine = [school, department].filter(Boolean).join(' - ');
   const gpaLabel = formatGpa(gpa);
 
@@ -34,13 +36,13 @@ const IntroThree: React.FC<IntroThreeProps> = ({ data }) => {
         <div className="mb-6 flex justify-center">
           <img
             src={avatar}
-            alt={fullName || 'Avatar'}
+            alt={displayName}
             className="w-28 h-28 rounded-full object-cover"
           />
         </div>
       )}
 
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-2">{displayName}</h1>
 
       {educationLine && (
         <p className="text-lg font-semibold text-slate-500 mb-6">{educationLine}</p>

@@ -3,17 +3,20 @@ import React from 'react';
 interface IntroFourProps {
   data: {
     fullName?: string;
+    name?: string;
     title?: string;
     avatar?: string;
     school?: string;
     department?: string;
+    studyField?: string;
     description?: string;
   };
 }
 
 const IntroFour: React.FC<IntroFourProps> = ({ data }) => {
-  const { fullName, title, avatar, school, department, description } = data;
-  const subtitle = title;
+  const { fullName, name, title, studyField, avatar, school, department, description } = data;
+  const displayName = fullName || name || 'Your Name';
+  const subtitle = title || studyField;
 
   return (
     <div className="intro-block bg-white px-6 py-10 border-b border-gray-200 last:border-b-0 text-center">
@@ -21,13 +24,13 @@ const IntroFour: React.FC<IntroFourProps> = ({ data }) => {
         <div className="mb-6 flex justify-center">
           <img
             src={avatar}
-            alt={fullName || 'Avatar'}
+            alt={displayName}
             className="w-28 h-28 rounded-full object-cover"
           />
         </div>
       )}
 
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-2">{displayName}</h1>
 
       {school ? (
         <div className="mb-4">

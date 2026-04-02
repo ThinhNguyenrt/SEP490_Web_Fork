@@ -3,6 +3,7 @@ import React from 'react';
 interface IntroFiveProps {
   data: {
     fullName?: string;
+    name?: string;
     avatar?: string;
     studyField?: string;
     title?: string;
@@ -15,6 +16,7 @@ interface IntroFiveProps {
 const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
   const {
     fullName,
+    name,
     avatar,
     studyField,
     title,
@@ -23,6 +25,7 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
     school,
   } = data;
 
+  const displayName = fullName || name || 'Your Name';
   const specialization = studyField || title;
   const experienceLabel =
     typeof experience === 'number' || typeof experience === 'string'
@@ -36,13 +39,13 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
         {avatar && (
           <img
             src={avatar}
-            alt={fullName || 'Avatar'}
+            alt={displayName}
             className="w-[6.2rem] h-[7.8rem] rounded-xl object-cover shrink-0"
           />
         )}
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 leading-snug">{fullName || 'Your Name'}</h1>
+          <h1 className="text-xl font-bold text-gray-900 leading-snug">{displayName}</h1>
 
           {(specialization || experienceLabel) && (
             <div className="mt-2 flex items-center gap-4 flex-wrap">

@@ -1,26 +1,67 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
 import { Edit3, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAppSelector } from "@/store/hook";
+import { profileService, EmployeeProfile } from "@/services/profile.api";
+import { notify } from "@/lib/toast";
 import EditTalentProfileModal from "./EditTalentProfileModal";
 
 export default function TalentProfile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [employeeProfile, setEmployeeProfile] = useState<EmployeeProfile | null>(null);
+  const { accessToken } = useAppSelector((state) => state.auth);
+
+  // Fetch employee profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!accessToken) {
+          console.warn("⚠️ No access token available");
+          return;
+        }
+
+        console.log("📡 Fetching employee profile...");
+        const profile = await profileService.fetchEmployeeProfile(accessToken);
+        console.log("✅ Profile loaded:", profile);
+        setEmployeeProfile(profile);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Failed to load profile";
+        console.error("❌ Error loading profile:", errorMsg);
+        notify.error(errorMsg);
+      }
+    };
+
+    fetchProfile();
+  }, [accessToken]);
+
+  const displayName = employeeProfile?.name || "Talent";
+  const displayAvatar = employeeProfile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Kala";
+  const displayCoverImage = employeeProfile?.coverImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500";
+
+  const handleProfileUpdated = (updatedProfile: EmployeeProfile) => {
+    console.log("🔄 Profile updated, refreshing display...");
+    setEmployeeProfile(updatedProfile);
+  };
+
   return (
     <div className="lg:col-span-3 space-y-6 ">
       <div className="sticky top-16 z-50 ">
         <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
-          <div className="h-32 bg-[url('https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500')] bg-cover bg-center relative border-b-2 border-slate-200">
+          <div className="h-32 bg-cover bg-center relative border-b-2 border-slate-200" style={{backgroundImage: `url('${displayCoverImage}')`}}>
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Kala" />
-              </Avatar>
+              <div className="h-20 w-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200">
+                <img
+                  src={displayAvatar}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           </div>
           <CardContent className="pt-12 pb-6 text-center">
             <div className="flex items-center justify-center gap-2 mb-6 uppercase tracking-wider">
-              <h3 className="font-bold text-lg text-slate-800">Talent </h3>
+              <h3 className="font-bold text-lg text-slate-800">{displayName}</h3>
               <button onClick={() => setIsEditModalOpen(true)}>
                 <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
                   <Edit3
@@ -47,6 +88,8 @@ export default function TalentProfile() {
         <EditTalentProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+          initialProfile={employeeProfile}
+          onProfileUpdated={handleProfileUpdated}
         />
       </div>
     </div>

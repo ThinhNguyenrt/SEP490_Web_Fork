@@ -1,4 +1,4 @@
-import { Upload, X } from "lucide-react";
+import { Plus, Trash2, Upload, X } from "lucide-react";
 import {
   type ChangeEvent,
   type DragEvent,
@@ -10,7 +10,9 @@ import { type ProjectOneDraft } from "@/components/pages/portfolio/editor/projec
 
 type ProjectOneEditorProps = {
   initialData: ProjectOneDraft;
+  initialList?: ProjectOneDraft[];
   onSave: (nextDraft: ProjectOneDraft) => void;
+  onSaveList?: (projectList: ProjectOneDraft[]) => void;
   onCancel: () => void;
 };
 
@@ -47,8 +49,15 @@ const normalizeDraft = (draft: ProjectOneDraft): ProjectOneDraft => {
   };
 };
 
-export default function ProjectOneEditor({ initialData, onSave, onCancel }: ProjectOneEditorProps) {
+export default function ProjectOneEditor({
+  initialData,
+  initialList = [],
+  onSave,
+  onSaveList,
+  onCancel,
+}: ProjectOneEditorProps) {
   const [draft, setDraft] = useState<ProjectOneDraft>(initialData);
+  const [projectList, setProjectList] = useState<ProjectOneDraft[]>(initialList);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -70,6 +79,44 @@ export default function ProjectOneEditor({ initialData, onSave, onCancel }: Proj
     draft.appLink,
     draft.websiteLink,
   ].some((value) => value.trim().length > 0);
+
+  const handleAddProject = () => {
+    if (!hasContent) {
+      return;
+    }
+
+    const newProject = normalizeDraft(draft);
+    const updatedList = [...projectList, newProject];
+    setProjectList(updatedList);
+
+    // Reset form
+    setDraft({
+      image: "",
+      name: "",
+      description: "",
+      role: "",
+      technology: "",
+      githubLink: "",
+      figmaLink: "",
+      appLink: "",
+      websiteLink: "",
+    });
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    } else {
+      onSave(newProject);
+    }
+  };
+
+  const handleRemoveProject = (index: number) => {
+    const updatedList = projectList.filter((_, i) => i !== index);
+    setProjectList(updatedList);
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    }
+  };
 
   const handleSave = () => {
     if (!hasContent) {
@@ -128,6 +175,47 @@ export default function ProjectOneEditor({ initialData, onSave, onCancel }: Proj
           <X size={24} strokeWidth={2.5} />
         </button>
       </div>
+
+      {/* List of existing projects */}
+      {projectList.length > 0 && (
+        <div className="border-b border-[#d7dfeb] px-3 py-3">
+          <h4 className="mb-3 text-sm font-semibold text-slate-700">
+            Danh sách dự án ({projectList.length})
+          </h4>
+          <div className="space-y-2">
+            {projectList.map((project, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between gap-3 rounded-lg border border-[#d1d5db] bg-white p-3"
+              >
+                <div className="flex flex-1 gap-3">
+                  {project.image && (
+                    <img
+                      src={project.image}
+                      alt={project.name}
+                      className="h-12 w-12 rounded-lg border border-[#d7dfeb] object-cover"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-800">{project.name}</p>
+                    {project.technology && (
+                      <p className="text-xs text-slate-600">{project.technology}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveProject(index)}
+                  className="rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                  title="Xóa"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
@@ -294,11 +382,12 @@ export default function ProjectOneEditor({ initialData, onSave, onCancel }: Proj
         </button>
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleAddProject}
           disabled={!hasContent}
-          className="h-9 min-w-32 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Thêm dự án
+          <Plus size={18} strokeWidth={2} />
+          Thêm dự án mới
         </button>
       </div>
     </div>

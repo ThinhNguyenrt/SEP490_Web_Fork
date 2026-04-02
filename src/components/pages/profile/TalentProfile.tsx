@@ -2,42 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import { Edit3, MoreHorizontal, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EditTalentProfileModal from "./EditTalentProfileModal";
-import { useAppSelector } from "@/store/hook";
+import { useUserProfile } from "@/hook/useUserProfile";
 
 export default function TalentProfile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [profile, setProfile] = useState<{
-    name?: string;
-    avatar?: string;
-    coverImage?: string;
-  } | null>(null);
-  const { user, accessToken } = useAppSelector((state) => state.auth);
-  const fetchUserProfile = async () => {
-    if (!user?.employeeId) return;
-
-    try {
-      // Thay URL bằng API thật của bạn
-      const response = await fetch(
-        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee/${user.employeeId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy avatar:", error);
-    }
-  };
-  useEffect(() => {
-    fetchUserProfile();
-  }, [user?.employeeId]);
+  const { profile } = useUserProfile();
 
   return (
     <div className="lg:col-span-3 space-y-6">
@@ -46,7 +17,7 @@ export default function TalentProfile() {
           {/* --- Phần Cover Image --- */}
           <div className="relative h-32 w-full bg-slate-100 border-b-2 border-slate-200">
             <img
-              src={profile?.coverImage}
+              src={profile?.coverImage || "/default-cover.jpg"}
               alt="Cover"
               className="w-full h-full object-cover" // Giữ tỉ lệ, cắt phần thừa
             />
@@ -71,7 +42,7 @@ export default function TalentProfile() {
             {/* Tên và nút Edit */}
             <div className="flex items-center justify-center gap-2 mb-6 uppercase tracking-wider">
               <h3 className="font-bold text-lg text-slate-800">
-                {profile?.name}
+                {profile?.displayName || "Tên tài năng"}
               </h3>
               <button
                 onClick={() => setIsEditModalOpen(true)}

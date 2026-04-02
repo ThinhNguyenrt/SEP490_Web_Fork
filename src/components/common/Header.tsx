@@ -90,16 +90,34 @@ export function Header() {
                 {profile?.displayName}
               </p>
             </div>
-            {/* <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-200 group-hover:ring-blue-500/30 transition-all">
-              <AvatarImage src={user.avatar || "https://github.com/shadcn.png"} />
-              <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
-                {user.name?.charAt(0) || "U"}
-              </AvatarFallback>
-            </Avatar> */}
-            <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-4 group-hover:ring-blue-500/10 transition-all">
-              <AvatarImage src={profile?.avatar} alt="/user_placeholder.png" />
-              <AvatarFallback>US</AvatarFallback>
-            </Avatar>
+
+            {/* Bọc Avatar vào một div relative inline-block để định vị tick xanh */}
+            <div className="relative inline-block">
+              <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-4 group-hover:ring-blue-500/10 transition-all object-cover rounded-full">
+                <AvatarImage
+                  src={profile?.avatar || "/user_placeholder.png"}
+                  alt={profile?.displayName || "User"}
+                  // Đảm bảo ảnh cover hết diện tích hình tròn
+                  className="object-cover w-full h-full"
+                />
+                <AvatarFallback className="bg-slate-200 text-slate-600 font-bold text-sm">
+                  {/* Tự động lấy 2 chữ cái đầu của tên */}
+                  {profile?.displayName?.slice(0, 2).toUpperCase() || "US"}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Hiển thị tick xanh tuyệt đối: Phải - Dưới nếu role là COMPANY */}
+              {user?.companyId === 2 && (
+                <div className="absolute -bottom-0.5 -right-0.5 transform">
+                  <img
+                    src="/blue-tick-company.png"
+                    alt="Verified"
+                    // w-4 h-4 là kích thước cân đối nhất cho Avatar w-10
+                    className="w-4 h-4 bg-white rounded-full border border-white shadow-sm"
+                  />
+                </div>
+              )}
+            </div>
           </Link>
         ) : (
           /* TRƯỜNG HỢP: CHƯA ĐĂNG NHẬP */

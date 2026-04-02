@@ -25,12 +25,12 @@ export default function MyCommunityPost() {
       case "newest":
         return posts.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
       case "oldest":
         return posts.sort(
           (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         );
       default:
         return posts;
@@ -104,7 +104,9 @@ export default function MyCommunityPost() {
                 avatar={post.author.avatar}
                 isVerified={post.author.role === "COMPANY"}
                 content={post.description || ""}
-                image={post.media && post.media.length > 0 ? post.media[0] : ""}
+                images={
+                  post?.media && post?.media.length > 0 ? post?.media : []
+                }
                 imageTitle={post.portfolioPreview?.data?.title || ""}
                 likes={post.favoriteCount}
                 comments={post.commentCount}

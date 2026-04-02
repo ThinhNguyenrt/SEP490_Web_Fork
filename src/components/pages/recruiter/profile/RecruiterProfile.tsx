@@ -21,47 +21,12 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
-import { useEffect, useState } from "react";
-import { useAppSelector } from "@/store/hook";
+import { useUserProfile } from "@/hook/useUserProfile";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
-  const { user, accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const [profile, setProfile] = useState<{
-    activityField?: string;
-    companyName?: string;
-    avatar?: string;
-    coverImage?: string;
-    taxIdentification?: string;
-    address?: string;
-    description?: string;
-  } | null>(null);
-  const fetchUserProfile = async () => {
-    if (!user?.companyId) return;
-
-    try {
-      // Thay URL bằng API thật của bạn
-      const response = await fetch(
-        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/${user.companyId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy avatar:", error);
-    }
-  };
-  useEffect(() => {
-    fetchUserProfile();
-  }, [user?.companyId]);
-
+  const { profile, user } = useUserProfile();
   const handleEditProfile = () => {
     // Navigate to edit profile (to be implemented)
     console.log("Edit profile");
@@ -108,22 +73,42 @@ export default function RecruiterProfile() {
       <div className="lg:col-span-3 space-y-6">
         <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
           <div
-            className="h-32 bg-cover bg-center relative border-b-2 border-slate-200 bg-slate-100" // Thêm bg-slate-100 để làm nền khi chưa load được ảnh
+            className="h-32 bg-cover bg-center relative border-b-2 border-slate-200 bg-slate-100"
             style={{
               backgroundImage: `url('${profile?.coverImage || "https://images.unsplash.com/photo-1503264116251-35a269479413?q=80&w=1080"}')`,
             }}
           >
+            {/* Khối chứa cả Avatar và Tick xanh - Khối này quyết định vị trí của Avatar */}
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src={profile?.avatar} className="object-cover" />
-                <AvatarFallback>GG</AvatarFallback>
-              </Avatar>
+              <div className="relative inline-block">
+                {" "}
+                {/* Wrapper này giữ Tick bám theo Avatar */}
+                <Avatar className="h-20 w-20 border-4 border-white shadow-md rounded-full overflow-hidden">
+                  <AvatarImage
+                    src={profile?.avatar}
+                    className="object-cover h-full w-full"
+                  />
+                  <AvatarFallback className="bg-slate-200 flex items-center justify-center">
+                    GG
+                  </AvatarFallback>
+                </Avatar>
+                {/* Tick xanh: Bây giờ nó sẽ căn theo góc phải dưới của Avatar */}
+                {user?.companyId === 2 && (
+                  <div className="absolute bottom-1 right-0.5 z-20">
+                    <img
+                      src="/blue-tick-company.png"
+                      alt="Verified"
+                      className="w-5 h-5 bg-white rounded-full border border-white shadow-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <CardContent className="pt-12 pb-6 px-6">
             <div className="flex items-center justify-center gap-2 mb-4">
               <h3 className="font-bold text-lg text-slate-800 text-center">
-                {profile?.companyName}
+                {profile?.displayName || "Tên công ty"}
               </h3>
               <button onClick={handleEditProfile}>
                 <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">

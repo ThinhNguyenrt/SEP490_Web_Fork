@@ -22,21 +22,32 @@ export interface CommunityPost {
 }
 export interface ReplyComment {
   id: number;
-  author: any; //CommentUser
-  replyToUser: any; //CommentUser
+  author: {
+    id: number;
+    name: string;
+    avatar: string;
+  };
+  replyToUser: {
+    id: number;
+    name: string;
+    avatar: string;
+  };
   content: string;
   createdAt: string;
 }
 
-
 export interface PostComment {
   id: number;
-  author: any; //CommentUser
+  author: {
+    id: number;
+    name: string;
+    avatar: string;
+    role: string;
+  };
   content: string;
   createdAt: string;
   replies: ReplyComment[];
 }
-
 
 export interface PostCommentsResponse {
   postId: number;

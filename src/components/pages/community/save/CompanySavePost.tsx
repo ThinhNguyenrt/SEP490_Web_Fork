@@ -218,8 +218,8 @@ const CompanySavePost = () => {
                   avatar={post.author.avatar}
                   isVerified={post.author.role === "COMPANY"}
                   content={post.description || ""}
-                  image={
-                    post.media && post.media.length > 0 ? post.media[0] : ""
+                  images={
+                    post?.media && post?.media.length > 0 ? post?.media : []
                   }
                   imageTitle={post.portfolioPreview?.data?.title || ""}
                   likes={post.favoriteCount}

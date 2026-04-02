@@ -6,6 +6,11 @@ export const useUserProfile = () => {
   const [profile, setProfile] = useState<{
     displayName?: string;
     avatar?: string;
+    coverImage?: string;
+    activityField?: string;
+    taxIdentification?: string;
+    address?: string;
+    description?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,18 +29,35 @@ export const useUserProfile = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/${endpoint}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetch(
+        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/${endpoint}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
-        setProfile({
-          displayName: data.companyName || data.name || data.fullName || "N/A",
-          avatar: data.avatar,
-        });
+        if (user?.role === 1) {
+          setProfile({
+            displayName: data.fullName || data.name || "N/A",
+            avatar: data.avatar,
+            coverImage: data.coverImage,
+          });
+        } else if (user?.role === 2) {
+          setProfile({
+            displayName:
+              data.companyName || data.name || data.fullName || "N/A",
+            avatar: data.avatar,
+            coverImage: data.coverImage,
+            activityField: data.activityField,
+            taxIdentification: data.taxIdentification,
+            address: data.address,
+            description: data.description,
+          });
+        }
       }
     } catch (error) {
       console.error("Lỗi khi fetch profile header:", error);

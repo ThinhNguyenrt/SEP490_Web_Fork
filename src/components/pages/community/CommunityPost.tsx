@@ -3,10 +3,14 @@ import { ImageIcon, Contact, Send } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import type { CommunityPost } from "@/types/communityPost.ts";
 import CreatePostModal from "./CreatePostModal";
+import { useUserProfile } from "@/hook/useUserProfile";
+import { useAppSelector } from "@/store/hook";
 
 export default function CommunityPost() {
   const [posts, setPosts] = useState<CommunityPost[]>([]); // Lưu trữ danh sách bài viết
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { profile } = useUserProfile();
+  const { user } = useAppSelector((state) => state.auth);
 
   // Quản lý phân trang
   const PAGE_SIZE = 5;
@@ -60,16 +64,32 @@ export default function CommunityPost() {
         {/* Create Post Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 cursor-pointer">
           <div className="flex space-x-3 mb-4">
-            <img
-              alt="User"
-              className="w-12 h-12 rounded-full border border-gray-100 object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBsjvi0ArLl2XqTraIl2aHGRPylpHqFv_bVfqa61Xh0wJBB-a-tohjy7lUVXCnLgaE6jem9etqCZFeoUnm-_rVD1mmqLc3_QE1xCBesU6jGA0-1vjyUxg4ecyzd7Hv6c8YjmGG4IuVd9L9aXXJ4Nzn1mokwny3g1_G4vwmxo8LdKnQR8pbPVZ3P8ltMgxDBi0Pw6X5c_XGhsKYtcTlRsjvwihYnkDPuffHdEpgwnUCtpzvhY-JXfzVauuEjfGSa0B1NWj2OIImtto"
-            />
+            <div className="relative inline-block">
+              <img
+                alt="User"
+                className="w-12 h-12 rounded-full border border-gray-100 object-cover"
+                src={profile?.avatar || "/default-avatar.png"}
+              />
+              {/* 2. Hiển thị tick xanh nếu role là COMPANY */}
+              {user?.companyId === 2 && (
+                <div className="absolute -bottom-0.5 -right-0.5 transform">
+                  <img
+                    src="/blue-tick-company.png"
+                    alt="Verified"
+                    // w-4 h-4 sẽ cân đối hơn với avatar w-10
+                    className="w-4 h-4 bg-white rounded-full border border-white shadow-sm"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex-1 bg-gray-100 rounded-full px-4 py-3 flex items-center">
               <input
                 className="bg-transparent border-none focus:ring-0 focus:outline-none w-full text-sm text-gray-700 placeholder-gray-500"
                 placeholder="Chia sẻ suy nghĩ của bạn..."
                 type="text"
+                readOnly
+                onClick={() => setIsCreateModalOpen(true)}
               />
             </div>
           </div>
@@ -111,7 +131,7 @@ export default function CommunityPost() {
               avatar={post.author.avatar}
               isVerified={post.author.role === "COMPANY"}
               content={post.description || ""}
-              image={post.media && post.media.length > 0 ? post.media[0] : ""}
+              images={post?.media && post?.media.length > 0 ? post?.media : []}
               imageTitle={post.portfolioPreview?.data?.title || ""}
               likes={post.favoriteCount}
               comments={post.commentCount}

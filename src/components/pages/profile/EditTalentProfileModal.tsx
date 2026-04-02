@@ -153,6 +153,13 @@ const EditTalentProfileModal = ({ isOpen, onClose, initialProfile, onProfileUpda
       );
       console.log("✅ Profile updated successfully:", result);
       
+      // Ensure result has avatar and coverImage with fallbacks
+      const enrichedResult = {
+        ...result,
+        avatar: result.avatar || formState.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Talent",
+        coverImage: result.coverImage || formState.coverImage || "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000",
+      };
+      
       // Reset file state after successful save
       setFileState({
         avatarFile: null,
@@ -164,8 +171,8 @@ const EditTalentProfileModal = ({ isOpen, onClose, initialProfile, onProfileUpda
       });
 
       // Notify parent component with updated profile
-      if (onProfileUpdated && result) {
-        onProfileUpdated(result);
+      if (onProfileUpdated && enrichedResult) {
+        onProfileUpdated(enrichedResult);
       }
 
       notify.success("Thông tin cá nhân đã được cập nhật");

@@ -24,11 +24,29 @@ export default function TalentProfile() {
         console.log("📡 Fetching employee profile...");
         const profile = await profileService.fetchEmployeeProfile(accessToken);
         console.log("✅ Profile loaded:", profile);
-        setEmployeeProfile(profile);
+        
+        // Ensure profile has avatar and coverImage, with fallbacks
+        const enrichedProfile = {
+          ...profile,
+          avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Talent",
+          coverImage: profile.coverImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500",
+        };
+        
+        setEmployeeProfile(enrichedProfile);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Failed to load profile";
         console.error("❌ Error loading profile:", errorMsg);
         notify.error(errorMsg);
+        
+        // Set default profile on error so UI doesn't break
+        setEmployeeProfile({
+          id: 0,
+          userId: 0,
+          name: "Talent",
+          phone: "",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Talent",
+          coverImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500",
+        });
       }
     };
 

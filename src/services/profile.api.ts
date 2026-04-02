@@ -97,13 +97,14 @@ export const fetchEmployeeProfile = async (accessToken: string): Promise<Employe
       throw new Error("Your session has expired. Please login again.");
     }
 
-    // Try to parse JSON if possible
-    if (contentType?.includes("application/json") && responseText) {
+    // Try to parse JSON - be lenient with content-type check
+    if (responseText) {
       try {
         data = JSON.parse(responseText);
         console.log("📦 Employee profile API response data:", data);
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
+        console.error("📦 Raw response text:", responseText);
         throw new Error("Invalid response format from server");
       }
     }
@@ -119,13 +120,32 @@ export const fetchEmployeeProfile = async (accessToken: string): Promise<Employe
       throw new Error(errorMsg);
     }
 
-    // Handle response format (could be direct object or wrapped in data field)
+    // Handle multiple possible response formats
+    let profileData: unknown;
     const dataAsObj = data as Record<string, unknown> | null;
-    const profileData = (dataAsObj?.data as unknown) || data;
+    
+    // Try different extraction strategies
+    if (dataAsObj?.data && typeof dataAsObj.data === "object") {
+      // Format: { data: { profile } }
+      profileData = dataAsObj.data;
+    } else if (dataAsObj) {
+      // Format: { profile } or { success: true, profile fields }
+      // Check if this looks like a profile object (has required fields)
+      const asProfile = dataAsObj as any;
+      if (asProfile.id || asProfile.userId || asProfile.name || asProfile.phone) {
+        profileData = dataAsObj;
+      } else {
+        // Fallback: maybe the entire response is wrapped, try extracting main fields
+        profileData = dataAsObj;
+      }
+    } else {
+      profileData = data;
+    }
 
     if (!profileData || typeof profileData !== "object") {
       console.warn("⚠️ Unexpected response format for employee profile");
-      console.warn("⚠️ data:", profileData);
+      console.warn("⚠️ profileData:", profileData);
+      console.warn("⚠️ full data:", data);
       throw new Error("Invalid employee profile data format");
     }
 
@@ -241,13 +261,14 @@ export const updateEmployeeProfile = async (
       throw new Error("Your session has expired. Please login again.");
     }
 
-    // Try to parse JSON if possible
-    if (contentType?.includes("application/json") && responseText) {
+    // Try to parse JSON - be lenient with content-type check
+    if (responseText) {
       try {
         data = JSON.parse(responseText);
         console.log("📦 Employee profile update response data:", data);
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
+        console.error("📦 Raw response text:", responseText);
         throw new Error("Invalid response format from server");
       }
     }
@@ -263,12 +284,32 @@ export const updateEmployeeProfile = async (
       throw new Error(errorMsg);
     }
 
-    // Handle response format
+    // Handle multiple possible response formats
+    let updatedProfileData: unknown;
     const dataAsObj = data as Record<string, unknown> | null;
-    const updatedProfileData = (dataAsObj?.data as unknown) || data;
+    
+    // Try different extraction strategies
+    if (dataAsObj?.data && typeof dataAsObj.data === "object") {
+      // Format: { data: { profile } }
+      updatedProfileData = dataAsObj.data;
+    } else if (dataAsObj) {
+      // Format: { profile } or { success: true, profile fields }
+      // Check if this looks like a profile object (has expected fields)
+      const asProfile = dataAsObj as any;
+      if (asProfile.id || asProfile.userId || asProfile.name || asProfile.phone) {
+        updatedProfileData = dataAsObj;
+      } else {
+        // If still not clear, use the whole response
+        updatedProfileData = dataAsObj;
+      }
+    } else {
+      updatedProfileData = data;
+    }
 
     if (!updatedProfileData || typeof updatedProfileData !== "object") {
       console.warn("⚠️ Unexpected response format for updated employee profile");
+      console.warn("⚠️ updatedProfileData:", updatedProfileData);
+      console.warn("⚠️ full data:", data);
       throw new Error("Invalid updated profile data format");
     }
 

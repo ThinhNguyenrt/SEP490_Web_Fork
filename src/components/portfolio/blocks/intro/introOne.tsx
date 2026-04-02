@@ -2,7 +2,7 @@ import React from 'react';
 import { Mail, Phone } from 'lucide-react';
 
 interface IntroOneProps {
-  data: { fullName?: string; title?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  data: { fullName?: string; name?: string; title?: string; studyField?: string; description?: string; avatar?: string; email?: string; phone?: string };
 }
 
 /**
@@ -10,7 +10,12 @@ interface IntroOneProps {
  * Hiển thị thông tin cá nhân cơ bản của người dùng
  */
 const IntroOne: React.FC<IntroOneProps> = ({ data }) => {
-  const { fullName, title, description, avatar, email, phone } = data;
+  const { fullName, name, title, studyField, description, avatar, email, phone } = data;
+  
+  // Use fullName first, then fall back to name, then 'Your Name'
+  const displayName = fullName || name || 'Your Name';
+  // Use title first, then fall back to studyField
+  const displayTitle = title || studyField;
 
   return (
     <div className="intro-block bg-white px-6 py-8 text-center border-b border-gray-200 last:border-b-0">
@@ -19,17 +24,17 @@ const IntroOne: React.FC<IntroOneProps> = ({ data }) => {
         <div className="mb-6">
           <img
             src={avatar}
-            alt={fullName}
+            alt={displayName}
             className="w-28 h-28 rounded-full object-cover mx-auto border-4 border-gray-100 shadow-md"
           />
         </div>
       )}
 
       {/* Name */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">{fullName || 'Your Name'}</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">{displayName}</h1>
 
       {/* Title */}
-      {title && <p className="text-lg text-blue-600 font-semibold mb-4">{title}</p>}
+      {displayTitle && <p className="text-lg text-blue-600 font-semibold mb-4">{displayTitle}</p>}
 
       {/* Description */}
       {description && (

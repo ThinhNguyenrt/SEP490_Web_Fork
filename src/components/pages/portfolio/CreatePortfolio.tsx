@@ -1218,6 +1218,19 @@ export default function CreatePortfolio() {
     return createEducationOneDraft(selectedBlock.data);
   }, [isEditingEducationOne, selectedBlock]);
 
+  const educationOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingEducationOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createEducationOneDraft(item));
+    }
+
+    return [];
+  }, [isEditingEducationOne, selectedBlock]);
+
   const educationOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingEducationOne) {
       return "education-one-editor";
@@ -1282,6 +1295,19 @@ export default function CreatePortfolio() {
     return createProjectOneDraft(selectedBlock.data);
   }, [isEditingProjectOne, selectedBlock]);
 
+  const projectOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingProjectOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createProjectOneDraft(item));
+    }
+
+    return [];
+  }, [isEditingProjectOne, selectedBlock]);
+
   const projectOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingProjectOne) {
       return "project-one-editor";
@@ -1330,6 +1356,19 @@ export default function CreatePortfolio() {
     return createAwardOneDraft(selectedBlock.data);
   }, [isEditingAwardOne, selectedBlock]);
 
+  const awardOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingAwardOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createAwardOneDraft(item));
+    }
+
+    return [];
+  }, [isEditingAwardOne, selectedBlock]);
+
   const awardOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingAwardOne) {
       return "award-one-editor";
@@ -1344,6 +1383,19 @@ export default function CreatePortfolio() {
     }
 
     return createActivityOneDraft(selectedBlock.data);
+  }, [isEditingActivityOne, selectedBlock]);
+
+  const activityOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingActivityOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createActivityOneDraft(item));
+    }
+
+    return [];
   }, [isEditingActivityOne, selectedBlock]);
 
   const activityOneEditorKey = useMemo(() => {
@@ -1472,6 +1524,19 @@ export default function CreatePortfolio() {
     }
 
     return createCertificateOneDraft(selectedBlock.data);
+  }, [isEditingCertificateOne, selectedBlock]);
+
+  const certificateOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingCertificateOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createCertificateOneDraft(item));
+    }
+
+    return [];
   }, [isEditingCertificateOne, selectedBlock]);
 
   const certificateOneEditorKey = useMemo(() => {
@@ -1767,8 +1832,8 @@ export default function CreatePortfolio() {
         console.log("✅ Portfolio created successfully:", result);
         notify.success("Hồ sơ đã được lưu thành công!");
 
-        // Navigate to portfolio management page
-        navigate("/portfolio-management", { replace: true });
+        // Navigate to portfolio management page with refetch flag
+        navigate("/portfolioManagement?refresh=true", { replace: true });
       } catch (apiError) {
         const errorMessage =
           apiError instanceof Error
@@ -1990,6 +2055,24 @@ export default function CreatePortfolio() {
     });
   };
 
+  const handleEducationOneListSave = (educationList: EducationOneDraft[]) => {
+    if (!selectedBlock || !isEditingEducationOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return educationList.map((education) => ({
+        schoolName: education.schoolName,
+        school: education.schoolName,
+        time: education.time,
+        department: education.department,
+        major: education.department,
+        certificate: education.certificate,
+        description: education.description,
+      }));
+    });
+  };
+
   const handleEducationOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
@@ -2106,6 +2189,33 @@ export default function CreatePortfolio() {
     });
   };
 
+  const handleProjectOneListSave = (projectList: ProjectOneDraft[]) => {
+    if (!selectedBlock || !isEditingProjectOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return projectList.map((project) => {
+        const projectLinks = [
+          { type: "github", link: project.githubLink.trim() },
+          { type: "figma", link: project.figmaLink.trim() },
+          { type: "app", link: project.appLink.trim() },
+          { type: "website", link: project.websiteLink.trim() },
+        ].filter((item) => item.link.length > 0);
+
+        return {
+          image: project.image,
+          name: project.name,
+          description: project.description,
+          role: project.role,
+          technology: project.technology,
+          projectLinks,
+          links: projectLinks,
+        };
+      });
+    });
+  };
+
   const handleProjectOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
@@ -2192,6 +2302,23 @@ export default function CreatePortfolio() {
     });
   };
 
+  const handleAwardOneListSave = (awardList: AwardOneDraft[]) => {
+    if (!selectedBlock || !isEditingAwardOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return awardList.map((award) => ({
+        name: award.name,
+        date: award.date,
+        time: award.date,
+        organization: award.organization,
+        issuer: award.organization,
+        description: award.description,
+      }));
+    });
+  };
+
   const handleAwardOneCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
@@ -2215,6 +2342,21 @@ export default function CreatePortfolio() {
           description: nextDraft.description,
         },
       ];
+    });
+  };
+
+  const handleActivityOneListSave = (activityList: ActivityOneDraft[]) => {
+    if (!selectedBlock || !isEditingActivityOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return activityList.map((activity) => ({
+        name: activity.name,
+        date: activity.date,
+        time: activity.date,
+        description: activity.description,
+      }));
     });
   };
 
@@ -2373,6 +2515,23 @@ export default function CreatePortfolio() {
           link: nextDraft.link,
         },
       ];
+    });
+  };
+
+  const handleCertificateOneListSave = (certificateList: CertificateOneDraft[]) => {
+    if (!selectedBlock || !isEditingCertificateOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return certificateList.map((certificate) => ({
+        name: certificate.name,
+        issuer: certificate.issuer,
+        provider: certificate.issuer,
+        year: certificate.year,
+        date: certificate.year,
+        link: certificate.link,
+      }));
     });
   };
 
@@ -2920,7 +3079,9 @@ export default function CreatePortfolio() {
       <EducationOneEditor
         key={educationOneEditorKey}
         initialData={educationOneInitialData}
+        initialList={educationOneListData}
         onSave={handleEducationOneSave}
+        onSaveList={handleEducationOneListSave}
         onCancel={handleEducationOneCancel}
       />
     );
@@ -2981,7 +3142,9 @@ export default function CreatePortfolio() {
       <ProjectOneEditor
         key={projectOneEditorKey}
         initialData={projectOneInitialData}
+        initialList={projectOneListData}
         onSave={handleProjectOneSave}
+        onSaveList={handleProjectOneListSave}
         onCancel={handleProjectOneCancel}
       />
     );
@@ -3026,7 +3189,9 @@ export default function CreatePortfolio() {
       <AwardEditor
         key={awardOneEditorKey}
         initialData={awardOneInitialData}
+        initialList={awardOneListData}
         onSave={handleAwardOneSave}
+        onSaveList={handleAwardOneListSave}
         onCancel={handleAwardOneCancel}
       />
     );
@@ -3041,7 +3206,9 @@ export default function CreatePortfolio() {
       <ActivityOneEditor
         key={activityOneEditorKey}
         initialData={activityOneInitialData}
+        initialList={activityOneListData}
         onSave={handleActivityOneSave}
+        onSaveList={handleActivityOneListSave}
         onCancel={handleActivityOneCancel}
       />
     );
@@ -3161,7 +3328,9 @@ export default function CreatePortfolio() {
       <CertificateOneEditor
         key={certificateOneEditorKey}
         initialData={certificateOneInitialData}
+        initialList={certificateOneListData}
         onSave={handleCertificateOneSave}
+        onSaveList={handleCertificateOneListSave}
         onCancel={handleCertificateOneCancel}
       />
     );

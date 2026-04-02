@@ -1,19 +1,24 @@
-import { X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { type CertificateOneDraft } from "@/components/pages/portfolio/editor/certificateOneDraft";
 
 type CertificateOneEditorProps = {
   initialData: CertificateOneDraft;
+  initialList?: CertificateOneDraft[];
   onSave: (nextDraft: CertificateOneDraft) => void;
+  onSaveList?: (certificateList: CertificateOneDraft[]) => void;
   onCancel: () => void;
 };
 
 export default function CertificateOneEditor({
   initialData,
+  initialList = [],
   onSave,
+  onSaveList,
   onCancel,
 }: CertificateOneEditorProps) {
   const [draft, setDraft] = useState<CertificateOneDraft>(initialData);
+  const [certificateList, setCertificateList] = useState<CertificateOneDraft[]>(initialList);
 
   const hasContent = [draft.name, draft.issuer, draft.year, draft.link].some(
     (value) => value.trim().length > 0,
@@ -24,6 +29,45 @@ export default function CertificateOneEditor({
       ...prevDraft,
       [field]: value,
     }));
+  };
+
+  const handleAddCertificate = () => {
+    if (!hasContent) {
+      return;
+    }
+
+    const newCertificate: CertificateOneDraft = {
+      name: draft.name.trim(),
+      issuer: draft.issuer.trim(),
+      year: draft.year.trim(),
+      link: draft.link.trim(),
+    };
+
+    const updatedList = [...certificateList, newCertificate];
+    setCertificateList(updatedList);
+
+    // Reset form
+    setDraft({
+      name: "",
+      issuer: "",
+      year: "",
+      link: "",
+    });
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    } else {
+      onSave(newCertificate);
+    }
+  };
+
+  const handleRemoveCertificate = (index: number) => {
+    const updatedList = certificateList.filter((_, i) => i !== index);
+    setCertificateList(updatedList);
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    }
   };
 
   const handleSave = () => {
@@ -52,6 +96,41 @@ export default function CertificateOneEditor({
           <X size={24} strokeWidth={2.5} />
         </button>
       </div>
+
+      {/* List of existing certificates */}
+      {certificateList.length > 0 && (
+        <div className="border-b border-[#d7dfeb] px-3 py-3">
+          <h4 className="mb-3 text-sm font-semibold text-slate-700">
+            Danh sách chứng chỉ ({certificateList.length})
+          </h4>
+          <div className="space-y-2">
+            {certificateList.map((certificate, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between rounded-lg border border-[#d1d5db] bg-white p-3"
+              >
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-800">{certificate.name}</p>
+                  {certificate.issuer && (
+                    <p className="text-xs text-slate-600">{certificate.issuer}</p>
+                  )}
+                  {certificate.year && (
+                    <p className="text-xs text-slate-500">{certificate.year}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCertificate(index)}
+                  className="ml-2 rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                  title="Xóa"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
@@ -95,21 +174,22 @@ export default function CertificateOneEditor({
         </div>
       </div>
 
-      <div className="flex gap-3 border-t border-[#d7dfeb] bg-[#EFF6FF] px-3 py-4">
+      <div className="flex items-center justify-end gap-2 border-t border-[#d7dfeb] bg-[#EFF6FF] px-3 py-4">
         <button
           type="button"
           onClick={onCancel}
-          className="h-10 flex-1 rounded-xl bg-[#e6eaf1] text-sm font-semibold text-slate-600 transition-colors hover:bg-[#dde3ec]"
+          className="h-9 min-w-20 rounded-xl bg-[#e6eaf1] px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-[#dde3ec]"
         >
           Hủy
         </button>
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleAddCertificate}
           disabled={!hasContent}
-          className="h-10 flex-1 rounded-xl bg-[#4A79E8] text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Thêm chứng chỉ
+          <Plus size={18} strokeWidth={2} />
+          Thêm chứng chỉ mới
         </button>
       </div>
     </div>

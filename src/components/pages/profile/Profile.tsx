@@ -17,7 +17,7 @@ import {
 
 import { Card, CardContent } from "@/components/ui/card";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { portfolioService } from "@/services/portfolio.api";
 import TalentProfile from "./TalentProfile";
@@ -25,10 +25,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
 import { useDispatch } from "react-redux";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
   const handlePortfolioClick = async () => {
     try {
       const userId = 2; // Mock user ID
@@ -200,7 +203,11 @@ export default function ProfilePage() {
                 icon={<Info size={18} />}
                 label="Điều khoản & chính sách"
               />
-              <SettingsItem icon={<Key size={18} />} label="Đổi mật khẩu" />
+              <SettingsItem
+                icon={<Key size={18} />}
+                label="Đổi mật khẩu"
+                onClick={() => setIsChangePasswordModalOpen(true)}
+              />
               <SettingsItem
                 icon={<LogOut size={18} />}
                 label="Đăng xuất"
@@ -214,6 +221,11 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   );
 }

@@ -1865,6 +1865,137 @@ export const fetchPortfoliosByEmployeeId = async (
   }
 };
 
+// Upload portfolio image and get URL back (for intro avatars, project images, etc.)
+export const uploadPortfolioImage = async (
+  file: File,
+  accessToken: string,
+): Promise<string> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📸 Uploading portfolio image:", file.name, file.size);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Image upload timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const response = await fetch(`${API_BASE_URL}/portfolio/upload-image`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📸 Image upload response status:", response.status);
+
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    if (!response.ok) {
+      throw new Error(`Image upload failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Image uploaded successfully:", data);
+
+    // Expect response to have imageUrl or url property
+    const imageUrl = data.imageUrl || data.url || data.data?.imageUrl || data.data?.url;
+    
+    if (!imageUrl) {
+      throw new Error("Server did not return image URL");
+    }
+
+    return imageUrl;
+  } catch (error) {
+    if (
+      error instanceof TypeError &&
+      error.message === "Failed to fetch"
+    ) {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to upload image");
+  }
+};
+
+// Delete portfolio by ID
+export const deletePortfolio = async (
+  portfolioId: number,
+  accessToken: string,
+): Promise<{ message: string }> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+    
+    const endpoint = `${API_BASE_URL}/portfolio/${portfolioId}`;
+    console.log("📡 Deleting portfolio:", endpoint);
+    
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const response = await fetch(endpoint, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("📡 Delete response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.message || `Failed to delete portfolio (${response.status})`;
+      console.error("❌ Delete failed:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log("✅ Portfolio deleted successfully:", data);
+    return data;
+  } catch (error) {
+    if (
+      error instanceof TypeError &&
+      error.message === "Failed to fetch"
+    ) {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to delete portfolio");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -1877,4 +2008,6 @@ export const portfolioService = {
   createPortfolioAPI,
   createPortfolio,
   updatePortfolioById,
+  uploadPortfolioImage,
+  deletePortfolio,
 };

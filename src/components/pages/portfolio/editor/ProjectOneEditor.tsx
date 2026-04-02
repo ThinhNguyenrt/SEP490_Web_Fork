@@ -7,6 +7,9 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { type ProjectOneDraft } from "@/components/pages/portfolio/editor/projectOneDraft";
+import { portfolioService } from "@/services/portfolio.api";
+import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
 
 type ProjectOneEditorProps = {
   initialData: ProjectOneDraft;
@@ -14,25 +17,6 @@ type ProjectOneEditorProps = {
   onSave: (nextDraft: ProjectOneDraft) => void;
   onSaveList?: (projectList: ProjectOneDraft[]) => void;
   onCancel: () => void;
-};
-
-const readImageAsDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Không thể đọc ảnh đã chọn."));
-    };
-
-    reader.onerror = () => reject(new Error("Không thể đọc ảnh đã chọn."));
-
-    reader.readAsDataURL(file);
-  });
 };
 
 const normalizeDraft = (draft: ProjectOneDraft): ProjectOneDraft => {
@@ -59,7 +43,9 @@ export default function ProjectOneEditor({
   const [draft, setDraft] = useState<ProjectOneDraft>(initialData);
   const [projectList, setProjectList] = useState<ProjectOneDraft[]>(initialList);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   const updateDraftField = (field: keyof ProjectOneDraft, value: string) => {
     setDraft((prevDraft) => ({
@@ -132,11 +118,37 @@ export default function ProjectOneEditor({
     }
 
     if (!file.type.startsWith("image/")) {
+      notify.error("Vui lòng chọn tệp ảnh.");
       return;
     }
 
-    const nextImage = await readImageAsDataUrl(file);
-    updateDraftField("image", nextImage);
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error("Ảnh không được quá 5MB.");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      console.log("📸 Uploading project image:", file.name);
+
+      if (!accessToken) {
+        notify.error("Bạn cần đăng nhập để tải ảnh.");
+        return;
+      }
+
+      // Upload image to server and get URL back
+      const imageUrl = await portfolioService.uploadPortfolioImage(file, accessToken);
+      console.log("✅ Project image uploaded successfully:", imageUrl);
+
+      // Store URL instead of base64 data
+      updateDraftField("image", imageUrl);
+      notify.success("Ảnh đã tải lên thành công!");
+    } catch (error) {
+      console.error("❌ Project image upload error:", error);
+      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleImageInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -226,6 +238,7 @@ export default function ProjectOneEditor({
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp"
             onChange={handleImageInputChange}
+            disabled={isUploadingImage}
             className="hidden"
           />
 
@@ -233,12 +246,16 @@ export default function ProjectOneEditor({
             onDragEnter={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              setIsDraggingImage(true);
+              if (!isUploadingImage) {
+                setIsDraggingImage(true);
+              }
             }}
             onDragOver={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              setIsDraggingImage(true);
+              if (!isUploadingImage) {
+                setIsDraggingImage(true);
+              }
             }}
             onDragLeave={(event) => {
               event.preventDefault();
@@ -248,7 +265,7 @@ export default function ProjectOneEditor({
             onDrop={handleImageDrop}
             className={cn(
               "rounded-xl border border-dashed bg-white px-3 py-4 text-center transition-colors",
-              isDraggingImage
+              isDraggingImage && !isUploadingImage
                 ? "border-[#4A79E8] bg-[#edf3ff]"
                 : "border-[#bfc8d8]",
             )}
@@ -278,9 +295,10 @@ export default function ProjectOneEditor({
               <button
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-[#acb4c3] bg-[#f4f6fa] px-5 text-sm font-semibold text-slate-700 transition-colors hover:bg-[#eaedf3]"
+                disabled={isUploadingImage}
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-[#acb4c3] bg-[#f4f6fa] px-5 text-sm font-semibold text-slate-700 transition-colors hover:bg-[#eaedf3] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Chọn ảnh
+                {isUploadingImage ? "Đang tải..." : "Chọn ảnh"}
               </button>
             </div>
           </div>

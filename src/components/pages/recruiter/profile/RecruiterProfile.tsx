@@ -19,21 +19,64 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { useAppSelector } from "@/store/hook";
 import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
+import EditRecruiterProfileModal from "./EditRecruiterProfileModal";
+import ChangePasswordModal from "./ChangePasswordModal";
+import { useEffect, useState } from "react";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user, accessToken } = useAppSelector((state) => state.auth);
 
-  const handleEditProfile = () => {
-    // Navigate to edit profile (to be implemented)
-    console.log("Edit profile");
-  };
+  // State for modals
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
+
+  // Profile state
+  const [profile, setProfile] = useState<{
+    activityField?: string;
+    companyName?: string;
+    avatar?: string;
+    coverImage?: string;
+    taxIdentification?: string;
+    address?: string;
+    description?: string;
+  } | null>(null);
+
+  // Initialize with default data - fetch from API will happen via modal when user edits
+  useEffect(() => {
+    const defaultProfile = {
+      companyName: "Google",
+      activityField: "Công nghệ thông tin",
+      address: "TP Hồ Chí Minh",
+      description:
+        "Google Inc. là một công ty công nghệ đa quốc gia chuyên về các dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ quảng cáo.",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=google",
+      coverImage:
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
+    };
+    setProfile(defaultProfile);
+  }, []);
 
   const handleInterviewScheduleClick = () => {
     // Navigate to interview schedule management
     console.log("Navigate to interview schedule");
+  };
+
+  const handleEditProfile = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleProfileUpdated = (updatedProfile: any) => {
+    setProfile(updatedProfile);
+  };
+
+  const handleChangePassword = () => {
+    setIsChangePasswordModalOpen(true);
   };
 
   const handlePortfolioClick = () => {
@@ -200,7 +243,11 @@ export default function RecruiterProfile() {
               icon={<Info size={18} />}
               label="Điều khoản & chính sách"
             />
-            <SettingsItem icon={<Key size={18} />} label="Đổi mật khẩu" />
+            <SettingsItem
+              icon={<Key size={18} />}
+              label="Đổi mật khẩu"
+              onClick={handleChangePassword}
+            />
             <SettingsItem
               icon={<LogOut size={18} />}
               label="Đăng xuất"
@@ -213,6 +260,20 @@ export default function RecruiterProfile() {
           </p>
         </Card>
       </div>
+
+      {/* Modals */}
+      <EditRecruiterProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        companyId={user?.companyId || ""}
+        initialProfile={profile}
+        onProfileUpdated={handleProfileUpdated}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   );
 }

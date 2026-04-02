@@ -23,6 +23,7 @@ const ProfileCard = ({
   data,
   onViewDetail,
   onEdit,
+  onDelete,
   isPrimary,
   onSetPrimary,
   onUnsetPrimary,
@@ -31,14 +32,15 @@ const ProfileCard = ({
   data: PortfolioMainBlockItem;
   onViewDetail: (portfolioId: number) => void;
   onEdit: (portfolioId: number) => void;
+  onDelete: (portfolioId: number) => void;
   isPrimary: boolean;
   onSetPrimary: (portfolioId: number) => void;
   onUnsetPrimary: (portfolioId: number) => void;
   portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  // Extract data from INTRO block - handle both name/fullName, studyField/title
-  const introData = data.blocks.data || {};
+  // Extract data from INTRO block - prioritize user name
+  const introData = data.blocks?.data || {};
   const fullName = introData.fullName || introData.name || "Chưa cập nhật tên";
   const title = introData.title || introData.studyField || "Chưa cập nhật chức vụ";
   const email = introData.email || "";
@@ -121,7 +123,13 @@ const ProfileCard = ({
                 >
                   <Edit3 size={14} /> Chỉnh sửa
                 </button>
-                <button className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-500 hover:bg-red-50  cursor-pointer">
+                <button
+                  onClick={() => {
+                    onDelete(data.portfolioId);
+                    setShowMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-500 hover:bg-red-50  cursor-pointer"
+                >
                   <Trash2 size={14} /> Xóa
                 </button>
 
@@ -147,10 +155,10 @@ const ProfileCard = ({
           />
         </div>
         <h3 className="text-xl font-bold mb-1">
-          {fullName || "Chưa cập nhật tên"}
+          {fullName}
         </h3>
         <p className="text-blue-500 font-medium text-sm mb-4">
-          {title || "Chưa cập nhật chức vụ"}
+          {title}
         </p>
         <p className="text-slate-600  text-sm leading-relaxed mb-6 max-w-sm">
           {data.portfolio.name}
@@ -298,6 +306,46 @@ export default function ProfileManagement() {
     setPrimaryPortfolioId(null);
   };
 
+  const handleDeletePortfolio = async (portfolioId: number) => {
+    try {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        "Bạn chắc chắn muốn xóa portfolio này? Hành động này không thể hoàn tác.",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      if (!accessToken) {
+        notify.error("Vui lòng đăng nhập để xóa portfolio");
+        navigate("/login");
+        return;
+      }
+
+      console.log("🗑️ Deleting portfolio:", portfolioId);
+      await portfolioService.deletePortfolio(portfolioId, accessToken);
+
+      // Remove portfolio from list
+      setPortfolios((prev) =>
+        prev.filter((p) => p.portfolioId !== portfolioId),
+      );
+
+      // If deleted portfolio was primary, reset primary
+      if (primaryPortfolioId === portfolioId) {
+        setPrimaryPortfolioId(null);
+      }
+
+      notify.success("Portfolio đã được xóa thành công!");
+      console.log("✅ Portfolio deleted successfully");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể xóa portfolio";
+      console.error("❌ Error deleting portfolio:", errorMessage);
+      notify.error(errorMessage);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 transition-colors duration-200 mt-4">
       <div className="max-w-360 mx-auto flex min-h-screen flex-col lg:flex-row">
@@ -343,6 +391,7 @@ export default function ProfileManagement() {
                   data={portfolio}
                   onViewDetail={handleViewDetail}
                   onEdit={handleEdit}
+                  onDelete={handleDeletePortfolio}
                   isPrimary={primaryPortfolioId === portfolio.portfolioId}
                   onSetPrimary={handleSetPrimary}
                   onUnsetPrimary={handleUnsetPrimary}

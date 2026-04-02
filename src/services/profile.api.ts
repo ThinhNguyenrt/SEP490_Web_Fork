@@ -12,7 +12,33 @@ export interface EmployeeProfile {
   avatar?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_USER_PROFILE_API_BASE_URL || "/user-profile-api";
+// Determine API base URL - use env var if available, otherwise use appropriate URL based on environment
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_USER_PROFILE_API_BASE_URL;
+  
+  // If environment variable is set, use it
+  if (envUrl && envUrl.trim() !== "") {
+    console.log("✅ Using env var VITE_USER_PROFILE_API_BASE_URL:", envUrl);
+    return envUrl;
+  }
+  
+  // Check if we're on localhost/development
+  const isLocalhost = typeof window !== "undefined" && 
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  
+  if (isLocalhost) {
+    // On localhost, use relative path (proxy is configured in vite.config.ts)
+    console.log("📍 Localhost detected, using relative path: /user-profile-api");
+    return "/user-profile-api";
+  }
+  
+  // On production/deployed environment, use full URL
+  const fallbackUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+  console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
+  return fallbackUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch current employee/talent profile information

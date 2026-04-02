@@ -149,4 +149,96 @@ export const authAPI = {
       throw new Error("Network error. Vui lòng kiểm tra kết nối internet.");
     }
   },
+
+  changePassword: async (
+    oldPassword: string,
+    newPassword: string,
+    accessToken: string,
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      console.log("🔐 [changePassword] Starting password change...");
+
+      if (!accessToken) {
+        console.error("❌ No access token provided!");
+        throw new Error("Access token is missing. Please login again.");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn("⏱️ Change password request timeout after 30 seconds");
+        controller.abort();
+      }, 30000);
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      };
+
+      const fullUrl = `${API_BASE_URL}/Auth/change-password`;
+      console.log("📡 Making request to:", fullUrl);
+
+      const response = await fetch(fullUrl, {
+        method: "PUT",
+        headers: headers,
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log("📡 Change password response status:", response.status);
+
+      const contentType = response.headers.get("content-type");
+      let data: { success?: boolean; message?: string; errors?: string[] };
+
+      if (contentType?.includes("application/json")) {
+        try {
+          data = await response.json();
+          console.log("📦 Response data:", { success: data.success, message: data.message });
+        } catch (parseError) {
+          console.error("❌ JSON parse error:", parseError);
+          throw new Error("Invalid response format from server");
+        }
+      } else {
+        throw new Error("Server returned non-JSON response");
+      }
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        console.error("❌ 401 Unauthorized - Token may be invalid or expired");
+        throw new Error("Your session has expired. Please login again.");
+      }
+
+      if (!response.ok) {
+        const errorMsg = data.errors?.[0] || data.message || `Server error: ${response.status}`;
+        console.error("❌ Change password error:", errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      if (!data.success) {
+        const errorMsg = data.message || "Failed to change password";
+        console.warn("⚠️ Change password failed:", errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      console.log("✅ Password changed successfully:", data.message);
+      return {
+        success: true,
+        message: data.message || "Password changed successfully",
+      };
+    } catch (error) {
+      if (error instanceof TypeError && error.message === "Failed to fetch") {
+        console.error("❌ [changePassword] CORS Error or Network Error:", error);
+        throw new Error("Cannot connect to server. Please check your internet connection.");
+      }
+      if (error instanceof Error) {
+        console.error("❌ [changePassword] Error:", error.message);
+        throw error;
+      }
+      throw new Error("Network error. Please check your connection");
+    }
+  },
 };

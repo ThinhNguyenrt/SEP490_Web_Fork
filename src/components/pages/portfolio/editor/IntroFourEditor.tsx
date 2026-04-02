@@ -9,6 +9,9 @@ import {
   createEmptyIntroFourDraft,
   type IntroFourDraft,
 } from "@/components/pages/portfolio/editor/introFourDraft";
+import { portfolioService } from "@/services/portfolio.api";
+import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
 
 type IntroFourEditorProps = {
   initialData: IntroFourDraft;
@@ -22,7 +25,9 @@ export default function IntroFourEditor({
   onCancel,
 }: IntroFourEditorProps) {
   const [draft, setDraft] = useState<IntroFourDraft>(initialData);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     setDraft(initialData);
@@ -43,19 +48,45 @@ export default function IntroFourEditor({
     }));
   };
 
-  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const nextAvatar = typeof reader.result === "string" ? reader.result : "";
-      updateDraftField("avatar", nextAvatar);
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
+    if (!file.type.startsWith("image/")) {
+      notify.error("Vui lòng chọn tệp ảnh.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error("Ảnh không được quá 5MB.");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      console.log("📸 Uploading avatar:", file.name);
+
+      if (!accessToken) {
+        notify.error("Bạn cần đăng nhập để tải ảnh.");
+        return;
+      }
+
+      // Upload image to server and get URL back
+      const imageUrl = await portfolioService.uploadPortfolioImage(file, accessToken);
+      console.log("✅ Avatar uploaded successfully:", imageUrl);
+
+      // Store URL instead of base64 data
+      updateDraftField("avatar", imageUrl);
+      notify.success("Ảnh đã tải lên thành công!");
+    } catch (error) {
+      console.error("❌ Avatar upload error:", error);
+      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
+    } finally {
+      setIsUploadingAvatar(false);
+      event.target.value = "";
+    }
   };
 
   const handleSave = () => {
@@ -116,6 +147,7 @@ export default function IntroFourEditor({
             type="file"
             accept="image/*"
             onChange={handleAvatarUpload}
+            disabled={isUploadingAvatar}
             className="hidden"
           />
 
@@ -123,15 +155,16 @@ export default function IntroFourEditor({
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff]"
+              disabled={isUploadingAvatar}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Upload size={15} /> Tải ảnh lên
+              <Upload size={15} /> {isUploadingAvatar ? "Đang tải..." : "Tải ảnh lên"}
             </button>
             <button
               type="button"
               onClick={() => updateDraftField("avatar", "")}
+              disabled={!hasAvatar || isUploadingAvatar}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#eef1f6] text-sm font-semibold text-slate-500 transition-colors hover:bg-[#e2e8f0] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!hasAvatar}
             >
               <Trash2 size={15} /> Xóa ảnh
             </button>

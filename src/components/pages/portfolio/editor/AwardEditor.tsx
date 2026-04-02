@@ -1,15 +1,24 @@
-import { X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { type AwardOneDraft } from "@/components/pages/portfolio/editor/awardOneDraft";
 
 type AwardEditorProps = {
   initialData: AwardOneDraft;
+  initialList?: AwardOneDraft[];
   onSave: (nextDraft: AwardOneDraft) => void;
+  onSaveList?: (awardList: AwardOneDraft[]) => void;
   onCancel: () => void;
 };
 
-export default function AwardEditor({ initialData, onSave, onCancel }: AwardEditorProps) {
+export default function AwardEditor({
+  initialData,
+  initialList = [],
+  onSave,
+  onSaveList,
+  onCancel,
+}: AwardEditorProps) {
   const [draft, setDraft] = useState<AwardOneDraft>(initialData);
+  const [awardList, setAwardList] = useState<AwardOneDraft[]>(initialList);
 
   const hasContent = [draft.name, draft.date, draft.organization, draft.description].some(
     (value) => value.trim().length > 0,
@@ -22,17 +31,45 @@ export default function AwardEditor({ initialData, onSave, onCancel }: AwardEdit
     }));
   };
 
-  const handleSave = () => {
+  const handleAddAward = () => {
     if (!hasContent) {
       return;
     }
 
-    onSave({
+    const newAward: AwardOneDraft = {
       name: draft.name.trim(),
       date: draft.date.trim(),
       organization: draft.organization.trim(),
       description: draft.description.trim(),
+    };
+
+    const updatedList = [...awardList, newAward];
+    setAwardList(updatedList);
+    
+    // Reset form
+    setDraft({
+      name: "",
+      date: "",
+      organization: "",
+      description: "",
     });
+
+    // Call the list save handler if provided
+    if (onSaveList) {
+      onSaveList(updatedList);
+    } else {
+      // Fallback to old behavior
+      onSave(newAward);
+    }
+  };
+
+  const handleRemoveAward = (index: number) => {
+    const updatedList = awardList.filter((_, i) => i !== index);
+    setAwardList(updatedList);
+    
+    if (onSaveList) {
+      onSaveList(updatedList);
+    }
   };
 
   return (
@@ -56,6 +93,42 @@ export default function AwardEditor({ initialData, onSave, onCancel }: AwardEdit
         </button>
       </div>
 
+      {/* List of existing awards */}
+      {awardList.length > 0 && (
+        <div className="border-b border-[#d7dfeb] px-3 py-3">
+          <h4 className="mb-3 text-sm font-semibold text-slate-700">
+            Danh sách danh hiệu ({awardList.length})
+          </h4>
+          <div className="space-y-2">
+            {awardList.map((award, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between rounded-lg border border-[#d1d5db] bg-white p-3"
+              >
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-800">{award.name}</p>
+                  {award.date && (
+                    <p className="text-xs text-slate-500">{award.date}</p>
+                  )}
+                  {award.organization && (
+                    <p className="text-xs text-slate-600">{award.organization}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAward(index)}
+                  className="ml-2 rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                  title="Xóa"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Form to add new award */}
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-slate-600">Tên danh hiệu & giải thưởng</label>
@@ -108,12 +181,12 @@ export default function AwardEditor({ initialData, onSave, onCancel }: AwardEdit
         </button>
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleAddAward}
           disabled={!hasContent}
-          className="h-9 min-w-28 rounded-xl bg-[#4A79E8] px-3 text-sm font-semibold leading-tight text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-3 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <span className="block">Thêm danh hiệu</span>
-          <span className="block">& giải thưởng</span>
+          <Plus size={18} strokeWidth={2} />
+          Thêm danh hiệu mới
         </button>
       </div>
     </div>

@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   PortfolioMainBlockItem,
   portfolioService,
@@ -23,6 +23,7 @@ const ProfileCard = ({
   data,
   onViewDetail,
   onEdit,
+  onDelete,
   isPrimary,
   onSetPrimary,
   onUnsetPrimary,
@@ -31,14 +32,15 @@ const ProfileCard = ({
   data: PortfolioMainBlockItem;
   onViewDetail: (portfolioId: number) => void;
   onEdit: (portfolioId: number) => void;
+  onDelete: (portfolioId: number) => void;
   isPrimary: boolean;
   onSetPrimary: (portfolioId: number) => void;
   onUnsetPrimary: (portfolioId: number) => void;
   portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  // Extract data from INTRO block - handle both name/fullName, studyField/title
-  const introData = data.blocks.data || {};
+  // Extract data from INTRO block - prioritize user name
+  const introData = data.blocks?.data || {};
   const fullName = introData.fullName || introData.name || "Chưa cập nhật tên";
   const title = introData.title || introData.studyField || "Chưa cập nhật chức vụ";
   const email = introData.email || "";
@@ -121,7 +123,13 @@ const ProfileCard = ({
                 >
                   <Edit3 size={14} /> Chỉnh sửa
                 </button>
-                <button className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-500 hover:bg-red-50  cursor-pointer">
+                <button
+                  onClick={() => {
+                    onDelete(data.portfolioId);
+                    setShowMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 text-red-500 hover:bg-red-50  cursor-pointer"
+                >
                   <Trash2 size={14} /> Xóa
                 </button>
 
@@ -147,10 +155,10 @@ const ProfileCard = ({
           />
         </div>
         <h3 className="text-xl font-bold mb-1">
-          {fullName || "Chưa cập nhật tên"}
+          {fullName}
         </h3>
         <p className="text-blue-500 font-medium text-sm mb-4">
-          {title || "Chưa cập nhật chức vụ"}
+          {title}
         </p>
         <p className="text-slate-600  text-sm leading-relaxed mb-6 max-w-sm">
           {data.portfolio.name}
@@ -179,6 +187,7 @@ const ProfileCard = ({
 
 export default function ProfileManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [portfolios, setPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,8 +195,8 @@ export default function ProfileManagement() {
     null,
   );
 
-  // Get accessToken from Redux store
   const { accessToken } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.auth.user);
 
   const orderedCategoryLabels = [
     "Hồ sơ xin việc",
@@ -197,36 +206,76 @@ export default function ProfileManagement() {
     "Hồ sơ thực tập",
   ];
 
+  // Debug log on mount and when deps change
+  useEffect(() => {
+    console.log("🔍 [PortfolioManagement] Component mounted or deps changed");
+    console.log("🔍 [PortfolioManagement] Current user:", user);
+    console.log("🔍 [PortfolioManagement] Current user?.employeeId:", user?.employeeId);
+    console.log("🔍 [PortfolioManagement] Current accessToken exists:", !!accessToken);
+    console.log("🔍 [PortfolioManagement] Auth state:", {
+      user: user,
+      hasAccessToken: !!accessToken,
+      accessTokenLength: accessToken?.length,
+    });
+  }, [user, accessToken]);
+
+  console.log("🔍 [PortfolioManagement] Render - user:", user);
+  console.log("🔍 [PortfolioManagement] Render - accessToken exists:", !!accessToken);
+
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
+        console.log("🔍 [PortfolioManagement] useEffect triggered");
+        console.log("🔍 [PortfolioManagement] user:", user);
+        console.log("🔍 [PortfolioManagement] accessToken:", !!accessToken);
+
         setLoading(true);
         setError(null);
 
         // Check if user is authenticated
         if (!accessToken) {
-          console.warn("⚠️ No access token found. Using mock data.");
+          console.warn("⚠️ [PortfolioManagement] No access token found");
           notify.error("Please login to view your portfolios");
           navigate("/login");
           return;
         }
 
-        console.log("📡 Fetching portfolios with token...");
+        // Get employeeId from auth state
+        if (!user?.id) {
+          console.warn("⚠️ [PortfolioManagement] No user id found in auth state");
+          console.warn("⚠️ [PortfolioManagement] user object:", user);
+          notify.error("User information not loaded. Please login again");
+          navigate("/login");
+          return;
+        }
 
-        // Use real API to fetch current user's portfolios
-        const data = await portfolioService.fetchMyPortfolios(accessToken);
+        console.log("📡 [PortfolioManagement] Fetching portfolios for employee:", user.id);
+
+        // Use the working employee ID endpoint instead of /me
+        const data = await portfolioService.fetchPortfoliosByEmployeeId(
+          user.id,
+          accessToken,
+        );
+        
+        console.log("📡 [PortfolioManagement] Received data from API:", data);
+        console.log("📡 [PortfolioManagement] Data length:", data?.length);
+        
         setPortfolios(data);
 
         // Set first portfolio as primary by default
         if (data.length > 0) {
+          console.log("📡 [PortfolioManagement] Setting primary portfolio:", data[0].portfolioId);
           setPrimaryPortfolioId(data[0].portfolioId);
+        } else {
+          console.warn("⚠️ [PortfolioManagement] No portfolios returned from API");
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error
             ? error.message
             : "Failed to load portfolios";
-        console.error("❌ Error fetching portfolios:", errorMessage);
+        console.error("❌ [PortfolioManagement] Error fetching portfolios:", errorMessage);
+        console.error("❌ [PortfolioManagement] Error object:", error);
         setError(errorMessage);
         notify.error(errorMessage);
       } finally {
@@ -235,7 +284,7 @@ export default function ProfileManagement() {
     };
 
     fetchPortfolios();
-  }, [accessToken, navigate]);
+  }, [accessToken, user, navigate, searchParams]);
 
   const handleViewDetail = (portfolioId: number) => {
     navigate(`/portfolio/${portfolioId}`);
@@ -253,8 +302,48 @@ export default function ProfileManagement() {
     setPrimaryPortfolioId(portfolioId);
   };
 
-  const handleUnsetPrimary = (_portfolioId: number) => {
+  const handleUnsetPrimary = () => {
     setPrimaryPortfolioId(null);
+  };
+
+  const handleDeletePortfolio = async (portfolioId: number) => {
+    try {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        "Bạn chắc chắn muốn xóa portfolio này? Hành động này không thể hoàn tác.",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      if (!accessToken) {
+        notify.error("Vui lòng đăng nhập để xóa portfolio");
+        navigate("/login");
+        return;
+      }
+
+      console.log("🗑️ Deleting portfolio:", portfolioId);
+      await portfolioService.deletePortfolio(portfolioId, accessToken);
+
+      // Remove portfolio from list
+      setPortfolios((prev) =>
+        prev.filter((p) => p.portfolioId !== portfolioId),
+      );
+
+      // If deleted portfolio was primary, reset primary
+      if (primaryPortfolioId === portfolioId) {
+        setPrimaryPortfolioId(null);
+      }
+
+      notify.success("Portfolio đã được xóa thành công!");
+      console.log("✅ Portfolio deleted successfully");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể xóa portfolio";
+      console.error("❌ Error deleting portfolio:", errorMessage);
+      notify.error(errorMessage);
+    }
   };
 
   return (
@@ -302,6 +391,7 @@ export default function ProfileManagement() {
                   data={portfolio}
                   onViewDetail={handleViewDetail}
                   onEdit={handleEdit}
+                  onDelete={handleDeletePortfolio}
                   isPrimary={primaryPortfolioId === portfolio.portfolioId}
                   onSetPrimary={handleSetPrimary}
                   onUnsetPrimary={handleUnsetPrimary}

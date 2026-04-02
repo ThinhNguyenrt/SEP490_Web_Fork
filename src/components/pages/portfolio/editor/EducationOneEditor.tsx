@@ -1,19 +1,24 @@
-import { X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { type EducationOneDraft } from "@/components/pages/portfolio/editor/educationOneDraft";
 
 type EducationOneEditorProps = {
   initialData: EducationOneDraft;
+  initialList?: EducationOneDraft[];
   onSave: (nextDraft: EducationOneDraft) => void;
+  onSaveList?: (educationList: EducationOneDraft[]) => void;
   onCancel: () => void;
 };
 
 export default function EducationOneEditor({
   initialData,
+  initialList = [],
   onSave,
+  onSaveList,
   onCancel,
 }: EducationOneEditorProps) {
   const [draft, setDraft] = useState<EducationOneDraft>(initialData);
+  const [educationList, setEducationList] = useState<EducationOneDraft[]>(initialList);
 
   const hasContent = [
     draft.schoolName,
@@ -30,12 +35,45 @@ export default function EducationOneEditor({
     }));
   };
 
-  const handleSave = () => {
+  const handleAddEducation = () => {
     if (!hasContent) {
       return;
     }
 
-    onSave(draft);
+    const newEducation: EducationOneDraft = {
+      schoolName: draft.schoolName.trim(),
+      time: draft.time.trim(),
+      department: draft.department.trim(),
+      certificate: draft.certificate.trim(),
+      description: draft.description.trim(),
+    };
+
+    const updatedList = [...educationList, newEducation];
+    setEducationList(updatedList);
+
+    // Reset form
+    setDraft({
+      schoolName: "",
+      time: "",
+      department: "",
+      certificate: "",
+      description: "",
+    });
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    } else {
+      onSave(newEducation);
+    }
+  };
+
+  const handleRemoveEducation = (index: number) => {
+    const updatedList = educationList.filter((_, i) => i !== index);
+    setEducationList(updatedList);
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    }
   };
 
   return (
@@ -56,6 +94,41 @@ export default function EducationOneEditor({
           <X size={24} strokeWidth={2.5} />
         </button>
       </div>
+
+      {/* List of existing education */}
+      {educationList.length > 0 && (
+        <div className="border-b border-[#d7dfeb] px-3 py-3">
+          <h4 className="mb-3 text-sm font-semibold text-slate-700">
+            Danh sách học vấn ({educationList.length})
+          </h4>
+          <div className="space-y-2">
+            {educationList.map((education, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between rounded-lg border border-[#d1d5db] bg-white p-3"
+              >
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-800">{education.schoolName}</p>
+                  {education.time && (
+                    <p className="text-xs text-slate-500">{education.time}</p>
+                  )}
+                  {education.department && (
+                    <p className="text-xs text-slate-600">{education.department}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveEducation(index)}
+                  className="ml-2 rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                  title="Xóa"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
@@ -119,11 +192,12 @@ export default function EducationOneEditor({
         </button>
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleAddEducation}
           disabled={!hasContent}
-          className="h-10 flex-1 rounded-xl bg-[#4A79E8] text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Thêm học vấn
+          <Plus size={18} strokeWidth={2} />
+          Thêm học vấn mới
         </button>
       </div>
     </div>

@@ -19,22 +19,64 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { useAppSelector } from "@/store/hook";
 import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
-import { useUserProfile } from "@/hook/useUserProfile";
+import EditRecruiterProfileModal from "./EditRecruiterProfileModal";
+import ChangePasswordModal from "./ChangePasswordModal";
+import { useEffect, useState } from "react";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { profile, user } = useUserProfile();
-  const handleEditProfile = () => {
-    // Navigate to edit profile (to be implemented)
-    console.log("Edit profile");
-  };
+  const { user } = useAppSelector((state) => state.auth);
+
+  // State for modals
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
+
+  // Profile state
+  const [profile, setProfile] = useState<{
+    activityField?: string;
+    companyName?: string;
+    avatar?: string;
+    coverImage?: string;
+    taxIdentification?: string;
+    address?: string;
+    description?: string;
+  } | null>(null);
+
+  // Initialize with default data - fetch from API will happen via modal when user edits
+  useEffect(() => {
+    const defaultProfile = {
+      companyName: "Google",
+      activityField: "Công nghệ thông tin",
+      address: "TP Hồ Chí Minh",
+      description:
+        "Google Inc. là một công ty công nghệ đa quốc gia chuyên về các dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ quảng cáo.",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=google",
+      coverImage:
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
+    };
+    setProfile(defaultProfile);
+  }, []);
 
   const handleInterviewScheduleClick = () => {
     // Navigate to interview schedule management
     console.log("Navigate to interview schedule");
+  };
+
+  const handleEditProfile = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleProfileUpdated = (updatedProfile: any) => {
+    setProfile(updatedProfile);
+  };
+
+  const handleChangePassword = () => {
+    setIsChangePasswordModalOpen(true);
   };
 
   const handlePortfolioClick = () => {
@@ -72,43 +114,18 @@ export default function RecruiterProfile() {
       {/* CỘT TRÁI - Company Introduction */}
       <div className="lg:col-span-3 space-y-6">
         <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
-          <div
-            className="h-32 bg-cover bg-center relative border-b-2 border-slate-200 bg-slate-100"
-            style={{
-              backgroundImage: `url('${profile?.coverImage || "https://images.unsplash.com/photo-1503264116251-35a269479413?q=80&w=1080"}')`,
-            }}
-          >
-            {/* Khối chứa cả Avatar và Tick xanh - Khối này quyết định vị trí của Avatar */}
+          <div className="h-32 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=500')] bg-cover bg-center relative border-b-2 border-slate-200">
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-              <div className="relative inline-block">
-                {" "}
-                {/* Wrapper này giữ Tick bám theo Avatar */}
-                <Avatar className="h-20 w-20 border-4 border-white shadow-md rounded-full overflow-hidden">
-                  <AvatarImage
-                    src={profile?.avatar}
-                    className="object-cover h-full w-full"
-                  />
-                  <AvatarFallback className="bg-slate-200 flex items-center justify-center">
-                    GG
-                  </AvatarFallback>
-                </Avatar>
-                {/* Tick xanh: Bây giờ nó sẽ căn theo góc phải dưới của Avatar */}
-                {user?.companyId === 2 && (
-                  <div className="absolute bottom-1 right-0.5 z-20">
-                    <img
-                      src="/blue-tick-company.png"
-                      alt="Verified"
-                      className="w-5 h-5 bg-white rounded-full border border-white shadow-sm"
-                    />
-                  </div>
-                )}
-              </div>
+              <Avatar className="h-20 w-20 border-4 border-white shadow-md">
+                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=google" />
+                <AvatarFallback>GG</AvatarFallback>
+              </Avatar>
             </div>
           </div>
           <CardContent className="pt-12 pb-6 px-6">
             <div className="flex items-center justify-center gap-2 mb-4">
               <h3 className="font-bold text-lg text-slate-800 text-center">
-                {profile?.displayName || "Tên công ty"}
+                Google
               </h3>
               <button onClick={handleEditProfile}>
                 <div className="flex items-center justify-center w-7 h-7 border-2 border-slate-200 bg-white rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all cursor-pointer group">
@@ -125,21 +142,20 @@ export default function RecruiterProfile() {
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <Building2 size={16} className="text-slate-400 shrink-0" />
                 <span className="truncate">
-                  {profile?.activityField ||
-                    "Lĩnh vực hoạt động không xác định"}
+                  Lĩnh vực: Tên lĩnh vực hoạt động của công ty
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-600 min-w-0">
                 <MapPin size={16} className="text-slate-400 shrink-0" />
-                <span className="truncate">
-                  {profile?.address || "Địa chỉ không xác định"}
-                </span>
+                <span className="truncate">TP Hồ Chí Minh</span>
               </div>
             </div>
 
             {/* Introduction */}
             <p className="text-xs text-slate-600 leading-relaxed">
-              {profile?.description || "Mô tả công ty không xác định"}
+              Google Inc. là một công ty công nghệ đa quốc gia chuyên về các
+              dịch vụ và sản phẩm Internet, tìm kiếm trực tuyến và công nghệ
+              quảng cáo.
             </p>
           </CardContent>
         </Card>
@@ -227,7 +243,11 @@ export default function RecruiterProfile() {
               icon={<Info size={18} />}
               label="Điều khoản & chính sách"
             />
-            <SettingsItem icon={<Key size={18} />} label="Đổi mật khẩu" />
+            <SettingsItem
+              icon={<Key size={18} />}
+              label="Đổi mật khẩu"
+              onClick={handleChangePassword}
+            />
             <SettingsItem
               icon={<LogOut size={18} />}
               label="Đăng xuất"
@@ -240,6 +260,20 @@ export default function RecruiterProfile() {
           </p>
         </Card>
       </div>
+
+      {/* Modals */}
+      <EditRecruiterProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        companyId={user?.companyId || ""}
+        initialProfile={profile}
+        onProfileUpdated={handleProfileUpdated}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   );
 }

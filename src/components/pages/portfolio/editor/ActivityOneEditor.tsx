@@ -1,19 +1,24 @@
-import { X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { type ActivityOneDraft } from "@/components/pages/portfolio/editor/activityOneDraft";
 
 type ActivityOneEditorProps = {
   initialData: ActivityOneDraft;
+  initialList?: ActivityOneDraft[];
   onSave: (nextDraft: ActivityOneDraft) => void;
+  onSaveList?: (activityList: ActivityOneDraft[]) => void;
   onCancel: () => void;
 };
 
 export default function ActivityOneEditor({
   initialData,
+  initialList = [],
   onSave,
+  onSaveList,
   onCancel,
 }: ActivityOneEditorProps) {
   const [draft, setDraft] = useState<ActivityOneDraft>(initialData);
+  const [activityList, setActivityList] = useState<ActivityOneDraft[]>(initialList);
 
   const hasContent = [draft.name, draft.date, draft.description].some(
     (value) => value.trim().length > 0,
@@ -26,16 +31,41 @@ export default function ActivityOneEditor({
     }));
   };
 
-  const handleSave = () => {
+  const handleAddActivity = () => {
     if (!hasContent) {
       return;
     }
 
-    onSave({
+    const newActivity: ActivityOneDraft = {
       name: draft.name.trim(),
       date: draft.date.trim(),
       description: draft.description.trim(),
+    };
+
+    const updatedList = [...activityList, newActivity];
+    setActivityList(updatedList);
+
+    // Reset form
+    setDraft({
+      name: "",
+      date: "",
+      description: "",
     });
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    } else {
+      onSave(newActivity);
+    }
+  };
+
+  const handleRemoveActivity = (index: number) => {
+    const updatedList = activityList.filter((_, i) => i !== index);
+    setActivityList(updatedList);
+
+    if (onSaveList) {
+      onSaveList(updatedList);
+    }
   };
 
   return (
@@ -56,6 +86,38 @@ export default function ActivityOneEditor({
           <X size={24} strokeWidth={2.5} />
         </button>
       </div>
+
+      {/* List of existing activities */}
+      {activityList.length > 0 && (
+        <div className="border-b border-[#d7dfeb] px-3 py-3">
+          <h4 className="mb-3 text-sm font-semibold text-slate-700">
+            Danh sách hoạt động ({activityList.length})
+          </h4>
+          <div className="space-y-2">
+            {activityList.map((activity, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between rounded-lg border border-[#d1d5db] bg-white p-3"
+              >
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-800">{activity.name}</p>
+                  {activity.date && (
+                    <p className="text-xs text-slate-500">{activity.date}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveActivity(index)}
+                  className="ml-2 rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                  title="Xóa"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
@@ -99,11 +161,12 @@ export default function ActivityOneEditor({
         </button>
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleAddActivity}
           disabled={!hasContent}
-          className="h-9 min-w-28 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Thêm hoạt động
+          <Plus size={18} strokeWidth={2} />
+          Thêm hoạt động mới
         </button>
       </div>
     </div>

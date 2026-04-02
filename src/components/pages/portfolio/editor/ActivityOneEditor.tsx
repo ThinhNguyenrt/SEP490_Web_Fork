@@ -68,18 +68,6 @@ export default function ActivityOneEditor({
     }
   };
 
-  const handleSave = () => {
-    if (!hasContent) {
-      return;
-    }
-
-    onSave({
-      name: draft.name.trim(),
-      date: draft.date.trim(),
-      description: draft.description.trim(),
-    });
-  };
-
   return (
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
       <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">

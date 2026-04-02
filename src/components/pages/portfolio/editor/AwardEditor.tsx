@@ -19,7 +19,6 @@ export default function AwardEditor({
 }: AwardEditorProps) {
   const [draft, setDraft] = useState<AwardOneDraft>(initialData);
   const [awardList, setAwardList] = useState<AwardOneDraft[]>(initialList);
-  const [isAddingNew, setIsAddingNew] = useState(false);
 
   const hasContent = [draft.name, draft.date, draft.organization, draft.description].some(
     (value) => value.trim().length > 0,
@@ -54,7 +53,6 @@ export default function AwardEditor({
       organization: "",
       description: "",
     });
-    setIsAddingNew(false);
 
     // Call the list save handler if provided
     if (onSaveList) {
@@ -72,19 +70,6 @@ export default function AwardEditor({
     if (onSaveList) {
       onSaveList(updatedList);
     }
-  };
-
-  const handleSave = () => {
-    if (!hasContent) {
-      return;
-    }
-
-    onSave({
-      name: draft.name.trim(),
-      date: draft.date.trim(),
-      organization: draft.organization.trim(),
-      description: draft.description.trim(),
-    });
   };
 
   return (

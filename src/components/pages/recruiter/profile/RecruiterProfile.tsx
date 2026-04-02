@@ -29,7 +29,7 @@ import { useEffect, useState } from "react";
 export default function RecruiterProfile() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, accessToken } = useAppSelector((state) => state.auth);
+  const { user } = useAppSelector((state) => state.auth);
 
   // State for modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

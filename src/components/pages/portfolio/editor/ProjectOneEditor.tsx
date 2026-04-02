@@ -104,14 +104,6 @@ export default function ProjectOneEditor({
     }
   };
 
-  const handleSave = () => {
-    if (!hasContent) {
-      return;
-    }
-
-    onSave(normalizeDraft(draft));
-  };
-
   const applyProjectImage = async (file: File | null) => {
     if (!file) {
       return;

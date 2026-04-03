@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   LayoutGrid,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
-import { communityPosts } from "@/data/mockComment";
+import { useAppSelector } from "@/store/hook";
 
 // --- Sub-Components ---
 
@@ -139,7 +139,39 @@ const SavedCandidates = () => {
 // --- Main Page Component ---
 const CompanySavePost = () => {
   const [activeTab, setActiveTab] = useState("candidates");
+ const [isLoading, setIsLoading] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]);
+  const { accessToken } = useAppSelector((state) => state.auth);
+const fetchCompanySavePosts = async () => {
+    if (isLoading) return;
 
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched saved posts:", data.items);
+        setSavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
+      }
+    } catch (error) {
+      console.error("Lỗi khi fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (activeTab !== "candidates") {
+      fetchCompanySavePosts();
+    }
+  }, [activeTab]);
   return (
     <div className="bg-[#f8fafd] min-h-screen ">
       <div className="max-w-[1440px] mx-auto px-8 flex gap-8">
@@ -207,12 +239,12 @@ const CompanySavePost = () => {
           </div>
           {activeTab === "candidates" ? (
             <SavedCandidates />
-          ) : communityPosts.length > 0 ? (
+          ) : savedPosts.length > 0 ? (
             <div className="space-y-6 max-w-3xl mx-auto">
-              {communityPosts.map((post: CommunityPost) => (
+              {savedPosts.map((post: CommunityPost) => (
                 <CommunityPostCard
                   key={post.id}
-                  id={post.id.toString()}
+                  id={post.id}
                   author={post.author.name}
                   time={post.createdAt}
                   avatar={post.author.avatar}
@@ -224,6 +256,8 @@ const CompanySavePost = () => {
                   imageTitle={post.portfolioPreview?.data?.title || ""}
                   likes={post.favoriteCount}
                   comments={post.commentCount}
+                  isFavorited={post.isFavorited}
+                  isSaved={post.isSaved}
                 />
               ))}
             </div>

@@ -1,22 +1,31 @@
+import { useAppSelector } from "@/store/hook";
 import { PostComment } from "@/types/communityPost";
 import { formatTimeAgo } from "@/utils/FormatTime";
+import { MoreHorizontal, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface CommentProps {
   comment: PostComment;
-  onReplyClick: (id: number, name: string, commentId: number) => void; // Thêm prop callback
+  onReplyClick: (id: number, name: string, commentId: number) => void;
+  onDeleteComment: (commentId: number) => void; // Prop này sẽ gọi hàm mở Modal ở Cha
 }
 
 export const CommunityPostComment: React.FC<CommentProps> = ({
   comment,
   onReplyClick,
+  onDeleteComment,
 }) => {
+  const { user } = useAppSelector((state) => state.auth);
   return (
     <div className="relative">
       <CommentItem
+        commentId={comment.id}
         author={comment.author}
         content={comment.content}
         createdAt={comment.createdAt}
         isReply={false}
+        currentUser={user}
+        onDeleteComment={onDeleteComment}
         onReplyClick={() =>
           onReplyClick(comment.author.id, comment.author.name, comment.id)
         }
@@ -33,11 +42,14 @@ export const CommunityPostComment: React.FC<CommentProps> = ({
               {/* Đường kẻ ngang cho mỗi reply */}
               <div className="absolute -left-6 top-5 w-4 h-0.5 bg-gray-100" />
               <CommentItem
+                commentId={reply.id}
                 author={reply.author}
                 content={reply.content}
                 createdAt={reply.createdAt}
                 replyToUser={reply.replyToUser}
                 isReply={true}
+                currentUser={user}
+                onDeleteComment={onDeleteComment}
                 onReplyClick={() =>
                   onReplyClick(reply.author.id, reply.author.name, reply.id)
                 }
@@ -52,65 +64,118 @@ export const CommunityPostComment: React.FC<CommentProps> = ({
 
 // --- Cập nhật Sub-component CommentItem ---
 interface ItemProps {
+  commentId?: number; // Thêm commentId để biết đang reply đến comment nào
   author: {
     id: number;
     name: string;
     avatar: string;
+    role: string;
   };
   content: string;
   createdAt: string;
   isReply: boolean;
+  currentUser: any;
   replyToUser?: {
     id: number;
     name: string;
     avatar: string;
+    role: string;
   };
   onReplyClick: (id: number, name: string) => void; // Thêm vào đây
+  onDeleteComment: (commentId: number) => void;
 }
 
 const CommentItem = ({
+  commentId,
   author,
   content,
   createdAt,
   isReply,
   replyToUser,
+  currentUser,
   onReplyClick,
+  onDeleteComment,
 }: ItemProps) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Lấy user hiện tại từ Redux
+
+  const isMyComment = currentUser?.id === author.id;
+
+  // Xử lý click ra ngoài để đóng dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   return (
-    <div className="flex gap-3 mb-2">
+    <div className="flex gap-3 mb-2 group">
       <img
-        src={author.avatar}
-        className={
-          "w-10 h-10 rounded-full z-10 bg-white object-cover shadow-sm"
-        }
+        src={author.avatar || "/default-avatar.png"}
+        className="w-10 h-10 rounded-full z-10 bg-white object-cover shadow-sm"
         alt={author.name}
       />
 
       <div className="flex-1">
-        <div className="bg-gray-100 rounded-2xl px-4 py-2 inline-block max-w-full">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h4 className="font-bold text-sm text-gray-900 leading-none">
-              {author.name}
-            </h4>
-            {/* {author. === 2 && (
-              <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">
-                Company
-              </span>
-            )} */}
+        <div className="relative flex items-start gap-2">
+          <div className="bg-gray-100 rounded-2xl px-4 py-2 inline-block max-w-full">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h4 className="font-bold text-sm text-gray-900 leading-none">
+                {author.name}
+              </h4>
+              {author.role === "COMPANY" && (
+                <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">
+                  Company
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {isReply && replyToUser && (
+                <span className="text-blue-500 font-medium mr-1">
+                  @{replyToUser.name}
+                </span>
+              )}
+              {content}
+            </p>
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {isReply && replyToUser && (
-              <span className="text-blue-500 font-medium mr-1">
-                @{replyToUser.name}
-              </span>
-            )}
-            {content}
-          </p>
+
+          {/* Icon 3 chấm & Dropdown (Chỉ hiện nếu là comment của mình) */}
+          {isMyComment && (
+            <div className="relative self-center" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="p-1.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+
+              {showDropdown && (
+                <div className="absolute left-0 mt-1 w-32 bg-white border border-gray-100 rounded-lg shadow-lg z-20 overflow-hidden animate-in fade-in zoom-in duration-100">
+                  <button
+                    onClick={() => {
+                      onDeleteComment(commentId!);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-semibold cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                    Xóa bình luận
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4 mt-1 ml-2 text-[11px] font-bold text-gray-500">
           <span>{formatTimeAgo(createdAt)}</span>
-          {/* Sửa nút bấm gọi hàm callback */}
           <button
             onClick={() => onReplyClick(author.id, author.name)}
             className="hover:underline cursor-pointer text-gray-600"

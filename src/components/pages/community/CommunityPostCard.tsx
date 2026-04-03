@@ -7,9 +7,12 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { formatTimeAgo } from "@/utils/FormatTime";
+import { useState } from "react";
+import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
 
 interface PostProps {
-  id: string;
+  id: number;
   author: string;
   time: string;
   avatar: string;
@@ -19,6 +22,8 @@ interface PostProps {
   imageTitle?: string;
   likes: number;
   comments: number;
+  isFavorited: boolean;
+  isSaved: boolean;
 }
 
 export const CommunityPostCard: React.FC<PostProps> = ({
@@ -31,8 +36,9 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   images = [], // Mặc định là mảng rỗng
   likes,
   comments,
+  isFavorited: initialIsFavorited,
+  isSaved: initialIsSaved,
 }) => {
-  
   // Hàm render layout hình ảnh dựa trên số lượng
   const renderImages = () => {
     const count = images.length;
@@ -41,7 +47,11 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     if (count === 1) {
       return (
         <div className="relative mt-4 rounded-xl overflow-hidden border border-gray-100">
-          <img src={images[0]} alt="Post content" className="w-full h-auto max-h-[500px] object-cover" />
+          <img
+            src={images[0]}
+            alt="Post content"
+            className="w-full h-auto max-h-[500px] object-cover"
+          />
         </div>
       );
     }
@@ -50,7 +60,12 @@ export const CommunityPostCard: React.FC<PostProps> = ({
       return (
         <div className="grid grid-cols-2 gap-1 mt-4 rounded-xl overflow-hidden">
           {images.map((img, i) => (
-            <img key={i} src={img} className="w-full aspect-square object-cover" alt="" />
+            <img
+              key={i}
+              src={img}
+              className="w-full aspect-square object-cover"
+              alt=""
+            />
           ))}
         </div>
       );
@@ -59,9 +74,21 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     if (count === 3) {
       return (
         <div className="grid grid-cols-2 gap-1 mt-4 rounded-xl overflow-hidden">
-          <img src={images[0]} className="w-full h-full aspect-square object-cover row-span-2" alt="" />
-          <img src={images[1]} className="w-full aspect-square object-cover" alt="" />
-          <img src={images[2]} className="w-full aspect-square object-cover" alt="" />
+          <img
+            src={images[0]}
+            className="w-full h-full aspect-square object-cover row-span-2"
+            alt=""
+          />
+          <img
+            src={images[1]}
+            className="w-full aspect-square object-cover"
+            alt=""
+          />
+          <img
+            src={images[2]}
+            className="w-full aspect-square object-cover"
+            alt=""
+          />
         </div>
       );
     }
@@ -71,11 +98,17 @@ export const CommunityPostCard: React.FC<PostProps> = ({
       <div className="grid grid-cols-2 gap-1 mt-4 rounded-xl overflow-hidden relative">
         {images.slice(0, 4).map((img, i) => (
           <div key={i} className="relative">
-            <img src={img} className="w-full aspect-square object-cover" alt="" />
+            <img
+              src={img || ""}
+              className="w-full aspect-square object-cover"
+              alt="Hình ảnh"
+            />
             {/* Nếu nhiều hơn 4 ảnh, hiển thị lớp phủ mờ ở ảnh cuối cùng */}
             {i === 3 && count > 4 && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white text-xl font-bold">+{count - 4}</span>
+                <span className="text-white text-xl font-bold">
+                  +{count - 4}
+                </span>
               </div>
             )}
           </div>
@@ -83,7 +116,119 @@ export const CommunityPostCard: React.FC<PostProps> = ({
       </div>
     );
   };
+  const [localIsFavorited, setLocalIsFavorited] = useState(initialIsFavorited);
+  const [localLikesCount, setLocalLikesCount] = useState(likes);
+  const [localIsSaved, setLocalIsSaved] = useState(initialIsSaved);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const handleFavoriteAction = async () => {
+    try {
+      const response = await fetch(`https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) throw new Error();
+      notify.success("Đã thích bài viết");
+    } catch (error) {
+      // Nếu lỗi, trả về trạng thái cũ
+      setLocalIsFavorited(false);
+      setLocalLikesCount((prev) => prev - 1);
+      notify.error("Không thể thích bài viết");
+    }
+  };
+
+  // --- 2. Hàm Bỏ thích bài viết (DELETE) ---
+  const handleUnfavoriteAction = async () => {
+    try {
+      const response = await fetch(`https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) throw new Error();
+      notify.success("Đã bỏ thích bài viết");
+    } catch (error) {
+      // Nếu lỗi, trả về trạng thái cũ
+      setLocalIsFavorited(true);
+      setLocalLikesCount((prev) => prev + 1);
+      notify.error("Không thể bỏ thích bài viết");
+    }
+  };
+
+  // --- 3. Hàm Điều hướng chính (Toggle) ---
+  const handleFavoriteClick = async () => {
+    if (isActionLoading) return;
+
+    const currentlyFavorited = localIsFavorited;
+    const willBeFavorited = !currentlyFavorited;
+
+    // Optimistic Update: Cập nhật UI ngay lập tức
+    setLocalIsFavorited(willBeFavorited);
+    setLocalLikesCount((prev) => (willBeFavorited ? prev + 1 : prev - 1));
+
+    setIsActionLoading(true);
+
+    // Gọi hàm tương ứng dựa trên trạng thái hiện tại
+    if (currentlyFavorited) {
+      await handleUnfavoriteAction();
+    } else {
+      await handleFavoriteAction();
+    }
+
+    setIsActionLoading(false);
+  };
+
+  const handleSaveAction = async () => {
+    try {
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+      if (!response.ok) throw new Error();
+      notify.success("Đã lưu bài viết");
+    } catch (error) {
+      setLocalIsSaved(false); // Rollback
+      notify.error("Không thể lưu bài viết");
+    }
+  };
+
+  // --- Hàm Bỏ lưu bài viết (DELETE) ---
+  const handleUnsaveAction = async () => {
+    try {
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+      if (!response.ok) throw new Error();
+      notify.success("Đã bỏ lưu bài viết");
+    } catch (error) {
+      setLocalIsSaved(true); // Rollback
+      notify.error("Không thể bỏ lưu bài viết");
+    }
+  };
+
+  // --- Hàm điều hướng (Toggle) ---
+  const handleSaveClick = async () => {
+    if (isActionLoading) return;
+
+    const currentlySaved = localIsSaved;
+    setLocalIsSaved(!currentlySaved); // Optimistic Update
+    setIsActionLoading(true);
+
+    if (currentlySaved) {
+      await handleUnsaveAction();
+    } else {
+      await handleSaveAction();
+    }
+
+    setIsActionLoading(false);
+  };
   return (
     <article className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
       <div className="p-4">
@@ -92,9 +237,9 @@ export const CommunityPostCard: React.FC<PostProps> = ({
           <div className="flex space-x-3">
             <div className="relative">
               <img
-                alt={author}
+                alt={"Avatar"}
                 className="w-12 h-12 object-cover rounded-full"
-                src={avatar}
+                src={avatar || "/default-avatar.png"}
               />
               {isVerified && (
                 <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4">
@@ -107,7 +252,9 @@ export const CommunityPostCard: React.FC<PostProps> = ({
               )}
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 leading-tight">{author}</h3>
+              <h3 className="font-bold text-gray-900 leading-tight">
+                {author}
+              </h3>
               <p className="text-xs text-gray-500">{formatTimeAgo(time)}</p>
             </div>
           </div>
@@ -128,24 +275,43 @@ export const CommunityPostCard: React.FC<PostProps> = ({
 
       {/* Action Footer */}
       <div className="flex items-center gap-12 px-6 py-3 border-t border-gray-100">
-        <button className="flex items-center cursor-pointer space-x-1.5 text-gray-500 hover:text-red-500 transition-colors">
-          <Heart size={18} />
-          <span className="text-xs font-medium">{likes}</span>
+        {/* Nút Like (Heart) */}
+        <button
+          onClick={handleFavoriteClick}
+          disabled={isActionLoading}
+          className={`flex items-center cursor-pointer space-x-1.5 transition-all px-2 py-1 rounded-md active:scale-95 ${
+            localIsFavorited
+              ? "text-red-500 bg-red-50"
+              : "text-gray-500 hover:text-red-500 hover:bg-gray-100"
+          }`}
+        >
+          <Heart size={18} fill={localIsFavorited ? "currentColor" : "none"} />
+          <span className="text-xs font-medium">{localLikesCount}</span>
         </button>
 
+        {/* Nút Comment */}
         <Link
           to={`/community/${id}`}
-          className="flex items-center cursor-pointer space-x-1.5 text-gray-500 hover:text-blue-500 transition-colors"
+          className="flex items-center cursor-pointer space-x-1.5 text-gray-500 hover:text-blue-500 hover:bg-gray-100 transition-colors px-2 py-1 rounded-md"
         >
           <MessageCircle size={18} />
           <span className="text-xs font-medium">{comments}</span>
         </Link>
 
-        <button className="text-gray-500 cursor-pointer hover:text-yellow-500 transition-colors">
-          <Bookmark size={18} />
+        {/* Nút Save (Bookmark) */}
+        <button
+          onClick={handleSaveClick}
+          disabled={isActionLoading}
+          className={`cursor-pointer transition-all p-1.5 rounded-md active:scale-95 ${
+            localIsSaved
+              ? "text-blue-600 bg-blue-50"
+              : "text-gray-500 hover:text-blue-500 hover:bg-gray-100"
+          }`}
+        >
+          <Bookmark size={18} fill={localIsSaved ? "currentColor" : "none"} />
         </button>
-        
-        <button className="text-gray-500 cursor-pointer hover:text-green-500 transition-colors">
+
+        <button className="text-gray-500 cursor-pointer hover:text-blue-500 transition-colors">
           <Reply size={18} className="rotate-180" />
         </button>
       </div>

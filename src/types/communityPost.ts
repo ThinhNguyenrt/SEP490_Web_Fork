@@ -26,11 +26,13 @@ export interface ReplyComment {
     id: number;
     name: string;
     avatar: string;
+    role: string;
   };
   replyToUser: {
     id: number;
     name: string;
     avatar: string;
+    role: string;
   };
   content: string;
   createdAt: string;

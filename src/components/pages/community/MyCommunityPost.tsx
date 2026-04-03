@@ -98,7 +98,7 @@ export default function MyCommunityPost() {
             {sortedPosts.map((post: CommunityPost) => (
               <CommunityPostCard
                 key={post.id}
-                id={post.id.toString()}
+                id={post.id}
                 author={post.author.name}
                 time={post.createdAt}
                 avatar={post.author.avatar}
@@ -110,6 +110,8 @@ export default function MyCommunityPost() {
                 imageTitle={post.portfolioPreview?.data?.title || ""}
                 likes={post.favoriteCount}
                 comments={post.commentCount}
+                isFavorited={post.isFavorited}
+                isSaved={post.isSaved}
               />
             ))}
           </div>

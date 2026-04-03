@@ -1,18 +1,50 @@
-import { useState } from "react";
-import { communityPosts } from "@/data/mockComment";
+import { useEffect, useState } from "react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
 import { CompanyTab } from "./CompanyTab";
 import { mockCompanyPosts } from "@/data/mockCompanyPost";
+import { useAppSelector } from "@/store/hook";
 
 type TabType = "company" | "community";
 
 export default function TalentSavePost() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]); // Lưu danh sách bài viết đã lưu
   // Giả sử lọc dữ liệu cho từng tab
 
-  const communityData = communityPosts;
+  const communityData = savedPosts;
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const fetchTalentSavePosts = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched saved posts:", data.items);
+        setSavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
+      }
+    } catch (error) {
+      console.error("Lỗi khi fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (activeTab === "community") {
+      fetchTalentSavePosts();
+    }
+  }, [activeTab]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -61,21 +93,25 @@ export default function TalentSavePost() {
           ) : (
             <EmptyState />
           )
-        ) : communityPosts.length > 0 ? (
+        ) : savedPosts.length > 0 ? (
           <div className="space-y-6">
-            {communityPosts.map((post: CommunityPost) => (
+            {savedPosts.map((post: CommunityPost) => (
               <CommunityPostCard
                 key={post.id}
-                id={post.id.toString()}
+                id={post.id}
                 author={post.author.name}
                 time={post.createdAt}
                 avatar={post.author.avatar}
                 isVerified={post.author.role === "COMPANY"}
                 content={post.description || ""}
-                images={post?.media && post?.media.length > 0 ? post?.media : []}
+                images={
+                  post?.media && post?.media.length > 0 ? post?.media : []
+                }
                 imageTitle={post.portfolioPreview?.data?.title || ""}
                 likes={post.favoriteCount}
                 comments={post.commentCount}
+                isFavorited={post.isFavorited}
+                isSaved={post.isSaved}
               />
             ))}
           </div>

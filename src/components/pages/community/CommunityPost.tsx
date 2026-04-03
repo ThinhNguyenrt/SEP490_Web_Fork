@@ -7,40 +7,45 @@ import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
 
 export default function CommunityPost() {
-  const [posts, setPosts] = useState<CommunityPost[]>([]); // Lưu trữ danh sách bài viết
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { profile } = useUserProfile();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
 
-  // Quản lý phân trang
   const PAGE_SIZE = 5;
   const [nextCursor, setNextCursor] = useState<string | number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true); // Để biết còn dữ liệu để fetch không
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchCommunityPosts = async (currentCursor: any) => {
-    if (isLoading || !hasMore) return;
+  // Thêm tham số isRefresh để biết khi nào cần thay thế list cũ
+  const fetchCommunityPosts = async (currentCursor: any, isRefresh = false) => {
+    if (isLoading || (!hasMore && !isRefresh)) return;
 
     setIsLoading(true);
     try {
-      // API sẽ nhận cursor để biết lấy tiếp từ đâu
       const response = await fetch(
         `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts?pageSize=${PAGE_SIZE}&cursor=${currentCursor || ""}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
 
       if (response.ok) {
         const data = await response.json();
-        // Giả sử data trả về có dạng: { items: CommunityPost[], nextCursor: string | null }
-        console.log("Data fetched:", data);
-        if (data.items.length > 0) {
-          setPosts((prev) => [...prev, ...data.items]); // Cộng dồn bài viết mới vào list cũ
-          setNextCursor(data.nextCursor); // Lưu cursor cho lần gọi tiếp theo
+        console.log("Fetched posts:", data.items);
+        if (isRefresh) {
+          // Nếu refresh, thay thế toàn bộ danh sách bằng dữ liệu mới nhất
+          setPosts(data.items);
+
+        } else {
+          // Nếu load more, cộng dồn vào danh sách hiện tại
+          setPosts((prev) => [...prev, ...data.items]);
         }
 
-        // Nếu số lượng trả về ít hơn PAGE_SIZE, nghĩa là hết dữ liệu
-        if (data.items.length < PAGE_SIZE || !data.nextCursor) {
-          setHasMore(false);
-        }
+        setNextCursor(data.nextCursor);
+        setHasMore(data.items.length === PAGE_SIZE && !!data.nextCursor);
       }
     } catch (error) {
       console.error("Lỗi khi fetch posts:", error);
@@ -49,12 +54,16 @@ export default function CommunityPost() {
     }
   };
 
-  // Fetch lần đầu tiên
+  // Hàm được gọi khi CreatePostModal thành công
+  const handleRefreshPosts = () => {
+    setHasMore(true); // Reset lại trạng thái còn dữ liệu
+    fetchCommunityPosts(null, true); // Fetch lại từ đầu (cursor = null)
+  };
+
   useEffect(() => {
     fetchCommunityPosts(null);
   }, []);
 
-  // Hàm xử lý khi click "Xem thêm" hoặc dùng Intersection Observer cho scroll
   const handleLoadMore = () => {
     fetchCommunityPosts(nextCursor);
   };
@@ -125,7 +134,7 @@ export default function CommunityPost() {
           {posts.map((post: CommunityPost) => (
             <CommunityPostCard
               key={post.id}
-              id={post.id.toString()} // Chuyển id sang string nếu component yêu cầu
+              id={post.id} // Chuyển id sang string nếu component yêu cầu
               author={post.author.name}
               time={post.createdAt} // Bạn có thể dùng hàm format thời gian tại đây
               avatar={post.author.avatar}
@@ -135,6 +144,8 @@ export default function CommunityPost() {
               imageTitle={post.portfolioPreview?.data?.title || ""}
               likes={post.favoriteCount}
               comments={post.commentCount}
+              isFavorited={post.isFavorited} // Truyền trạng thái đã thích hay chưa
+              isSaved={post.isSaved} // Truyền trạng thái đã lưu hay chưa
             />
           ))}
         </div>
@@ -180,6 +191,7 @@ export default function CommunityPost() {
       <CreatePostModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleRefreshPosts}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { CommunityPost, PostComment } from "@/types/communityPost";
 import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
+import { DeleteConfirmModal } from "./DeleteCommentModal";
 
 export default function CommunityPostDetail() {
   const { profile } = useUserProfile();
@@ -56,6 +57,7 @@ export default function CommunityPostDetail() {
       if (postDetailResponse.ok) {
         const postDetailData = await postDetailResponse.json();
         console.log("Data", postDetailData);
+        console.log("Dữ liệu Post hiện tại:", post);
         setPost(postDetailData);
       }
       if (postCommentResponse.ok) {
@@ -171,7 +173,42 @@ export default function CommunityPostDetail() {
     // Tự động focus vào ô nhập liệu
     textareaRef.current?.focus();
   };
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    commentId: null as number | null,
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  // 1. Hàm mở modal
+  const handleOpenDeleteModal = (commentId: number) => {
+    setDeleteModal({ isOpen: true, commentId });
+  };
+
+  // 2. Hàm thực hiện xóa thực tế
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.commentId) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/community/comments/${deleteModal.commentId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+
+      if (response.ok) {
+        notify.success("Xóa bình luận thành công");
+        setDeleteModal({ isOpen: false, commentId: null });
+        await fetchDetailCommunityPosts(); // Tải lại danh sách bình luận sau khi xóa
+      }
+    } catch (error) {
+      notify.error("Lỗi khi xóa");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   return (
     <div className="max-w-2xl mx-auto min-h-screen bg-white border-x border-slate-200 shadow-sm">
       <div className="py-6">
@@ -188,18 +225,24 @@ export default function CommunityPostDetail() {
 
         {/* Hiển thị lại PostCard gốc */}
         <div className="mb-6">
-          <CommunityPostCard
-            id={post?.id.toString() || ""}
-            author={post?.author.name || ""}
-            time={post?.createdAt || ""}
-            avatar={post?.author.avatar || ""}
-            isVerified={post?.author.role === "COMPANY"}
-            content={post?.description || ""}
-            images={post?.media && post?.media.length > 0 ? post?.media : []}
-            imageTitle={post?.portfolioPreview?.data?.title || ""}
-            likes={post?.favoriteCount || 0}
-            comments={post?.commentCount || 0}
-          />
+          {post ? (
+            <CommunityPostCard
+              key={post.id} // Quan trọng để React reset lại state bên trong Card theo data mới
+              id={post.id}
+              author={post.author.name}
+              time={post.createdAt}
+              avatar={post.author.avatar}
+              isVerified={post.author.role === "COMPANY"}
+              content={post.description || ""}
+              images={post.media || []}
+              likes={post.favoriteCount}
+              comments={post.commentCount}
+              isFavorited={post.isFavorited} // Lúc này chắc chắn sẽ lấy từ API (true)
+              isSaved={post.isSaved}
+            />
+          ) : (
+            <div className="animate-pulse bg-gray-200 h-64 rounded-xl mb-6" />
+          )}
         </div>
 
         <div className="border-t border-gray-100 pt-6 mb-24 px-4">
@@ -213,9 +256,16 @@ export default function CommunityPostDetail() {
                   key={item.id}
                   comment={item}
                   onReplyClick={handleReplyInitiated}
+                  onDeleteComment={handleOpenDeleteModal}
                 />
               ))}
           </div>
+          <DeleteConfirmModal
+            isOpen={deleteModal.isOpen}
+            isLoading={isDeleting}
+            onClose={() => setDeleteModal({ isOpen: false, commentId: null })}
+            onConfirm={handleConfirmDelete}
+          />
         </div>
       </div>
 

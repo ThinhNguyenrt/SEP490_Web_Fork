@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockCompanyPosts } from '@/data/mockCompanyPost';
+import { fetchCompanyPostDetail, saveCompanyPost } from '@/services/company.api';
+import { CompanyPostDetail } from '@/types/companyPost';
 import { Button } from '@/components/ui/button';
+import { useAppSelector } from '@/store/hook';
 import ArrowBackIcon from './../../../assets/myWeb/arrowback.png';
 import BookmarkIcon from './../../../assets/myWeb/bookmark.png';
 import ShareIcon from './../../../assets/myWeb/share1.png';
@@ -11,14 +13,78 @@ export const PostDetail = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(false);
+  const [post, setPost] = useState<CompanyPostDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
 
-  const post = mockCompanyPosts.find((p) => p.postId === Number(postId));
+  useEffect(() => {
+    const loadPostDetail = async () => {
+      if (!postId) {
+        setError("Post ID not found");
+        setIsLoading(false);
+        return;
+      }
 
-  if (!post) {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log("📥 Fetching post detail for postId:", postId);
+        
+        const data = await fetchCompanyPostDetail(Number(postId));
+        console.log("✅ Post detail loaded:", data);
+        
+        setPost(data);
+        setIsSaved(data.isSaved || false);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load post details";
+        console.error("❌ Error loading post detail:", errorMessage);
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPostDetail();
+  }, [postId]);
+
+  const handleSavePost = async () => {
+    if (!postId || isSaving) return;
+
+    try {
+      setIsSaving(true);
+      console.log("💾 Saving post:", postId);
+      
+      await saveCompanyPost(Number(postId), accessToken || undefined);
+      setIsSaved(true);
+      console.log("✅ Post saved successfully");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to save post";
+      console.error("❌ Error saving post:", errorMessage);
+      // Still toggle the UI even if there's an error, but you could show a toast notification here
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải thông tin công việc...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !post) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Bài đăng không tìm thấy</h1>
+          <p className="text-gray-600 mb-6">{error || "Không thể tải thông tin công việc"}</p>
           <Button onClick={() => navigate(-1)}>Quay lại</Button>
         </div>
       </div>
@@ -39,11 +105,12 @@ export const PostDetail = () => {
           </button>
           <div className="flex items-center gap-6">
             <button
-              onClick={() => setIsSaved(!isSaved)}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400"
+              onClick={handleSavePost}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <img src={BookmarkIcon} alt="Bookmark" className="w-5 h-5" style={{ filter: 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' }} />
-              <span>Lưu tin</span>
+              <img src={BookmarkIcon} alt="Bookmark" className="w-5 h-5" style={{ filter: isSaved ? 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' : 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' }} />
+              <span>{isSaved ? 'Đã lưu' : 'Lưu tin'}</span>
             </button>
             <button className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400">
               <img src={ShareIcon} alt="Share" className="w-5 h-5" style={{ filter: 'brightness(0)' }} />
@@ -88,7 +155,9 @@ export const PostDetail = () => {
                   <h2 className="text-lg font-bold text-gray-900 mb-4">
                     Mô tả công việc
                   </h2>
-                  <p className="text-gray-700 leading-relaxed mb-8">{post.jobDescription}</p>
+                  <p className="text-gray-700 leading-relaxed mb-8">
+                    {post.jobDescription || "Không có mô tả công việc"}
+                  </p>
                 </div>
 
                 {/* Requirements */}
@@ -98,34 +167,42 @@ export const PostDetail = () => {
                   </h2>
 
                   {/* Mandatory Requirements */}
-                  <div className="mb-6">
-                    <div className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-                      Bắt buộc
+                  {post.requirementsMandatory && (
+                    <div className="mb-6">
+                      <div className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+                        Bắt buộc
+                      </div>
+                      <ul className="space-y-2 text-gray-700">
+                        {post.requirementsMandatory.split(',').map((req, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                          <span className="text-black font-bold mt-1">•</span>
+                            <span>{req.trim()}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-2 text-gray-700">
-                      {post.requirementsMandatory.split(',').map((req, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                        <span className="text-black font-bold mt-1">•</span>
-                          <span>{req.trim()}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  )}
 
                   {/* Preferred Requirements */}
-                  <div className="mb-8">
-                    <div className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-                      Ưu tiên
+                  {post.requirementsPreferred && (
+                    <div className="mb-8">
+                      <div className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+                        Ưu tiên
+                      </div>
+                      <ul className="space-y-2 text-gray-700">
+                        {post.requirementsPreferred.split(',').map((req, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                          <span className="text-black font-bold mt-1">•</span>
+                            <span>{req.trim()}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-2 text-gray-700">
-                      {post.requirementsPreferred.split(',').map((req, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                        <span className="text-black font-bold mt-1">•</span>
-                          <span>{req.trim()}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  )}
+
+                  {!post.requirementsMandatory && !post.requirementsPreferred && (
+                    <p className="text-gray-600">Không có yêu cầu chuyên môn</p>
+                  )}
                 </div>
 
                 {/* Benefits */}
@@ -133,15 +210,20 @@ export const PostDetail = () => {
                   <h2 className="text-lg font-bold text-gray-900 mb-4">
                     Quyền lợi & đãi ngộ
                   </h2>
-                  <ul className="space-y-2 text-gray-700">
-                    {post.benefits.split(',').map((benefit, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-black font-bold mt-1">•</span>
-                        <span>{benefit.trim()}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {post.benefits ? (
+                    <ul className="space-y-2 text-gray-700">
+                      {post.benefits.split(',').map((benefit, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-black font-bold mt-1">•</span>
+                          <span>{benefit.trim()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-600">Không có quyền lợi được liệt kê</p>
+                  )}
                 </div>
+
               </div>
             </div>
           </div>
@@ -185,7 +267,9 @@ export const PostDetail = () => {
                     <h3 className="text-sm text-gray-600 font-semibold">
                       Yêu cầu kinh nghiệm
                     </h3>
-                    <p className="text-gray-900">+{post.experienceYear} năm</p>
+                    <p className="text-gray-900">
+                      {post.experienceYear != null ? `+${post.experienceYear} năm` : "Không yêu cầu"}
+                    </p>
                   </div>
                 </div>
 
@@ -195,7 +279,9 @@ export const PostDetail = () => {
                     <h3 className="text-sm text-gray-600 font-semibold">
                       Số lượng
                     </h3>
-                    <p className="text-gray-900">{post.quantity} ứng viên</p>
+                    <p className="text-gray-900">
+                      {post.quantity != null ? `${post.quantity} ứng viên` : "Không xác định"}
+                    </p>
                   </div>
                 </div>
 

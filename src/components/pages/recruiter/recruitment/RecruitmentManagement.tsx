@@ -1,23 +1,15 @@
 import { ArrowLeft, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/store/hook";
 import { PremiumAndTips } from "@/components/common/Premium";
-import { mockCompanyPosts } from "@/data/mockCompanyPost";
-import coverImage from "@/assets/testImage/coverImagee.png";
-import testImage from "@/assets/testImage/testImage.png";
+import { fetchCompanyPostsByCompanyId } from "@/services/company.api";
+import { CompanyPostAPI } from "@/types/companyPost";
+import CustomLoading from "@/components/Loading/Loading";
 
-type RecruitmentPost = {
-  id: number;
-  position: string;
+type RecruitmentPost = CompanyPostAPI & {
   image: string;
 };
-
-const recruitmentPosts: RecruitmentPost[] = [
-  ...mockCompanyPosts.slice(0, 2).map((post, index) => ({
-    id: post.postId,
-    position: post.position,
-    image: index === 0 ? coverImage : testImage,
-  })),
-];
 
 function RecruitmentPostCard({
   post,
@@ -46,6 +38,55 @@ function RecruitmentPostCard({
 
 export default function RecruitmentManagement() {
   const navigate = useNavigate();
+  const { user, accessToken } = useAppSelector((state) => state.auth);
+  const [recruitmentPosts, setRecruitmentPosts] = useState<RecruitmentPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadCompanyPosts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get companyId from auth state (for recruiters/company users)
+        if (!user?.companyId) {
+          setError("Không thể xác định công ty. Vui lòng đăng nhập lại.");
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("📡 Loading posts for company:", user.companyId);
+
+        // Fetch posts from API
+        const response = await fetchCompanyPostsByCompanyId(
+          user.companyId,
+          undefined,
+          10,
+          accessToken || undefined
+        );
+
+        // Transform API response to include image field (using mediaUrl)
+        const postsWithImages = response.items.map((post) => ({
+          ...post,
+          image: post.mediaUrl || "",
+        }));
+
+        setRecruitmentPosts(postsWithImages);
+        console.log("✅ Loaded", postsWithImages.length, "posts");
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Có lỗi khi tải bài đăng";
+        console.error("❌ Error loading posts:", errorMessage);
+        setError(errorMessage);
+        setRecruitmentPosts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCompanyPosts();
+  }, [user?.companyId, accessToken]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 mt-4">
@@ -71,19 +112,40 @@ export default function RecruitmentManagement() {
             </button>
           </header>
 
-          <p className="text-slate-500 font-medium mb-6">
-            Bạn đang có {recruitmentPosts.length} bài đăng tuyển dụng
-          </p>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <CustomLoading />
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <p className="font-semibold">Lỗi tải bài đăng</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          ) : recruitmentPosts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500 font-medium">
+                Bạn chưa có bài đăng tuyển dụng nào
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-slate-500 font-medium mb-6">
+                Bạn đang có {recruitmentPosts.length} bài đăng tuyển dụng
+              </p>
 
-          <section className="inline-grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8 justify-items-start">
-            {recruitmentPosts.map((post) => (
-              <RecruitmentPostCard
-                key={post.id}
-                post={post}
-                onClick={() => navigate(`/recruitment-management/${post.id}`)}
-              />
-            ))}
-          </section>
+              <section className="inline-grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8 justify-items-start">
+                {recruitmentPosts.map((post) => (
+                  <RecruitmentPostCard
+                    key={post.postId}
+                    post={post}
+                    onClick={() =>
+                      navigate(`/recruitment-management/${post.postId}`)
+                    }
+                  />
+                ))}
+              </section>
+            </>
+          )}
         </main>
 
         <aside className="w-full lg:w-1/3 px-4 md:px-10 lg:px-6 pt-2 pb-8">

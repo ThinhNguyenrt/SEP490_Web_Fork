@@ -1,4 +1,4 @@
-import { CompanyPostAPI, CompanyPostsPaginatedResponse } from '@/types/companyPost';
+import { CompanyPostsPaginatedResponse, CompanyPostDetail } from '@/types/companyPost';
 
 /**
  * Company Posts API Service
@@ -101,18 +101,130 @@ export const fetchCompanyPosts = async (
     }
 
     if (!response.ok) {
-      const errorMsg = (data as any)?.message || "Failed to fetch company posts";
+      const errorMsg = (data as Record<string, unknown>)?.message || "Failed to fetch company posts";
       console.error("❌ Fetch error:", errorMsg);
-      throw new Error(errorMsg);
+      throw new Error(String(errorMsg));
     }
 
     // Validate response structure - should have items, nextCursor, hasMore
-    if (!data || typeof data !== "object" || !Array.isArray((data as any)?.items)) {
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !Array.isArray((data as Record<string, unknown>).items)
+    ) {
       console.error("❌ Invalid response format:", data);
       throw new Error("Invalid response format from server");
     }
 
-    console.log("✅ Company posts fetched successfully:", (data as any)?.items?.length || 0, "posts");
+    console.log(
+      "✅ Company posts fetched successfully:",
+      ((data as Record<string, unknown>).items as unknown[])?.length || 0,
+      "posts"
+    );
+    return data as CompanyPostsPaginatedResponse;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error("Cannot connect to server. Please check your internet connection.");
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your internet connection.");
+  }
+};
+
+/**
+ * Fetch company job posts filtered by company ID with pagination support
+ * Used by recruiters to view their own company's job posts
+ * @param companyId - The ID of the company
+ * @param cursor - Optional cursor for pagination (ISO date string)
+ * @param limit - Number of posts to fetch (default: 10)
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const fetchCompanyPostsByCompanyId = async (
+  companyId: number,
+  cursor?: string,
+  limit: number = 10,
+  accessToken?: string
+): Promise<CompanyPostsPaginatedResponse> => {
+  try {
+    console.log("📡 [fetchCompanyPostsByCompanyId] Starting for companyId:", companyId, "cursor:", cursor, "limit:", limit);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Company posts fetch timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (cursor) {
+      params.append("cursor", cursor);
+    }
+    params.append("limit", limit.toString());
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add authorization header if token is provided
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    // API endpoint: GET /api/company-posts/company/{companyId}
+    const fullUrl = `${API_BASE_URL}/company-posts/company/${companyId}?${params.toString()}`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Company posts (by company) API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server (JSON parse failed)");
+      }
+    } else {
+      console.error("❌ Invalid response content type:", contentType);
+      throw new Error("Server returned non-JSON response");
+    }
+
+    if (!response.ok) {
+      const errorMsg = (data as Record<string, unknown>)?.message || "Failed to fetch company posts";
+      console.error("❌ Fetch error:", errorMsg);
+      throw new Error(String(errorMsg));
+    }
+
+    // Validate response structure - should have items, nextCursor, hasMore
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !Array.isArray((data as Record<string, unknown>).items)
+    ) {
+      console.error("❌ Invalid response format:", data);
+      throw new Error("Invalid response format from server");
+    }
+
+    console.log(
+      "✅ Company posts (by company) fetched successfully:",
+      ((data as Record<string, unknown>).items as unknown[])?.length || 0,
+      "posts"
+    );
     return data as CompanyPostsPaginatedResponse;
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {
@@ -134,7 +246,7 @@ export const fetchCompanyPosts = async (
 export const fetchCompanyPostDetail = async (
   postId: number,
   accessToken?: string
-): Promise<CompanyPostAPI> => {
+): Promise<CompanyPostDetail> => {
   try {
     console.log("📡 [fetchCompanyPostDetail] Starting for postId:", postId);
 
@@ -181,11 +293,11 @@ export const fetchCompanyPostDetail = async (
     }
 
     if (!response.ok) {
-      throw new Error((data as any)?.message || "Failed to fetch company post detail");
+      throw new Error((data as Record<string, unknown>)?.message as string || "Failed to fetch company post detail");
     }
 
     console.log("✅ Company post detail fetched successfully");
-    return data as CompanyPostAPI;
+    return data as CompanyPostDetail;
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -249,7 +361,7 @@ export const saveCompanyPost = async (
     }
 
     if (!response.ok) {
-      throw new Error((data as any)?.message || "Failed to save post");
+      throw new Error((data as Record<string, unknown>)?.message as string || "Failed to save post");
     }
 
     console.log("✅ Post saved successfully");
@@ -259,5 +371,105 @@ export const saveCompanyPost = async (
       throw error;
     }
     throw new Error("Network error");
+  }
+};
+
+/**
+ * Create a new company job post
+ * @param postData - Post data containing position, salary, description, etc
+ * @param files - Array of media files (images/videos)
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const createCompanyPost = async (
+  postData: {
+    position: string;
+    address: string;
+    salary: string;
+    employmentType: string;
+    experienceYear?: number;
+    quantity?: number;
+    jobDescription: string;
+    requirementsMandatory: string;
+    requirementsPreferred: string;
+    benefits: string;
+  },
+  files: File[],
+  accessToken?: string
+): Promise<{ postId: number; message: string }> => {
+  try {
+    console.log("📡 [createCompanyPost] Starting with data:", postData);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Create post timeout after 60 seconds");
+      controller.abort();
+    }, 60000);
+
+    const headers: Record<string, string> = {};
+
+    // Add authorization header if token is provided
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    // Build FormData for multipart/form-data request
+    const formData = new FormData();
+
+    // Add post data as JSON string
+    formData.append("postJson", JSON.stringify(postData));
+
+    // Add files
+    files.forEach((file) => {
+      formData.append(`files`, file);
+    });
+
+    const fullUrl = `${API_BASE_URL}/company-posts`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "POST",
+      headers: headers,
+      body: formData,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Create post API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server (JSON parse failed)");
+      }
+    } else {
+      console.error("❌ Invalid response content type:", contentType);
+      throw new Error("Server returned non-JSON response");
+    }
+
+    if (!response.ok) {
+      const errorMsg = (data as Record<string, unknown>)?.message || "Failed to create company post";
+      console.error("❌ Create post error:", errorMsg);
+      throw new Error(errorMsg as string);
+    }
+
+    console.log("✅ Company post created successfully:", (data as Record<string, unknown>)?.postId);
+    return data as { postId: number; message: string };
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error("Cannot connect to server. Please check your internet connection.");
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your internet connection.");
   }
 };

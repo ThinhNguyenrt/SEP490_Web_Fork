@@ -78,7 +78,6 @@ export const fetchEmployeeProfile = async (accessToken: string): Promise<Employe
 
     console.log("📡 Employee profile API response status:", response.status);
 
-    const contentType = response.headers.get("content-type");
     let data: unknown;
     let responseText: string = "";
 
@@ -242,7 +241,6 @@ export const updateEmployeeProfile = async (
 
     console.log("📡 Employee profile update response status:", response.status);
 
-    const contentType = response.headers.get("content-type");
     let data: unknown;
     let responseText: string = "";
 

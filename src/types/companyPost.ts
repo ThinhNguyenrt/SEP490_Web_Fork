@@ -24,13 +24,14 @@ export interface CompanyPostAPI {
   postId: number;
   position: string;
   companyName: string;
-  companyAvatar: string;
+  companyAvatar: string | null;
+  coverImageUrl: string | null;
   mediaType: "image" | "video";
   mediaUrl: string;
   address: string;
   salary: string;
   employmentType: string;
-  isFavorited: boolean;
+  createdAt?: string;
   isSaved: boolean;
 }
 

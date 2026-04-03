@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/store/hook";
+import { createCompanyPost } from "@/services/company.api";
+import CustomLoading from "@/components/Loading/Loading";
 
 type EmploymentType = "fulltime" | "parttime";
 
@@ -42,10 +45,15 @@ const initialFormData: RecruitmentFormData = {
 export default function CreateRecruitmentPost() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   const [formData, setFormData] = useState<RecruitmentFormData>(initialFormData);
   const [bannerFileName, setBannerFileName] = useState<string>("");
   const [bannerPreview, setBannerPreview] = useState<string>("");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -64,6 +72,7 @@ export default function CreateRecruitmentPost() {
         ...prev,
         [field]: event.target.value,
       }));
+      setError(null);
     };
 
   const handleUploadClick = () => {
@@ -81,15 +90,92 @@ export default function CreateRecruitmentPost() {
     }
 
     setBannerFileName(file.name);
+    setBannerFile(file);
     setBannerPreview(URL.createObjectURL(file));
+    setError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const validateForm = (): boolean => {
+    if (!formData.title.trim()) {
+      setError("Vui lòng nhập vị trí tuyển dụng");
+      return false;
+    }
+    if (!formData.location.trim()) {
+      setError("Vui lòng nhập địa điểm làm việc");
+      return false;
+    }
+    if (!formData.salary.trim()) {
+      setError("Vui lòng nhập mức lương");
+      return false;
+    }
+    if (!formData.description.trim()) {
+      setError("Vui lòng nhập mô tả công việc");
+      return false;
+    }
+    if (!formData.mandatoryRequirements.trim()) {
+      setError("Vui lòng nhập các yêu cầu bắt buộc");
+      return false;
+    }
+    if (!bannerFile) {
+      setError("Vui lòng tải lên ảnh hoặc video cho bài đăng");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("Create recruitment post", {
-      ...formData,
-      bannerFileName,
-    });
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      console.log("📝 Submitting recruitment post form:", formData);
+
+      // Prepare post data for API
+      const postData = {
+        position: formData.title,
+        address: formData.location,
+        salary: formData.salary,
+        employmentType:
+          formData.employmentType === "fulltime" ? "Full-time" : "Part-time",
+        experienceYear: formData.experienceYears
+          ? parseInt(formData.experienceYears)
+          : undefined,
+        quantity: formData.quantity ? parseInt(formData.quantity) : undefined,
+        jobDescription: formData.description,
+        requirementsMandatory: formData.mandatoryRequirements,
+        requirementsPreferred: formData.preferredRequirements,
+        benefits: formData.benefits,
+      };
+
+      // Prepare files array
+      const filesToUpload = bannerFile ? [bannerFile] : [];
+
+      // Call API
+      const response = await createCompanyPost(postData, filesToUpload, accessToken || undefined);
+
+      console.log("✅ Recruitment post created:", response);
+
+      setSuccess(`Bài đăng tuyển dụng "${formData.title}" đã được tạo thành công!`);
+
+      // Redirect after 1.5 seconds
+      setTimeout(() => {
+        navigate("/recruitment-management");
+      }, 1500);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Có lỗi khi tạo bài đăng";
+      console.error("❌ Error creating post:", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,17 +190,40 @@ export default function CreateRecruitmentPost() {
             className="rounded-full p-2 text-slate-700 hover:bg-slate-100"
             onClick={() => navigate(-1)}
             aria-label="Quay lại"
+            disabled={isLoading}
           >
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-xl font-bold text-slate-900">Tạo thông tin tuyển dụng</h1>
         </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Success message */}
+        {success && (
+          <div className="mb-4 rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700">
+            {success}
+          </div>
+        )}
+
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+            <CustomLoading />
+          </div>
+        )}
+
         <div className="space-y-5">
           <button
             type="button"
             onClick={handleUploadClick}
-            className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-blue-300 bg-blue-50/40 px-4 py-6 text-center hover:bg-blue-50"
+            disabled={isLoading}
+            className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-blue-300 bg-blue-50/40 px-4 py-6 text-center hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {bannerPreview ? (
               <img
@@ -136,9 +245,10 @@ export default function CreateRecruitmentPost() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             hidden
             onChange={handleFileChange}
+            disabled={isLoading}
           />
 
           <div className="rounded-xl border border-slate-200 p-3 sm:p-4">
@@ -147,8 +257,9 @@ export default function CreateRecruitmentPost() {
                 <input
                   value={formData.title}
                   onChange={updateField("title")}
+                  disabled={isLoading}
                   placeholder="Vị trí tuyển dụng (VD: Senior UX/UI)"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
                 />
               </FieldWrapper>
 
@@ -156,8 +267,9 @@ export default function CreateRecruitmentPost() {
                 <input
                   value={formData.location}
                   onChange={updateField("location")}
+                  disabled={isLoading}
                   placeholder="Địa điểm làm việc"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
                 />
               </FieldWrapper>
 
@@ -165,8 +277,9 @@ export default function CreateRecruitmentPost() {
                 <input
                   value={formData.salary}
                   onChange={updateField("salary")}
+                  disabled={isLoading}
                   placeholder="Mức lương"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
                 />
               </FieldWrapper>
 
@@ -174,7 +287,8 @@ export default function CreateRecruitmentPost() {
                 <select
                   value={formData.employmentType}
                   onChange={updateField("employmentType")}
-                  className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 px-3 pr-9 text-sm text-slate-700 outline-none focus:border-blue-400"
+                  disabled={isLoading}
+                  className="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 px-3 pr-9 text-sm text-slate-700 outline-none focus:border-blue-400 disabled:opacity-50"
                 >
                   <option value="fulltime">Fulltime</option>
                   <option value="parttime">Parttime</option>
@@ -189,8 +303,9 @@ export default function CreateRecruitmentPost() {
                 <input
                   value={formData.experienceYears}
                   onChange={updateField("experienceYears")}
+                  disabled={isLoading}
                   placeholder="Số năm KN"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
                 />
               </FieldWrapper>
 
@@ -198,8 +313,9 @@ export default function CreateRecruitmentPost() {
                 <input
                   value={formData.quantity}
                   onChange={updateField("quantity")}
+                  disabled={isLoading}
                   placeholder="Số lượng tuyển"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
                 />
               </FieldWrapper>
             </div>
@@ -209,8 +325,9 @@ export default function CreateRecruitmentPost() {
           <textarea
             value={formData.description}
             onChange={updateField("description")}
+            disabled={isLoading}
             placeholder="Mô tả chi tiết công việc, trách nhiệm chính..."
-            className="min-h-28 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-400"
+            className="min-h-28 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
           />
 
           <SectionTitle title="Yêu cầu chuyên môn" />
@@ -222,8 +339,9 @@ export default function CreateRecruitmentPost() {
               <textarea
                 value={formData.mandatoryRequirements}
                 onChange={updateField("mandatoryRequirements")}
+                disabled={isLoading}
                 placeholder="Các kỹ năng bắt buộc"
-                className="min-h-28 w-full resize-none rounded-lg border border-red-100 bg-white p-3 text-sm outline-none focus:border-red-300"
+                className="min-h-28 w-full resize-none rounded-lg border border-red-100 bg-white p-3 text-sm outline-none focus:border-red-300 disabled:opacity-50"
               />
             </div>
 
@@ -234,8 +352,9 @@ export default function CreateRecruitmentPost() {
               <textarea
                 value={formData.preferredRequirements}
                 onChange={updateField("preferredRequirements")}
+                disabled={isLoading}
                 placeholder="Các kỹ năng bổ trợ"
-                className="min-h-28 w-full resize-none rounded-lg border border-blue-100 bg-white p-3 text-sm outline-none focus:border-blue-300"
+                className="min-h-28 w-full resize-none rounded-lg border border-blue-100 bg-white p-3 text-sm outline-none focus:border-blue-300 disabled:opacity-50"
               />
             </div>
           </div>
@@ -244,15 +363,17 @@ export default function CreateRecruitmentPost() {
           <textarea
             value={formData.benefits}
             onChange={updateField("benefits")}
+            disabled={isLoading}
             placeholder="Chế độ lương thưởng, phúc lợi..."
-            className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-400"
+            className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-blue-400 disabled:opacity-50"
           />
 
           <button
             type="submit"
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+            disabled={isLoading}
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Đăng tuyển dụng <Send size={16} />
+            {isLoading ? "Đang tạo..." : <>Đăng tuyển dụng <Send size={16} /></>}
           </button>
         </div>
       </form>

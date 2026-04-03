@@ -42,7 +42,7 @@ import { CommunityPost, PostCommentsResponse } from "@/types/communityPost";
 // ];
 export const communityPosts: CommunityPost[] = [
   {
-      id: 1,
+    id: 1,
     author: {
       id: 101,
       name: "Google Inc.",
@@ -171,7 +171,6 @@ export const communityPosts: CommunityPost[] = [
     isSaved: false,
     createdAt: "2026-01-05T10:00:00",
   },
-
 ];
 export const POST_COMMENTS_MOCK: PostCommentsResponse[] = [
   {
@@ -189,31 +188,37 @@ export const POST_COMMENTS_MOCK: PostCommentsResponse[] = [
         createdAt: "2026-01-05T09:10:00",
         replies: [
           {
-            id: 11,
+            id: 31,
             author: {
-              id: 101,
-              name: "Google Inc.",
-              avatar: "https://img.timviec.com.vn/2020/10/cong-ty-google-1.jpg",
+              id: 102,
+              name: "FPT Software",
+              avatar:
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjNrth9D12U-w1YDVelzT5eSzetDjf_zGJ4Q&s",
+              role: "COMPANY",
             },
             replyToUser: {
-              id: 201,
-              name: "Phạm Cường",
-              avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+              id: 401,
+              name: "Trần Huy",
+              avatar: "https://randomuser.me/api/portraits/men/77.jpg",
+              role: "USER",
             },
             content: "Hiện tại bên mình ưu tiên onsite bạn nhé.",
             createdAt: "2026-01-05T09:20:00",
           },
           {
-            id: 12,
+            id: 31,
             author: {
-              id: 101,
-              name: "Google Inc.",
-              avatar: "https://img.timviec.com.vn/2020/10/cong-ty-google-1.jpg",
+              id: 102,
+              name: "FPT Software",
+              avatar:
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjNrth9D12U-w1YDVelzT5eSzetDjf_zGJ4Q&s",
+              role: "COMPANY",
             },
             replyToUser: {
-              id: 201,
-              name: "Phạm Cường",
-              avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+              id: 401,
+              name: "Trần Huy",
+              avatar: "https://randomuser.me/api/portraits/men/77.jpg",
+              role: "USER",
             },
             content: "Hiện tại bên mình ưu tiên onsite bạn nhé.",
             createdAt: "2026-01-24T06:20:00",
@@ -251,16 +256,19 @@ export const POST_COMMENTS_MOCK: PostCommentsResponse[] = [
         createdAt: "2026-01-05T10:05:00",
         replies: [
           {
-            id: 21,
+            id: 31,
             author: {
-              id: 201,
-              name: "Phạm Cường",
-              avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+              id: 102,
+              name: "FPT Software",
+              avatar:
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjNrth9D12U-w1YDVelzT5eSzetDjf_zGJ4Q&s",
+              role: "COMPANY",
             },
             replyToUser: {
-              id: 301,
-              name: "Lê Thảo",
-              avatar: "https://randomuser.me/api/portraits/women/65.jpg",
+              id: 401,
+              name: "Trần Huy",
+              avatar: "https://randomuser.me/api/portraits/men/77.jpg",
+              role: "USER",
             },
             content: "Cảm ơn bạn nhiều nha 🙏",
             createdAt: "2026-01-05T10:08:00",
@@ -291,11 +299,13 @@ export const POST_COMMENTS_MOCK: PostCommentsResponse[] = [
               name: "FPT Software",
               avatar:
                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjNrth9D12U-w1YDVelzT5eSzetDjf_zGJ4Q&s",
+              role: "COMPANY",
             },
             replyToUser: {
               id: 401,
               name: "Trần Huy",
               avatar: "https://randomuser.me/api/portraits/men/77.jpg",
+              role: "USER",
             },
             content: "Apply thoải mái nha em.",
             createdAt: "2026-01-04T16:55:00",

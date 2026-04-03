@@ -7,9 +7,14 @@ import { notify } from "@/lib/toast";
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
+const CreatePostModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreatePostModalProps) => {
   const [content, setContent] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +61,7 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
         status: 1, // Mặc định Public
         portfolioId: null,
         // Nếu có files, lấy file đầu tiên làm cover (ví dụ)
-        coverImageKey: selectedFiles.length > 0 ? selectedFiles[0].name : null,
+        coverImageKey: null,
       };
 
       formData.append("postJson", JSON.stringify(postData));
@@ -67,21 +72,19 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
       });
 
       // 3. Gọi API
-      const response = await fetch(
-        "https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: formData, // Trình duyệt tự set Content-Type: multipart/form-data kèm boundary
+      const response = await fetch("https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
-      );
+        body: formData, // Trình duyệt tự set Content-Type: multipart/form-data kèm boundary
+      });
 
       if (response.ok) {
         const result = await response.json();
         console.log("Tạo bài viết thành công:", result);
         notify.success("Tạo bài viết thành công!");
+        onSuccess();
         onClose();
       } else {
         const error = await response.json();
@@ -167,11 +170,11 @@ const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
                   >
                     <X size={14} />
                   </button>
-                  {index === 0 && (
+                  {/* {index === 0 && (
                     <span className="absolute bottom-2 left-2 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded">
                       Ảnh bìa
                     </span>
-                  )}
+                  )} */}
                 </div>
               ))}
               <button

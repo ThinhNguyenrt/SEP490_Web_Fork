@@ -1,5 +1,6 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import authReducer from "./features/auth/authSlice";
+import savedPostsReducer from "./features/savedPosts/savedPostsSlice";
 import { 
   persistStore, 
   persistReducer,
@@ -15,6 +16,7 @@ import storage from "redux-persist/lib/storage"; // Mặc định là localStora
 // 1. Kết hợp các reducer (nếu bạn có nhiều slice)
 const rootReducer = combineReducers({
   auth: authReducer,
+  savedPosts: savedPostsReducer,
   // Thêm các slice khác ở đây
 });
 
@@ -22,7 +24,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth"], // CHỈ lưu trữ slice 'auth', các cái khác sẽ mất khi reload
+  whitelist: ["auth", "savedPosts"], // LƯU trữ cả 'auth' và 'savedPosts'
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

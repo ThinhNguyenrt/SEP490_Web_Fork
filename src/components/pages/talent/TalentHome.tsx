@@ -11,10 +11,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import SortIcon from "../../../assets/myWeb/sort.png";
 import { fetchCompanyPosts, saveCompanyPost } from "@/services/company.api";
 import { CompanyPostAPI } from "@/types/companyPost";
-import { useAppSelector } from "@/store/hook";
+import { useAppSelector, useAppDispatch } from "@/store/hook";
+import { addSavedPost } from "@/store/features/savedPosts/savedPostsSlice";
+
 export default function TalentHome() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [filters, setFilters] = useState({
     position: '',
     experience: '',
@@ -24,9 +27,9 @@ export default function TalentHome() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<CompanyPostAPI[]>([]);
-  const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
   const [isSavingPost, setIsSavingPost] = useState<number | null>(null);
   const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const savedPostIds = useAppSelector((state) => state.savedPosts.savedPostIds);
 
   // Fetch company posts on component mount
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function TalentHome() {
       console.log("💾 Saving post:", postId);
       
       await saveCompanyPost(postId, accessToken || undefined);
-      setSavedPosts(prev => new Set(prev).add(postId));
+      dispatch(addSavedPost(postId));
       console.log("✅ Post saved successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save post";
@@ -342,7 +345,7 @@ export default function TalentHome() {
                       alt="Bookmark" 
                       className="w-10 h-10"
                       style={{
-                        filter: savedPosts.has(currentPost?.postId || 0) 
+                        filter: savedPostIds.includes(currentPost?.postId || 0) 
                           ? 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' 
                           : 'brightness(0) saturate(100%)'
                       }}

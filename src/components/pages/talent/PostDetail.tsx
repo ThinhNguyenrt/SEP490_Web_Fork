@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchCompanyPostDetail, saveCompanyPost } from '@/services/company.api';
 import { CompanyPostDetail } from '@/types/companyPost';
 import { Button } from '@/components/ui/button';
-import { useAppSelector } from '@/store/hook';
+import { useAppSelector, useAppDispatch } from '@/store/hook';
+import { addSavedPost } from '@/store/features/savedPosts/savedPostsSlice';
+import { ApplicationModal } from './ApplicationModal';
 import ArrowBackIcon from './../../../assets/myWeb/arrowback.png';
 import BookmarkIcon from './../../../assets/myWeb/bookmark.png';
 import ShareIcon from './../../../assets/myWeb/share1.png';
@@ -12,12 +14,16 @@ import LightIcon from './../../../assets/myWeb/light.png';
 export const PostDetail = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(false);
+  const dispatch = useAppDispatch();
   const [post, setPost] = useState<CompanyPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [applicationSuccess, setApplicationSuccess] = useState(false);
   const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const savedPostIds = useAppSelector((state) => state.savedPosts.savedPostIds);
+  const isSaved = postId ? savedPostIds.includes(Number(postId)) : false;
 
   useEffect(() => {
     const loadPostDetail = async () => {
@@ -36,7 +42,6 @@ export const PostDetail = () => {
         console.log("✅ Post detail loaded:", data);
         
         setPost(data);
-        setIsSaved(data.isSaved || false);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to load post details";
         console.error("❌ Error loading post detail:", errorMessage);
@@ -57,7 +62,7 @@ export const PostDetail = () => {
       console.log("💾 Saving post:", postId);
       
       await saveCompanyPost(Number(postId), accessToken || undefined);
-      setIsSaved(true);
+      dispatch(addSavedPost(Number(postId)));
       console.log("✅ Post saved successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save post";
@@ -66,6 +71,25 @@ export const PostDetail = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleApplicationSuccess = (applicationId: number) => {
+    console.log("✅ Application submitted successfully:", applicationId);
+    setApplicationSuccess(true);
+    
+    // Reset the success message after 3 seconds
+    setTimeout(() => {
+      setApplicationSuccess(false);
+    }, 3000);
+  };
+
+  const handleOpenApplicationModal = () => {
+    if (!accessToken) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+      return;
+    }
+    setIsApplicationModalOpen(true);
   };
 
   if (isLoading) {
@@ -173,7 +197,7 @@ export const PostDetail = () => {
                         Bắt buộc
                       </div>
                       <ul className="space-y-2 text-gray-700">
-                        {post.requirementsMandatory.split(',').map((req, idx) => (
+                        {post.requirementsMandatory.split('.').filter((req) => req.trim()).map((req, idx) => (
                           <li key={idx} className="flex items-start gap-2">
                           <span className="text-black font-bold mt-1">•</span>
                             <span>{req.trim()}</span>
@@ -190,7 +214,7 @@ export const PostDetail = () => {
                         Ưu tiên
                       </div>
                       <ul className="space-y-2 text-gray-700">
-                        {post.requirementsPreferred.split(',').map((req, idx) => (
+                        {post.requirementsPreferred.split('.').filter((req) => req.trim()).map((req, idx) => (
                           <li key={idx} className="flex items-start gap-2">
                           <span className="text-black font-bold mt-1">•</span>
                             <span>{req.trim()}</span>
@@ -212,7 +236,7 @@ export const PostDetail = () => {
                   </h2>
                   {post.benefits ? (
                     <ul className="space-y-2 text-gray-700">
-                      {post.benefits.split(',').map((benefit, idx) => (
+                      {post.benefits.split('.').filter((benefit) => benefit.trim()).map((benefit, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <span className="text-black font-bold mt-1">•</span>
                           <span>{benefit.trim()}</span>
@@ -286,13 +310,23 @@ export const PostDetail = () => {
                 </div>
 
                 {/* Apply Button & More Options */}
-                <div className="flex gap-2 pt-2 items-stretch">
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
-                    Ứng tuyển ngay
-                  </Button>
-                  <button className="px-3 py-0 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold flex items-center justify-center">
-                    <img src={Dot} alt="More options" className="w-6 h-6" />
-                  </button>
+                <div className="flex gap-2 pt-2 items-stretch flex-col">
+                  {applicationSuccess && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700 font-semibold">✓ Nộp hồ sơ thành công!</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2 items-stretch">
+                    <Button 
+                      onClick={handleOpenApplicationModal}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
+                    >
+                      Ứng tuyển ngay
+                    </Button>
+                    <button className="px-3 py-0 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold flex items-center justify-center">
+                      <img src={Dot} alt="More options" className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -310,6 +344,18 @@ export const PostDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Application Modal */}
+      {postId && post && (
+        <ApplicationModal
+          postId={Number(postId)}
+          isOpen={isApplicationModalOpen}
+          onClose={() => setIsApplicationModalOpen(false)}
+          onSubmitSuccess={handleApplicationSuccess}
+          postTitle={post.position}
+          companyName={post.companyName}
+        />
+      )}
     </div>
   );
 };

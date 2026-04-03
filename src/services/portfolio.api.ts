@@ -20,6 +20,7 @@ export type PortfolioMainBlockItem = {
     status: number;
   };
   blocks: PortfolioBlock;
+  createdAt?: string;
 };
 
 // Type for API response structure

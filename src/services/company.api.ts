@@ -25,8 +25,8 @@ const getApiBaseUrl = (): string => {
     return "/api";
   }
   
-  // On production/deployed environment, use full URL
-  const fallbackUrl = "https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+  // On production/deployed environment, use full URL with /api suffix
+  const fallbackUrl = "https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
   console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
   return fallbackUrl;
 };

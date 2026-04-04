@@ -1,23 +1,50 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CommunityPostCard } from "./CommunityPostCard";
-import { communityPosts } from "@/data/mockComment";
-import type { CommunityPost } from "@/types/communityPost.ts";
 import sortIcon from "@/assets/myWeb/sort 2.png";
+import { useAppSelector } from "@/store/hook";
+import { CommunityPost } from "@/types/communityPost";
 
 type SortOption = "newest" | "oldest";
 
 export default function MyCommunityPost() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [myPosts, setMyPosts] = useState<CommunityPost[]>([]);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
 
-  // ID của user hiện tại - trong thực tế sẽ lấy từ auth context
-  const currentUserId = 101; // Giả sử user hiện tại là "Google Inc." có id 101
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Lọc chỉ lấy bài post của user hiện tại
-  const myPosts = useMemo(() => {
-    return communityPosts.filter((post) => post.author.id === currentUserId);
-  }, [currentUserId]);
+  const fetchMyCommunityPosts = async () => {
+    if (isLoading) return;
 
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/community/posts/user/${user?.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Nếu refresh, thay thế toàn bộ danh sách bằng dữ liệu mới nhất
+        setMyPosts(data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (user) {
+      fetchMyCommunityPosts();
+    }
+  }, [user]);
   // Sắp xếp bài post theo option được chọn
   const sortedPosts = useMemo(() => {
     const posts = [...myPosts];
@@ -143,13 +170,13 @@ export default function MyCommunityPost() {
         )}
 
         {/* Footer */}
-        {sortedPosts.length > 0 && (
+        {/* {sortedPosts.length > 0 && (
           <div className="mt-10 text-center pb-12">
             <p className="text-sm text-gray-400">
               Đã hiển thị tất cả {sortedPosts.length} bài viết
             </p>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

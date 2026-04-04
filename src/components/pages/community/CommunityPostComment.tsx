@@ -7,15 +7,22 @@ import { useEffect, useRef, useState } from "react";
 interface CommentProps {
   comment: PostComment;
   onReplyClick: (id: number, name: string, commentId: number) => void;
-  onDeleteComment: (commentId: number) => void; // Prop này sẽ gọi hàm mở Modal ở Cha
+  onDelete: (commentId: number, isReply: boolean) => void;
 }
 
 export const CommunityPostComment: React.FC<CommentProps> = ({
   comment,
   onReplyClick,
-  onDeleteComment,
+  onDelete,
 }) => {
   const { user } = useAppSelector((state) => state.auth);
+  const handleDelete = (id: number, isReply: boolean) => {
+    if (isReply) {
+      onDelete(id, true);
+    } else {
+      onDelete(id, false);
+    }
+  };
   return (
     <div className="relative">
       <CommentItem
@@ -25,7 +32,7 @@ export const CommunityPostComment: React.FC<CommentProps> = ({
         createdAt={comment.createdAt}
         isReply={false}
         currentUser={user}
-        onDeleteComment={onDeleteComment}
+        onDelete={handleDelete}
         onReplyClick={() =>
           onReplyClick(comment.author.id, comment.author.name, comment.id)
         }
@@ -49,7 +56,7 @@ export const CommunityPostComment: React.FC<CommentProps> = ({
                 replyToUser={reply.replyToUser}
                 isReply={true}
                 currentUser={user}
-                onDeleteComment={onDeleteComment}
+                onDelete={handleDelete}
                 onReplyClick={() =>
                   onReplyClick(reply.author.id, reply.author.name, reply.id)
                 }
@@ -82,7 +89,7 @@ interface ItemProps {
     role: string;
   };
   onReplyClick: (id: number, name: string) => void; // Thêm vào đây
-  onDeleteComment: (commentId: number) => void;
+  onDelete: (commentId: number, isReply: boolean) => void;
 }
 
 const CommentItem = ({
@@ -94,7 +101,7 @@ const CommentItem = ({
   replyToUser,
   currentUser,
   onReplyClick,
-  onDeleteComment,
+  onDelete,
 }: ItemProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -160,7 +167,7 @@ const CommentItem = ({
                 <div className="absolute left-0 mt-1 w-32 bg-white border border-gray-100 rounded-lg shadow-lg z-20 overflow-hidden animate-in fade-in zoom-in duration-100">
                   <button
                     onClick={() => {
-                      onDeleteComment(commentId!);
+                      onDelete(commentId!, isReply);
                       setShowDropdown(false);
                     }}
                     className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-semibold cursor-pointer"

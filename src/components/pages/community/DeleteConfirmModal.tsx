@@ -15,8 +15,8 @@ export const DeleteConfirmModal = ({
   onClose,
   onConfirm,
   isLoading,
-  title = "Xóa bình luận",
-  message = "Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác.",
+  title,
+  message,
 }: DeleteConfirmModalProps) => {
   // Chặn scroll khi modal mở
   useEffect(() => {

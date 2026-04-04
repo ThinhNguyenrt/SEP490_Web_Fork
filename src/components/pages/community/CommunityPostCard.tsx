@@ -5,15 +5,18 @@ import {
   Bookmark,
   Reply,
   MoreHorizontal,
+  Trash2,
+  Flag,
 } from "lucide-react";
 import { formatTimeAgo } from "@/utils/FormatTime";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
 interface PostProps {
   id: number;
   author: string;
+  authorId: number;
   time: string;
   avatar: string;
   isVerified?: boolean;
@@ -24,11 +27,13 @@ interface PostProps {
   comments: number;
   isFavorited: boolean;
   isSaved: boolean;
+  onDeletePost?: (id: number) => void;
 }
 
 export const CommunityPostCard: React.FC<PostProps> = ({
   id,
   author,
+  authorId,
   time,
   avatar,
   isVerified,
@@ -38,6 +43,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   comments,
   isFavorited: initialIsFavorited,
   isSaved: initialIsSaved,
+  onDeletePost,
 }) => {
   // Hàm render layout hình ảnh dựa trên số lượng
   const renderImages = () => {
@@ -120,14 +126,33 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   const [localLikesCount, setLocalLikesCount] = useState(likes);
   const [localIsSaved, setLocalIsSaved] = useState(initialIsSaved);
   const [isActionLoading, setIsActionLoading] = useState(false);
-
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
+  // Xử lý click outside để đóng menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.body.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.body.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  const isMyPost = user?.id === authorId;
   const handleFavoriteAction = async () => {
     try {
-      const response = await fetch(`https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       if (!response.ok) throw new Error();
       notify.success("Đã thích bài viết");
     } catch (error) {
@@ -141,10 +166,13 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   // --- 2. Hàm Bỏ thích bài viết (DELETE) ---
   const handleUnfavoriteAction = async () => {
     try {
-      const response = await fetch(`https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       if (!response.ok) throw new Error();
       notify.success("Đã bỏ thích bài viết");
     } catch (error) {
@@ -258,9 +286,45 @@ export const CommunityPostCard: React.FC<PostProps> = ({
               <p className="text-xs text-gray-500">{formatTimeAgo(time)}</p>
             </div>
           </div>
-          <button className="text-gray-400 hover:text-gray-600">
-            <MoreHorizontal size={20} />
-          </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <MoreHorizontal size={20} />
+            </button>
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="py-1">
+                  {/* Option 1: Luôn hiển thị */}
+                  <button
+                    onClick={() => {
+                      notify.info("Đã gửi báo cáo bài viết");
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer"
+                  >
+                    <Flag size={16} className="text-gray-400" />
+                    Báo cáo bài viết
+                  </button>
+
+                  {/* Option 2: Chỉ hiển thị nếu là chủ bài viết */}
+                  {isMyPost && (
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        if (onDeletePost) onDeletePost(id); // Gọi hàm xóa truyền từ cha
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors font-medium cursor-pointer border-t border-gray-50"
+                    >
+                      <Trash2 size={16} />
+                      Xóa bài viết
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content Link */}

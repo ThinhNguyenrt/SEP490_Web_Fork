@@ -8,7 +8,7 @@ import { CommunityPost, PostComment } from "@/types/communityPost";
 import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
-import { DeleteConfirmModal } from "./DeleteCommentModal";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
 export default function CommunityPostDetail() {
   const { profile } = useUserProfile();
@@ -176,31 +176,35 @@ export default function CommunityPostDetail() {
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     commentId: null as number | null,
+    isReply: false,
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
   // 1. Hàm mở modal
-  const handleOpenDeleteModal = (commentId: number) => {
-    setDeleteModal({ isOpen: true, commentId });
+  const handleOpenDeleteModal = (commentId: number, isReply: boolean) => {
+    setDeleteModal({ isOpen: true, commentId, isReply });
   };
 
   // 2. Hàm thực hiện xóa thực tế
   const handleConfirmDelete = async () => {
-    if (!deleteModal.commentId) return;
+    const { commentId, isReply } = deleteModal;
+    if (!commentId) return;
+
+    // Lựa chọn URL dựa trên flag isReply
+    const url = isReply
+      ? `/community/replies/${commentId}`
+      : `/community/comments/${commentId}`;
 
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/community/comments/${deleteModal.commentId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-      );
+      const response = await fetch(`${API_BASE_URL}${url}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
       if (response.ok) {
         notify.success("Xóa bình luận thành công");
-        setDeleteModal({ isOpen: false, commentId: null });
+        setDeleteModal({ isOpen: false, commentId: null, isReply: false });
         await fetchDetailCommunityPosts(); // Tải lại danh sách bình luận sau khi xóa
       }
     } catch (error) {
@@ -230,6 +234,7 @@ export default function CommunityPostDetail() {
               key={post.id} // Quan trọng để React reset lại state bên trong Card theo data mới
               id={post.id}
               author={post.author.name}
+              authorId={post.author.id}
               time={post.createdAt}
               avatar={post.author.avatar}
               isVerified={post.author.role === "COMPANY"}
@@ -256,15 +261,19 @@ export default function CommunityPostDetail() {
                   key={item.id}
                   comment={item}
                   onReplyClick={handleReplyInitiated}
-                  onDeleteComment={handleOpenDeleteModal}
+                  onDelete={(id, isReply) => handleOpenDeleteModal(id, isReply)}
                 />
               ))}
           </div>
           <DeleteConfirmModal
             isOpen={deleteModal.isOpen}
             isLoading={isDeleting}
-            onClose={() => setDeleteModal({ isOpen: false, commentId: null })}
+            onClose={() =>
+              setDeleteModal({ isOpen: false, commentId: null, isReply: false })
+            }
             onConfirm={handleConfirmDelete}
+            title="Xóa bình luận"
+            message="Bạn có chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác."
           />
         </div>
       </div>

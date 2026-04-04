@@ -5,6 +5,8 @@ import type { CommunityPost } from "@/types/communityPost.ts";
 import CreatePostModal from "./CreatePostModal";
 import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
+import { notify } from "@/lib/toast";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
 export default function CommunityPost() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -29,7 +31,7 @@ export default function CommunityPost() {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -38,7 +40,6 @@ export default function CommunityPost() {
         if (isRefresh) {
           // Nếu refresh, thay thế toàn bộ danh sách bằng dữ liệu mới nhất
           setPosts(data.items);
-
         } else {
           // Nếu load more, cộng dồn vào danh sách hiện tại
           setPosts((prev) => [...prev, ...data.items]);
@@ -66,6 +67,48 @@ export default function CommunityPost() {
 
   const handleLoadMore = () => {
     fetchCommunityPosts(nextCursor);
+  };
+  // State quản lý xóa bài viết
+  const [deletePostModal, setDeletePostModal] = useState({
+    isOpen: false,
+    postId: null as number | null,
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Hàm mở modal xóa bài viết
+  const handleOpenDeletePost = (id: number) => {
+    setDeletePostModal({ isOpen: true, postId: id });
+  };
+
+  // Hàm gọi API xóa bài viết thực tế
+  const handleConfirmDeletePost = async () => {
+    if (!deletePostModal.postId) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/community/posts/${deletePostModal.postId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+
+      if (response.ok) {
+        notify.success("Xóa bài viết thành công");
+
+        // Cập nhật UI: Lọc bài viết đã xóa ra khỏi danh sách
+        setPosts((prev) => prev.filter((p) => p.id !== deletePostModal.postId));
+
+        setDeletePostModal({ isOpen: false, postId: null });
+      } else {
+        notify.error("Không thể xóa bài viết");
+      }
+    } catch (error) {
+      notify.error("Lỗi kết nối máy chủ");
+    } finally {
+      setIsDeleting(false);
+    }
   };
   return (
     <div className="bg-slate-50 text-slate-900 min-h-screen transition-colors duration-200">
@@ -136,6 +179,8 @@ export default function CommunityPost() {
               key={post.id}
               id={post.id} // Chuyển id sang string nếu component yêu cầu
               author={post.author.name}
+              authorId={post.author.id}
+              onDeletePost={handleOpenDeletePost}
               time={post.createdAt} // Bạn có thể dùng hàm format thời gian tại đây
               avatar={post.author.avatar}
               isVerified={post.author.role === "COMPANY"}
@@ -192,6 +237,14 @@ export default function CommunityPost() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleRefreshPosts}
+      />
+      <DeleteConfirmModal
+        isOpen={deletePostModal.isOpen}
+        isLoading={isDeleting}
+        title="Xóa bài viết"
+        message="Bạn có chắc chắn muốn xóa bài viết này? Hành động này sẽ xóa vĩnh viễn nội dung và tất cả bình luận liên quan."
+        onClose={() => setDeletePostModal({ isOpen: false, postId: null })}
+        onConfirm={handleConfirmDeletePost}
       />
     </div>
   );

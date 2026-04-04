@@ -100,6 +100,7 @@ export default function TalentSavePost() {
                 key={post.id}
                 id={post.id}
                 author={post.author.name}
+                authorId={post.author.id}
                 time={post.createdAt}
                 avatar={post.author.avatar}
                 isVerified={post.author.role === "COMPANY"}

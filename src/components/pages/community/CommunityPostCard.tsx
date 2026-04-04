@@ -163,7 +163,6 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     }
   };
 
-  // --- 2. Hàm Bỏ thích bài viết (DELETE) ---
   const handleUnfavoriteAction = async () => {
     try {
       const response = await fetch(
@@ -183,7 +182,6 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     }
   };
 
-  // --- 3. Hàm Điều hướng chính (Toggle) ---
   const handleFavoriteClick = async () => {
     if (isActionLoading) return;
 
@@ -223,7 +221,6 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     }
   };
 
-  // --- Hàm Bỏ lưu bài viết (DELETE) ---
   const handleUnsaveAction = async () => {
     try {
       const response = await fetch(
@@ -241,7 +238,6 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     }
   };
 
-  // --- Hàm điều hướng (Toggle) ---
   const handleSaveClick = async () => {
     if (isActionLoading) return;
 

@@ -71,7 +71,6 @@ class RealtimeService {
       );
     });
     this.connection.on("ReceivePostFavoriteChanged", (data) => {
-      // data: { postId, userId, action, newFavoriteCount }
       window.dispatchEvent(
         new CustomEvent("realtime-favorite", { detail: data }),
       );

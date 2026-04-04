@@ -12,9 +12,7 @@ import { CommunityPost, PostComment } from "@/types/communityPost";
 import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
-import {
-  realtimeService
-} from "@/services/realtimeService";
+import { realtimeService } from "@/services/realtimeService";
 
 export default function CommunityPostDetail() {
   const { profile } = useUserProfile();
@@ -103,7 +101,7 @@ export default function CommunityPostDetail() {
                   id: Number(event.actorId), // Dùng actorId từ server
                   name: event.author.name, // Dùng actorName thực tế
                   avatar: event.author.avatar, // Dùng actorAvatar thực tế
-                  role: event.author.role // Dùng actorType thực tế
+                  role: event.author.role, // Dùng actorType thực tế
                 },
                 // Thông tin người được phản hồi (nếu Backend có hỗ trợ map thêm)
                 replyToUser: {
@@ -140,24 +138,42 @@ export default function CommunityPostDetail() {
   const fetchData = async () => {
     if (!id) return;
     setIsLoading(true);
+
     try {
+      // 1. Định nghĩa các yêu cầu fetch riêng biệt
+      const postFetch = fetch(`${API_BASE_URL}/community/posts/${id}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Thêm Token cho bài viết
+        },
+      });
+
+      const commentsFetch = fetch(
+        `${API_BASE_URL}/community/posts/${id}/comments`,
+      );
+
+      // 2. Chạy song song cả hai
       const [postRes, commentRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/community/posts/${id}`),
-        fetch(`${API_BASE_URL}/community/posts/${id}/comments`),
+        postFetch,
+        commentsFetch,
       ]);
 
-      if (postRes.ok) setPost(await postRes.json());
+      // 3. Xử lý kết quả trả về
+      if (postRes.ok) {
+        const postData = await postRes.json();
+        setPost(postData);
+      }
+
       if (commentRes.ok) {
         const data = await commentRes.json();
         setPostComments(data.comments || []);
       }
     } catch (error) {
+      console.error("Fetch Error:", error);
       notify.error("Lỗi khi tải dữ liệu bài viết");
     } finally {
       setIsLoading(false);
     }
   };
-
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     fetchData();

@@ -5,7 +5,6 @@ export interface CommentCreatedEvent {
   commentId: number;
   content: string;
   createdAt: string;
-  // Backend cần bổ sung các trường này:
   userId: number;
   authorName: string;
   authorAvatar: string;
@@ -21,7 +20,15 @@ export interface ReplyCreatedEvent {
   content: string;
   createdAt: string;
 }
-
+export interface NotificationEvent {
+  notificationId: number;
+  userId: number;
+  type: "like" | "comment" | "group";
+  content: string;
+  createdAt: string;
+  actorName?: string;
+  actorAvatar?: string;
+}
 class RealtimeService {
   private connection: signalR.HubConnection | null = null;
   private watchingPostIds = new Set<string>();
@@ -64,11 +71,18 @@ class RealtimeService {
       );
     });
     this.connection.on("ReceivePostFavoriteChanged", (data) => {
-       // data: { postId, userId, action, newFavoriteCount }
-        window.dispatchEvent(
-          new CustomEvent("realtime-favorite", { detail: data })
-        );
-   });
+      // data: { postId, userId, action, newFavoriteCount }
+      window.dispatchEvent(
+        new CustomEvent("realtime-favorite", { detail: data }),
+      );
+    });
+    this.connection.on("ReceiveNotification", (event: NotificationEvent) => {
+      console.log("🔔 New notification:", event);
+      // 1. Bắn CustomEvent để các component lắng nghe và cập nhật list
+      window.dispatchEvent(
+        new CustomEvent("realtime-notification", { detail: event }),
+      );
+    });
   }
 
   async start() {

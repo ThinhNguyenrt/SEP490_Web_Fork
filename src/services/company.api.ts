@@ -475,7 +475,7 @@ export const createCompanyPost = async (
 };
 
 export const fetchSavedPosts = async (accessToken: string, userId: number): Promise<CompanyPost[]> => {
-  const response = await fetch(`${API_BASE_URL}/company/${userId}/save`, { // Thay endpoint thực tế của bạn
+  const response = await fetch(`${API_BASE_URL}/company-posts/${userId}/save`, { // Thay endpoint thực tế của bạn
     headers: {
       Authorization: `Bearer ${accessToken}`
     },

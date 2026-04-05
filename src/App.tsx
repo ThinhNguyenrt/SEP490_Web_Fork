@@ -97,6 +97,15 @@ const SetupTalentProfile = lazy(
 const SetupCompanyProfile = lazy(
   () => import("./components/pages/login/SetupCompanyProfile"),
 );
+const SupportCenterPage = lazy(
+  () => import("./components/pages/SupportCenterPage"),
+);
+const PrivacyCenterPage = lazy(
+  () => import("./components/pages/PrivacyCenterPage"),
+);
+const TermsPolicyPage = lazy(
+  () => import("./components/pages/TermsPolicyPage"),
+);
 
 function App() {
   const { accessToken } = useAppSelector((state) => state.auth);
@@ -223,6 +232,9 @@ function App() {
             <Route path="/notification" element={<NotificationsPage />} />
             <Route path="/my-community-posts" element={<MyCommunityPost />} />
             <Route path="/my-save-posts" element={<MySavePost />} />
+            <Route path="/support-center" element={<SupportCenterPage />} />
+            <Route path="/privacy-center" element={<PrivacyCenterPage />} />
+            <Route path="/terms-policy" element={<TermsPolicyPage />} />
           </Route>
 
           <Route path="*" element={<ErrorPage />} />

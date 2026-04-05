@@ -12,17 +12,26 @@ export type NotificationType =
   | "POST_COMMENT_REPLIED"
   | "POST_SHARED"
   | "POST_MENTIONED";
-// export type UserNotification = {
-//   id: number;
-//   userId: number;
-//   title: string;
-//   content: string;
-//   type: NotificationType;
-//   objectId?: number;
-//   createdAt: string;
-//   isRead: boolean;
+export type UserNotification = {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  type: NotificationType;
+  objectId?: number;
+  createdAt: string;
+  isRead: boolean;
 
-
-//   actor?: NotificationActor;
-//   company?: NotificationCompany;
-// };
+  actor?: {
+    id: number;
+    name: string;
+    avatar: string;
+    role: string;
+  };
+  company: {
+    id: number;
+    name: string;
+    avatar: string;
+    role: string;
+  };
+};

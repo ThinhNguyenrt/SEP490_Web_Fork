@@ -139,10 +139,10 @@ const SavedCandidates = () => {
 // --- Main Page Component ---
 const CompanySavePost = () => {
   const [activeTab, setActiveTab] = useState("candidates");
- const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]);
   const { accessToken } = useAppSelector((state) => state.auth);
-const fetchCompanySavePosts = async () => {
+  const fetchCompanySavePosts = async () => {
     if (isLoading) return;
 
     setIsLoading(true);

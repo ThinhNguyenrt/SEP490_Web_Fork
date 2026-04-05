@@ -116,23 +116,22 @@ function App() {
     const handleGlobalNotification = (e: any) => {
       const event = e.detail;
       console.log("🔔 Received realtime notification event:", event);
-      // Logic: Không hiện toast nếu hành động đó do chính mình tạo ra
-      // (Ví dụ: mình tự comment vào bài mình thì không cần hiện toast)
+
       if (Number(event.actorId) !== profile?.user?.id) {
-        // Tùy biến nội dung Toast dựa trên loại thông báo (type) từ Backend
+
         let toastMsg = "";
         switch (event.type) {
           case "comment":
-            toastMsg = `💬 ${event.actorName} đã bình luận bài viết của bạn`;
+            toastMsg = ` ${event.actorName} đã bình luận bài viết của bạn`;
             break;
           case "like":
-            toastMsg = `❤️ ${event.actorName} đã thích bài viết của bạn`;
+            toastMsg = ` ${event.actorName} đã thích bài viết của bạn`;
             break;
           case "reply":
-            toastMsg = `↪️ ${event.actorName} đã phản hồi bình luận của bạn`;
+            toastMsg = ` ${event.actorName} đã phản hồi bình luận của bạn`;
             break;
           default:
-            toastMsg = `🔔 ${event.content}`;
+            toastMsg = ` ${event.content}`;
         }
 
         // Hiển thị Toast thông báo

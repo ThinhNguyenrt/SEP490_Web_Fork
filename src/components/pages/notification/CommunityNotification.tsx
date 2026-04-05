@@ -1,140 +1,229 @@
-import { Users } from "lucide-react";
+import { useAppSelector } from "@/store/hook";
+import { UserNotification } from "@/types/notification";
+import { formatTimeAgo } from "@/utils/FormatTime";
+import { useEffect, useState, useCallback } from "react";
 
-// Định nghĩa kiểu dữ liệu cho một thông báo
-interface NotificationData {
-  id: number;
-  userName?: string;
-  userAvatar?: string;
-  content: string;
-  time: string;
-  isUnread?: boolean;
-  type: "like" | "comment" | "group";
-}
 
 const CommunityNotification = () => {
-  // Giả lập danh sách dữ liệu từ API
-  const notifications: NotificationData[] = [
-    {
-      id: 1,
-      userName: "Phạm Cường",
-      userAvatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuBsNUWRQMyW6ZiTNRuBJ_lHeNdO5Vw3t276JN4Lh2oa2R7r3Gsb5YTHn_7VnV4LO70f8zv1iymTn-zdNgbfwIxNXg3KZ84Hayw0B_xxn3kLYFCTckLuokLxaKtMJb41rfWrOvkUuffi6qecGniHGdQZddaBVgxJbsN7ssmhHtJ-oB9RudeNAV7CBUKsvgzrOFcnlLCJZE2j6p5nmGCOJjIdyOzZTmtXiNCBi3A5orYvq27LR8S44zaGDLkkxuogq9c6f9dTOHWTSa4",
-      content: "đã thích bài viết của bạn.",
-      time: "2 giờ trước",
-      isUnread: true,
-      type: "like",
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await fetch("https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/unread-count", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      setUnreadCount(data.count || 0);
+    } catch (error) {
+      console.error("Lỗi fetch unread count:", error);
+    }
+  }, [accessToken]);
+  const fetchNotifications = useCallback(
+    async (cursor?: number) => {
+      if (loading) return;
+
+      setLoading(true);
+      try {
+        // Build URL với limit=5 và cursor (nếu có)
+        const url = new URL(
+          "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications",
+          window.location.origin,
+        );
+        url.searchParams.append("limit", "5");
+        if (cursor) {
+          url.searchParams.append("cursor", cursor.toString());
+        }
+
+        const response = await fetch(url.toString(), {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const data = await response.json();
+
+        // Giả sử API trả về cấu hình: { items: [...], nextCursor: number | null }
+        const newItems = data.items || [];
+
+        setNotifications((prev) =>
+          cursor ? [...prev, ...newItems] : newItems,
+        );
+        setNextCursor(data.nextCursor);
+        setHasMore(!!data.nextCursor); // Nếu nextCursor null/undefined thì hết data
+        console.log("data: ", data.items);
+      } catch (error) {
+        console.error("Lỗi khi fetch notifications:", error);
+      } finally {
+        setLoading(false);
+      }
     },
-    {
-      id: 2,
-      userName: "Nguyễn Lan",
-      userAvatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAgNbjcy3FSq_LFseGkzZyneTybEF3nEuEaXqG51zeqk88gUqkF1k9TahazUAJ5WW-6BtTUQSSSU0cSvRdByeMIRSnY2ux7alSK1-pzKgTcBojfTQy5fuHCRI0MAi0knDWwMUnp3tbGK2v8YD8PpDpP25IcpyzTaDiVRm1OyWOUeJ1OpQHiD50-nSRW3JS6P2XSjevjq9HEAkYT-lLAc2ZceAUl171F0T45x34_vkf5CTSgIqNxHBRgXCsoTaIO7PGA31Tev_egx4Y",
-      content: 'đã bình luận: "Thật tuyệt vời!"',
-      time: "5 giờ trước",
-      type: "comment",
-    },
-    {
-      id: 3,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 4,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 5,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 6,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 5,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 6,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 5,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-    {
-      id: 6,
-      content: "Có 5 người mới vừa tham gia nhóm Thiết kế UI/UX.",
-      time: "1 ngày trước",
-      type: "group",
-    },
-  ];
+    [accessToken, loading],
+  );
+  // 3. Đánh dấu một thông báo là đã đọc
+  const handleMarkAsRead = async (id: number, isRead: boolean) => {
+    if (isRead) return; // Nếu đã đọc rồi thì không gọi API nữa
+
+    try {
+      const response = await fetch(
+        `https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/${id}/read`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+
+      if (response.ok) {
+        // Cập nhật UI local
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Lỗi khi đánh dấu đã đọc:", error);
+    }
+  };
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0) return;
+
+    try {
+      const response = await fetch(
+        "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/read-all",
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+
+      if (response.ok) {
+        // Cập nhật UI local
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("Lỗi khi đánh dấu tất cả đã đọc:", error);
+    }
+  };
+  // Khởi tạo fetch lần đầu
+  useEffect(() => {
+    if (accessToken) {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
+  }, [accessToken]);
 
   return (
-    <div className="space-y-3">
-      {notifications.map((notif) => (
-        <div
-          key={notif.id}
-          className="bg-white  p-4 rounded-xl shadow-sm border border-gray-100  flex items-center gap-4 max-w-2xl hover:border-blue-400/50 transition-all cursor-pointer group"
+    <div className="max-w-2xl mx-auto space-y-3">
+      <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-xl border border-blue-100 sticky top-52 z-50 shadow-md">
+        <p className="text-sm text-blue-700 font-medium">
+          Bạn có{" "}
+          <span className="font-bold text-sm text-red-700">
+            {" "}
+            {unreadCount}{" "}
+          </span>{" "}
+          thông báo chưa đọc
+        </p>
+        <button
+          onClick={handleMarkAllAsRead}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all cursor-pointer shadow-sm active:scale-95"
         >
-          {notif.type === "group" ? (
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-              <Users size={24} />
-            </div>
-          ) : (
+          Đánh dấu đọc tất cả
+        </button>
+      </div>
+      <div className="space-y-3">
+        {notifications.map((notif) => (
+          <div
+            key={notif.id}
+            onClick={() => handleMarkAsRead(notif.id, notif.isRead)}
+            className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 transition-all cursor-pointer group ${
+              notif.isRead
+                ? "border-gray-100 opacity-80"
+                : "border-blue-100 bg-blue-50/10 shadow-blue-50"
+            } hover:border-blue-400/50 hover:shadow-md`}
+          >
+            {/* Avatar / Icon Section */}
+            {/* {notif.type === "group" ? (
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <Users size={24} />
+              </div>
+            ) : ( */}
             <div className="relative inline-block shrink-0">
-              {/* Avatar người dùng */}
               <img
-                alt={notif.userName}
+                alt={notif.actor?.name}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
-                src={notif.userAvatar}
+                src={notif.actor?.avatar || "/default-avatar.png"}
               />
+              {notif.actor?.role === "COMPANY" && (
+                <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 z-10">
+                  <img
+                    src="/blue-tick-company.png"
+                    alt="Verified"
+                    className="w-5 h-5 bg-white rounded-full border-2 border-white"
+                  />
+                </div>
+              )}
+            </div>
+            {/* )} */}
 
-              {/* Tick xanh nằm ở góc phải dưới */}
-              <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 z-10">
-                <img
-                  src="/blue-tick-company.png"
-                  alt="Verified"
-                  className="w-5 h-5 bg-white rounded-full border-2 border-white"
-                />
+            {/* Content Section */}
+            <div className="flex-grow">
+              <p className="text-gray-700 text-sm leading-snug">
+                {notif.actor?.name && (
+                  <span className="font-bold text-gray-900 mr-1">
+                    {notif.actor.name}
+                  </span>
+                )}
+                {notif.content}
+              </p>
+              <span className="text-xs text-gray-500 mt-1 block">
+                {formatTimeAgo(notif.createdAt)}
+              </span>
+            </div>
+
+            {!notif.isRead && (
+              <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0"></span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Loading & Load More Section */}
+      <div className="py-4 flex justify-center">
+        {loading ? (
+          <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            {/* Container cho Spinner và Text */}
+            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+              {/* Vòng tròn Loading Spinner */}
+              <div className="relative">
+                {/* Vòng tròn nhạt phía dưới */}
+                <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
+                {/* Vòng xoay chính */}
+                <div className="absolute top-0 left-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
             </div>
-          )}
-
-          {/* Nội dung thông báo */}
-          <div className="flex-grow">
-            <p className="text-gray-700  text-sm leading-snug">
-              {notif.userName && (
-                <span className="font-bold text-gray-900  mr-1">
-                  {notif.userName}
-                </span>
-              )}
-              {notif.content}
-            </p>
-            <span className="text-xs text-gray-500 mt-1 block">
-              {notif.time}
-            </span>
           </div>
+        ) : (
+          hasMore && (
+            <button
+              onClick={() => nextCursor && fetchNotifications(nextCursor)}
+              className="px-6 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all"
+            >
+              Xem thêm thông báo
+            </button>
+          )
+        )}
+      </div>
 
-          {/* Chấm xanh báo hiệu chưa đọc */}
-          {notif.isUnread && (
-            <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0"></span>
-          )}
-        </div>
-      ))}
+      {!loading && notifications.length === 0 && (
+        <p className="text-center text-gray-400 py-10">
+          Không có thông báo nào.
+        </p>
+      )}
     </div>
   );
 };

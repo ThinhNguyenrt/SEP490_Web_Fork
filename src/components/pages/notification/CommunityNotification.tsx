@@ -2,6 +2,7 @@ import { useAppSelector } from "@/store/hook";
 import { UserNotification } from "@/types/notification";
 import { formatTimeAgo } from "@/utils/FormatTime";
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 
 const CommunityNotification = () => {
@@ -10,7 +11,7 @@ const CommunityNotification = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
-
+  const navigate = useNavigate();
   const { accessToken } = useAppSelector((state) => state.auth);
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -29,7 +30,6 @@ const CommunityNotification = () => {
 
       setLoading(true);
       try {
-        // Build URL với limit=5 và cursor (nếu có)
         const url = new URL(
           "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications",
           window.location.origin,
@@ -64,9 +64,8 @@ const CommunityNotification = () => {
     },
     [accessToken, loading],
   );
-  // 3. Đánh dấu một thông báo là đã đọc
   const handleMarkAsRead = async (id: number, isRead: boolean) => {
-    if (isRead) return; // Nếu đã đọc rồi thì không gọi API nữa
+    if (isRead) return; 
 
     try {
       const response = await fetch(
@@ -83,6 +82,7 @@ const CommunityNotification = () => {
           prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
+        
       }
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
@@ -109,7 +109,6 @@ const CommunityNotification = () => {
       console.error("Lỗi khi đánh dấu tất cả đã đọc:", error);
     }
   };
-  // Khởi tạo fetch lần đầu
   useEffect(() => {
     if (accessToken) {
       fetchNotifications();
@@ -139,7 +138,7 @@ const CommunityNotification = () => {
         {notifications.map((notif) => (
           <div
             key={notif.id}
-            onClick={() => handleMarkAsRead(notif.id, notif.isRead)}
+            onClick={() => handleMarkAsRead(notif.id, notif.isRead).then(() => navigate(`/community/${notif.objectId}`))}
             className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 transition-all cursor-pointer group ${
               notif.isRead
                 ? "border-gray-100 opacity-80"

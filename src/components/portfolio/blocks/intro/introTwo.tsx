@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mail, Phone } from 'lucide-react';
+import { resolveImageUrl } from '@/services/portfolio.api';
 
 interface IntroTwoProps {
   data: { fullName?: string; name?: string; title?: string; studyField?: string; description?: string; avatar?: string; email?: string; phone?: string };
@@ -23,7 +24,7 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
       <div className="ml-8 rounded-md border-gray-300">
         {avatar && (
           <img
-            src={avatar}
+            src={resolveImageUrl(avatar)}
             alt={displayName}
             className="w-40 h-48 object-cover"
           />

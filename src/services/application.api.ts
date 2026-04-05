@@ -7,19 +7,13 @@ import { Application, CreateApplicationRequest } from '@/types/application';
 
 // Determine API base URL for application service
 const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_APPLICATION_API_BASE_URL;
-  
-  if (envUrl && envUrl.trim() !== "") {
-    console.log("✅ Using env var VITE_APPLICATION_API_BASE_URL:", envUrl);
-    return envUrl;
-  }
-  
-  // Check if we're on localhost/development
+  // On development (localhost with Vite proxy), use relative path
+  // The proxy in vite.config.ts will handle routing to the application service
   const isLocalhost = typeof window !== "undefined" && 
     (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
   
   if (isLocalhost) {
-    console.log("📍 Localhost detected, using relative path: /api");
+    console.log("📍 Localhost detected, using relative path: /api (proxied to application-service)");
     return "/api";
   }
   

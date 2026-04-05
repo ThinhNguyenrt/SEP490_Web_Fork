@@ -1442,6 +1442,7 @@ export const createPortfolioAPI = async (
     }>;
   },
   accessToken: string,
+  files?: File[],
 ): Promise<{ portfolioId: number; message: string }> => {
   let timeoutId: NodeJS.Timeout | null = null;
   
@@ -1455,6 +1456,7 @@ export const createPortfolioAPI = async (
     console.log("📦 Payload employeeId:", payload.employeeId);
     console.log("📦 Payload name:", payload.name);
     console.log("📦 Payload blocks count:", payload.blocks.length);
+    console.log("📦 Files count:", files?.length ?? 0);
     console.log("📦 Full payload:", payload);
     
     // Debug: Check employeeId
@@ -1477,6 +1479,19 @@ export const createPortfolioAPI = async (
     const jsonString = JSON.stringify(payload);
     formData.append("portfolioJson", jsonString);
     console.log("📦 FormData ready with portfolioJson");
+    
+    // Append image files if provided
+    if (files && files.length > 0) {
+      console.log("📸 Appending", files.length, "files to FormData");
+      files.forEach((file, index) => {
+        formData.append("files", file);
+        console.log(`   File ${index + 1}:`, file.name, `(${file.size} bytes)`);
+      });
+      console.log("📸 All files appended to FormData, total size:", 
+        files.reduce((sum, f) => sum + f.size, 0) / 1024, 'KB');
+    } else {
+      console.log("📸 No image files to append to FormData");
+    }
 
     const controller = new AbortController();
     timeoutId = setTimeout(() => {
@@ -1866,79 +1881,124 @@ export const fetchPortfoliosByEmployeeId = async (
   }
 };
 
-// Upload portfolio image and get URL back (for intro avatars, project images, etc.)
+// Store file references temporarily during portfolio creation
+// File will be uploaded when portfolio is created, not separately
+const portfolioImageFiles = new Map<string, File>();
+const fileUploadStatus = new Map<string, { status: 'pending' | 'uploaded' | 'failed', error?: string }>();
+
+export const storePortfolioImageFile = (referenceId: string, file: File): string => {
+  console.log("📸 Storing image file reference:", referenceId, file.name);
+  portfolioImageFiles.set(referenceId, file);
+  fileUploadStatus.set(referenceId, { status: 'pending' });
+  return referenceId; // Return reference ID to store in data
+};
+
+export const markFileAsUploaded = (referenceId: string) => {
+  fileUploadStatus.set(referenceId, { status: 'uploaded' });
+  console.log("📸 File marked as uploaded:", referenceId);
+};
+
+export const markFileAsFailed = (referenceId: string, error: string) => {
+  fileUploadStatus.set(referenceId, { status: 'failed', error });
+  console.error("📸 File marked as failed:", referenceId, error);
+};
+
+export const getFileUploadStatus = (referenceId: string) => {
+  return fileUploadStatus.get(referenceId) ?? { status: 'unknown' };
+};
+
+export const getPortfolioImageFiles = (): File[] => {
+  const files = Array.from(portfolioImageFiles.values());
+  console.log("📸 Retrieving", files.length, "stored image files for portfolio creation");
+  return files;
+};
+
+export const getPortfolioImageFileMap = (): Map<string, string> => {
+  const blobUrlMap = new Map<string, string>();
+  portfolioImageFiles.forEach((file, referenceId) => {
+    const blobUrl = URL.createObjectURL(file);
+    blobUrlMap.set(referenceId, blobUrl);
+    console.log("📸 Created blob URL for reference:", referenceId);
+  });
+  return blobUrlMap;
+};
+
+export const resolveImageUrl = (imageUrl: string | undefined): string | undefined => {
+  if (!imageUrl) {
+    return undefined;
+  }
+  
+  const trimmedUrl = imageUrl.trim();
+  
+  // If it's already an HTTP/HTTPS URL, return as-is
+  if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+    console.log("📸 Image is already an HTTP URL, using directly:", trimmedUrl.substring(0, 50) + "...");
+    return trimmedUrl;
+  }
+  
+  // If it's a reference ID (image_..., avatar_..., project_...), try to get blob URL from stored files
+  if (trimmedUrl.startsWith("image_") || trimmedUrl.startsWith("avatar_") || trimmedUrl.startsWith("project_")) {
+    const file = portfolioImageFiles.get(trimmedUrl);
+    if (file) {
+      const blobUrl = URL.createObjectURL(file);
+      const uploadStatus = getFileUploadStatus(trimmedUrl);
+      console.log("📸 Created blob URL for reference:", trimmedUrl, 
+        "Status:", uploadStatus.status,
+        "File:", file.name);
+      return blobUrl;
+    }
+    // Reference ID not found in map
+    const uploadStatus = getFileUploadStatus(trimmedUrl);
+    console.warn("⚠️ Image reference not found in stored files (Status: " + uploadStatus.status + "):", trimmedUrl);
+    console.warn("⚠️ Available references:", Array.from(portfolioImageFiles.keys()));
+    // Return the reference ID as-is - backend should process it
+    return trimmedUrl;
+  }
+  
+  // For any other URL format, return as-is (could be a relative path or other format)
+  console.log("📸 Returning image URL as-is (non-HTTP, non-reference):", trimmedUrl);
+  return trimmedUrl;
+};
+
+export const clearPortfolioImageFiles = (): void => {
+  console.log("📸 Clearing stored image file references");
+  portfolioImageFiles.clear();
+};
+
+// Legacy function - kept for backwards compatibility but changed behavior
+// Now stores file reference instead of uploading
 export const uploadPortfolioImage = async (
   file: File,
   accessToken: string,
 ): Promise<string> => {
   try {
-    const API_BASE_URL =
-      import.meta.env.VITE_API_BASE_URL || "/api";
+    console.log("📸 Processing portfolio image:", file.name, file.size);
 
-    console.log("📸 Uploading portfolio image:", file.name, file.size);
+    if (!file) {
+      throw new Error("No file provided");
+    }
 
     if (!accessToken) {
       console.error("❌ No access token provided!");
       throw new Error("Access token is missing. Please login again.");
     }
 
-    const formData = new FormData();
-    formData.append("image", file);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn("⏱️ Image upload timeout after 30 seconds");
-      controller.abort();
-    }, 30000);
-
-    const response = await fetch(`${API_BASE_URL}/portfolio/upload-image`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: formData,
-      signal: controller.signal,
-      credentials: "include",
-    });
-
-    clearTimeout(timeoutId);
-
-    console.log("📸 Image upload response status:", response.status);
-
-    if (response.status === 401) {
-      console.error("❌ 401 Unauthorized - Token is invalid or expired");
-      throw new Error("Your session has expired. Please login again.");
-    }
-
-    if (!response.ok) {
-      throw new Error(`Image upload failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ Image uploaded successfully:", data);
-
-    // Expect response to have imageUrl or url property
-    const imageUrl = data.imageUrl || data.url || data.data?.imageUrl || data.data?.url;
+    // Generate unique reference ID for this file
+    const referenceId = `image_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
-    if (!imageUrl) {
-      throw new Error("Server did not return image URL");
-    }
-
-    return imageUrl;
+    // Store the file for later upload with portfolio creation
+    storePortfolioImageFile(referenceId, file);
+    
+    console.log("✅ Image file stored with reference:", referenceId);
+    
+    // Return the reference ID (not a URL yet)
+    // Backend will resolve this to actual URL during portfolio creation
+    return referenceId;
   } catch (error) {
-    if (
-      error instanceof TypeError &&
-      error.message === "Failed to fetch"
-    ) {
-      console.error("❌ CORS Error or Network Error:", error);
-      throw new Error(
-        "Cannot connect to server. Please check your internet connection.",
-      );
-    }
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error("Failed to upload image");
+    throw new Error("Failed to process image");
   }
 };
 
@@ -2011,4 +2071,12 @@ export const portfolioService = {
   updatePortfolioById,
   uploadPortfolioImage,
   deletePortfolio,
+  storePortfolioImageFile,
+  getPortfolioImageFiles,
+  clearPortfolioImageFiles,
+  getPortfolioImageFileMap,
+  markFileAsUploaded,
+  markFileAsFailed,
+  getFileUploadStatus,
+  resolveImageUrl,
 };

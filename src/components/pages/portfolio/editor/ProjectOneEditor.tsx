@@ -2,6 +2,7 @@ import { Plus, Trash2, Upload, X } from "lucide-react";
 import {
   type ChangeEvent,
   type DragEvent,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -45,6 +46,18 @@ export default function ProjectOneEditor({
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
+
+  const imagePreviewUrl = useMemo(() => {
+    if (projectImageFile) {
+      return URL.createObjectURL(projectImageFile);
+    }
+    if (draft.image.startsWith("http://") || draft.image.startsWith("https://")) {
+      return draft.image;
+    }
+    return null;
+  }, [projectImageFile, draft.image]);
+
   const { accessToken } = useAppSelector((state) => state.auth);
 
   const updateDraftField = (field: keyof ProjectOneDraft, value: string) => {
@@ -69,6 +82,12 @@ export default function ProjectOneEditor({
   const handleAddProject = () => {
     if (!hasContent) {
       return;
+    }
+
+    // Store the image file if one was selected
+    if (projectImageFile) {
+      portfolioService.storePortfolioImageFile(draft.image, projectImageFile);
+      console.log("📸 Project image file stored for portfolio creation");
     }
 
     const newProject = normalizeDraft(draft);
@@ -121,7 +140,7 @@ export default function ProjectOneEditor({
 
     try {
       setIsUploadingImage(true);
-      console.log("📸 Uploading project image:", file.name);
+      console.log("📸 Processing project image:", file.name);
 
       if (!accessToken) {
         notify.error("Bạn cần đăng nhập để tải ảnh.");
@@ -129,12 +148,13 @@ export default function ProjectOneEditor({
       }
 
       // Upload image to server and get URL back
-      const imageUrl = await portfolioService.uploadPortfolioImage(file, accessToken);
-      console.log("✅ Project image uploaded successfully:", imageUrl);
+      const referenceId = await portfolioService.uploadPortfolioImage(file, accessToken);
+      console.log("✅ Project image processed successfully:", referenceId);
 
       // Store URL instead of base64 data
-      updateDraftField("image", imageUrl);
-      notify.success("Ảnh đã tải lên thành công!");
+      setProjectImageFile(file);
+      updateDraftField("image", referenceId);
+      notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
     } catch (error) {
       console.error("❌ Project image upload error:", error);
       notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
@@ -193,7 +213,7 @@ export default function ProjectOneEditor({
                 className="flex items-start justify-between gap-3 rounded-lg border border-[#d1d5db] bg-white p-3"
               >
                 <div className="flex flex-1 gap-3">
-                  {project.image && (
+                  {(project.image.startsWith("http://") || project.image.startsWith("https://")) && (
                     <img
                       src={project.image}
                       alt={project.name}
@@ -262,12 +282,16 @@ export default function ProjectOneEditor({
                 : "border-[#bfc8d8]",
             )}
           >
-            {draft.image ? (
+            {imagePreviewUrl ? (
               <div className="space-y-3">
                 <img
-                  src={draft.image}
-                  alt="Ảnh dự án"
-                  className="mx-auto h-28 w-full max-w-xs rounded-xl border border-[#d7dfeb] object-cover"
+                  src={imagePreviewUrl}
+                  alt="Project"
+                  className="h-24 w-full object-cover rounded-lg"
+                  onError={(e) => {
+                    console.warn("❌ Failed to load project image preview");
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
                 <p className="text-xs text-slate-500">Kéo thả ảnh mới hoặc bấm Chọn ảnh để thay thế</p>
               </div>

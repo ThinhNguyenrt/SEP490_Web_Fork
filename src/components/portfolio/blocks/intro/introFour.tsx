@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveImageUrl } from '@/services/portfolio.api';
 
 interface IntroFourProps {
   data: {
@@ -23,7 +24,7 @@ const IntroFour: React.FC<IntroFourProps> = ({ data }) => {
       {avatar && (
         <div className="mb-6 flex justify-center">
           <img
-            src={avatar}
+            src={resolveImageUrl(avatar)}
             alt={displayName}
             className="w-28 h-28 rounded-full object-cover"
           />

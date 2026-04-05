@@ -4,13 +4,13 @@ import {
   useEffect,
   useRef,
   useState,
+  useMemo,
 } from "react";
 import {
   createEmptyIntroFiveDraft,
   type IntroFiveDraft,
 } from "@/components/pages/portfolio/editor/introFiveDraft";
 import { portfolioService } from "@/services/portfolio.api";
-import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
 type IntroFiveEditorProps = {
@@ -25,20 +25,37 @@ export default function IntroFiveEditor({
   onCancel,
 }: IntroFiveEditorProps) {
   const [draft, setDraft] = useState<IntroFiveDraft>(initialData);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const { accessToken } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     setDraft(initialData);
   }, [initialData]);
 
+  useEffect(() => {
+    return () => {
+      if (avatarBlobUrl) {
+        URL.revokeObjectURL(avatarBlobUrl);
+      }
+    };
+  }, [avatarBlobUrl]);
+
+  const avatarPreviewUrl = useMemo(() => {
+    if (avatarBlobUrl) {
+      return avatarBlobUrl;
+    }
+    if (draft.avatar && (draft.avatar.startsWith("http://") || draft.avatar.startsWith("https://"))) {
+      return draft.avatar;
+    }
+    return null;
+  }, [avatarBlobUrl, draft.avatar]);
+
   const hasContent = [
     draft.fullName,
     draft.school,
     draft.department,
-    draft.studyField,
-    draft.gpa,
+    draft.experience,
   ].some((value) => value.trim().length > 0);
 
   const updateDraftField = (field: keyof IntroFiveDraft, value: string) => {
@@ -48,7 +65,7 @@ export default function IntroFiveEditor({
     }));
   };
 
-  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -64,48 +81,54 @@ export default function IntroFiveEditor({
       return;
     }
 
-    try {
-      setIsUploadingAvatar(true);
-      console.log("📸 Uploading avatar:", file.name);
-
-      if (!accessToken) {
-        notify.error("Bạn cần đăng nhập để tải ảnh.");
-        return;
-      }
-
-      // Upload image to server and get URL back
-      const imageUrl = await portfolioService.uploadPortfolioImage(file, accessToken);
-      console.log("✅ Avatar uploaded successfully:", imageUrl);
-
-      // Store URL instead of base64 data
-      updateDraftField("avatar", imageUrl);
-      notify.success("Ảnh đã tải lên thành công!");
-    } catch (error) {
-      console.error("❌ Avatar upload error:", error);
-      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
-    } finally {
-      setIsUploadingAvatar(false);
-      event.target.value = "";
-    }
+    console.log("📸 Avatar selected:", file.name);
+    
+    // Store file and create preview blob URL
+    setAvatarFile(file);
+    const blobUrl = URL.createObjectURL(file);
+    setAvatarBlobUrl(blobUrl);
+    
+    // Create a temporary reference for the file name
+    const tempReference = `avatar_${Date.now()}`;
+    updateDraftField("avatar", tempReference);
+    
+    notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    event.target.value = "";
   };
 
   const handleSave = () => {
+    console.log("🔵 [IntroFiveEditor.handleSave] Called - hasContent:", hasContent);
+    console.log("🔵 [IntroFiveEditor.handleSave] Current draft:", draft);
+    
     if (!hasContent) {
+      console.log("🔴 [IntroFiveEditor.handleSave] No content, returning");
       return;
     }
 
-    onSave({
+    // If there's a new file selected, store it for portfolio upload
+    if (avatarFile && draft.avatar) {
+      portfolioService.storePortfolioImageFile(draft.avatar, avatarFile);
+      console.log("📸 Avatar file stored for portfolio creation with reference:", draft.avatar);
+    }
+
+    const dataToSave = {
       fullName: draft.fullName.trim(),
       school: draft.school.trim(),
       department: draft.department.trim(),
-      studyField: draft.studyField.trim(),
-      gpa: draft.gpa.trim(),
+      experience: draft.experience.trim(),
       avatar: draft.avatar,
-    });
+      studyField: draft.studyField.trim(),
+      title: draft.title.trim(),
+    };
+    
+    console.log("🟢 [IntroFiveEditor.handleSave] Calling onSave with data:", dataToSave);
+    onSave(dataToSave);
+    
+    console.log("🟢 [IntroFiveEditor.handleSave] Resetting draft form");
     setDraft(createEmptyIntroFiveDraft());
   };
 
-  const hasAvatar = draft.avatar.trim().length > 0;
+  const hasAvatar = avatarPreviewUrl !== null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
@@ -129,11 +152,15 @@ export default function IntroFiveEditor({
       <div className="space-y-3 p-3">
         <div className="rounded-xl border border-[#d7dfeb] bg-white p-3">
           <div className="mb-3 flex justify-center">
-            {hasAvatar ? (
+            {hasAvatar && avatarPreviewUrl ? (
               <img
-                src={draft.avatar}
+                src={avatarPreviewUrl}
                 alt="Avatar"
                 className="h-24 w-24 rounded-full object-cover"
+                onError={(e) => {
+                  console.warn("❌ Failed to load avatar preview");
+                  e.currentTarget.style.display = "none";
+                }}
               />
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 text-2xl font-semibold text-slate-600">
@@ -147,7 +174,6 @@ export default function IntroFiveEditor({
             type="file"
             accept="image/*"
             onChange={handleAvatarUpload}
-            disabled={isUploadingAvatar}
             className="hidden"
           />
 
@@ -155,15 +181,18 @@ export default function IntroFiveEditor({
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
-              disabled={isUploadingAvatar}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff]"
             >
-              <Upload size={15} /> {isUploadingAvatar ? "Đang tải..." : "Tải ảnh lên"}
+              <Upload size={15} /> Tải ảnh lên
             </button>
             <button
               type="button"
-              onClick={() => updateDraftField("avatar", "")}
-              disabled={!hasAvatar || isUploadingAvatar}
+              onClick={() => {
+                setAvatarFile(null);
+                setAvatarBlobUrl(null);
+                updateDraftField("avatar", "");
+              }}
+              disabled={!hasAvatar}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#eef1f6] text-sm font-semibold text-slate-500 transition-colors hover:bg-[#e2e8f0] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 size={15} /> Xóa ảnh
@@ -182,41 +211,51 @@ export default function IntroFiveEditor({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Trường đại học</label>
-          <input
-            value={draft.school}
-            onChange={(event) => updateDraftField("school", event.target.value)}
-            placeholder="Nhập trường đại học"
-            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Khoa/Bộ môn</label>
+          <label className="text-sm font-semibold text-slate-600">Khoa</label>
           <input
             value={draft.department}
             onChange={(event) => updateDraftField("department", event.target.value)}
-            placeholder="Nhập khoa/bộ môn"
+            placeholder="Nhập khoa"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Lĩnh vực học</label>
+          <label className="text-sm font-semibold text-slate-600">Năm kinh nghiệm</label>
+          <input
+            value={draft.experience}
+            onChange={(event) => updateDraftField("experience", event.target.value)}
+            placeholder="Nhập năm kinh nghiệm"
+            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Tên trường</label>
+          <input
+            value={draft.school}
+            onChange={(event) => updateDraftField("school", event.target.value)}
+            placeholder="Nhập tên trường"
+            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Chuyên ngành</label>
           <input
             value={draft.studyField}
             onChange={(event) => updateDraftField("studyField", event.target.value)}
-            placeholder="Nhập lĩnh vực học"
+            placeholder="Nhập chuyên ngành học tập"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Điểm GPA</label>
+          <label className="text-sm font-semibold text-slate-600">Vị trí công việc</label>
           <input
-            value={draft.gpa}
-            onChange={(event) => updateDraftField("gpa", event.target.value)}
-            placeholder="Nhập điểm GPA"
+            value={draft.title}
+            onChange={(event) => updateDraftField("title", event.target.value)}
+            placeholder="Nhập vị trí công việc hoặc chuyên môn"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>

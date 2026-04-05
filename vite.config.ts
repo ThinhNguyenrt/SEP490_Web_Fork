@@ -11,6 +11,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      "/api/applications": {
+        target: "https://application-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, "/api"),
+      },
       "/api": {
         target: "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
         changeOrigin: true,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveImageUrl } from '@/services/portfolio.api';
 
 interface IntroFiveProps {
   data: {
@@ -25,6 +26,9 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
     school,
   } = data;
 
+  console.log("📍 [IntroFive component] Received data:", data);
+  console.log("📍 [IntroFive component] fullName:", fullName, "name:", name);
+
   const displayName = fullName || name || 'Your Name';
   const specialization = studyField || title;
   const experienceLabel =
@@ -32,13 +36,15 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
       ? `${experience} năm kinh nghiệm`
       : '';
   const workplace = [department, school].filter(Boolean).join(' - ');
+  
+  console.log("📍 [IntroFive component] displayName:", displayName);
 
   return (
     <div className="intro-block bg-white px-6 py-8 border-b border-gray-200 last:border-b-0">
       <div className="flex items-start gap-4">
         {avatar && (
           <img
-            src={avatar}
+            src={resolveImageUrl(avatar)}
             alt={displayName}
             className="w-[6.2rem] h-[7.8rem] rounded-xl object-cover shrink-0"
           />

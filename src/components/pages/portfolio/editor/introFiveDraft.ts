@@ -2,9 +2,10 @@ export type IntroFiveDraft = {
   fullName: string;
   school: string;
   department: string;
-  studyField: string;
-  gpa: string;
+  experience: string;
   avatar: string;
+  studyField: string;
+  title: string;
 };
 
 const toRecord = (value: unknown): Record<string, unknown> => {
@@ -31,9 +32,10 @@ export const createEmptyIntroFiveDraft = (): IntroFiveDraft => ({
   fullName: "",
   school: "",
   department: "",
-  studyField: "",
-  gpa: "",
+  experience: "",
   avatar: "",
+  studyField: "",
+  title: "",
 });
 
 const getIntroFiveSource = (value: unknown): Record<string, unknown> => {
@@ -47,8 +49,9 @@ export const createIntroFiveDraft = (value: unknown): IntroFiveDraft => {
     fullName: toText(source.fullName),
     school: toText(source.school),
     department: toText(source.department),
-    studyField: toText(source.studyField),
-    gpa: toText(source.gpa),
+    experience: toText(source.experience),
     avatar: toText(source.avatar),
+    studyField: toText(source.studyField),
+    title: toText(source.title),
   };
 };

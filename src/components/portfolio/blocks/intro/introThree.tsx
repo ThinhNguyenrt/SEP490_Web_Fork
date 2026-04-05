@@ -1,5 +1,6 @@
 import React from 'react';
 import StarInsideCircleIcon from '../../../../assets/myWeb/star-inside-circle 1.png';
+import { resolveImageUrl } from '@/services/portfolio.api';
 
 interface IntroThreeProps {
   data: {
@@ -35,7 +36,7 @@ const IntroThree: React.FC<IntroThreeProps> = ({ data }) => {
       {avatar && (
         <div className="mb-6 flex justify-center">
           <img
-            src={avatar}
+            src={resolveImageUrl(avatar)}
             alt={displayName}
             className="w-28 h-28 rounded-full object-cover"
           />

@@ -2,6 +2,8 @@ export interface CompanyPost {
   postId: number;
   companyId: number;
   companyName: string;
+  companyAvatar: string;
+  mediaUrl: string;
   position: string;
   address: string;
   salary: string;

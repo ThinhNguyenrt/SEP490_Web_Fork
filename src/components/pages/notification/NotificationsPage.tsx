@@ -48,11 +48,6 @@ export default function NotificationsPage() {
                 Cập nhật những hoạt động mới nhất của bạn trên SkillSnap.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="px-4.5 py-2 bg-gray-100  text-gray-700  font-normal rounded-lg hover:bg-gray-200  transition-all cursor-pointer shadow-sm">
-                Đánh dấu đọc tất cả
-              </button>
-            </div>
           </div>
         </header>
       </div>

@@ -2,19 +2,43 @@ import { useEffect, useState } from "react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
 import { CompanyTab } from "./CompanyTab";
-import { mockCompanyPosts } from "@/data/mockCompanyPost";
 import { useAppSelector } from "@/store/hook";
+import { CompanyPost } from "@/types/companyPost";
+import { notify } from "@/lib/toast";
 
 type TabType = "company" | "community";
 
 export default function TalentSavePost() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
   const [isLoading, setIsLoading] = useState(false);
-  const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]); // Lưu danh sách bài viết đã lưu
+  const [communitySavedPosts, setCommunitySavedPosts] = useState<CommunityPost[]>([]); // Lưu danh sách bài viết đã lưu
   // Giả sử lọc dữ liệu cho từng tab
 
-  const communityData = savedPosts;
   const { accessToken } = useAppSelector((state) => state.auth);
+  const [companySavedPosts, setCompanySavedPosts] = useState<CompanyPost[]>([]);
+
+    const fetchCompanySavedPosts = async () => {
+      if (!accessToken) return;
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
+          {
+            // Thay endpoint thực tế của bạn
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+        const data = await response.json();
+        setCompanySavedPosts(data.items);
+        console.log("data: ", data.items);
+      } catch (error) {
+        notify.error("Lỗi khi tải bài viết đã lưu");
+      } finally {
+        setIsLoading(false);
+      }
+    };
   const fetchTalentSavePosts = async () => {
     if (isLoading) return;
 
@@ -32,10 +56,10 @@ export default function TalentSavePost() {
       if (response.ok) {
         const data = await response.json();
         console.log("Fetched saved posts:", data.items);
-        setSavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
+        setCommunitySavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
       }
     } catch (error) {
-      console.error("Lỗi khi fetch posts:", error);
+      notify.error("Lỗi khi tải bài viết đã lưu");
     } finally {
       setIsLoading(false);
     }
@@ -43,6 +67,8 @@ export default function TalentSavePost() {
   useEffect(() => {
     if (activeTab === "community") {
       fetchTalentSavePosts();
+    }else {
+      fetchCompanySavedPosts();
     }
   }, [activeTab]);
 
@@ -80,22 +106,22 @@ export default function TalentSavePost() {
             Bạn có{" "}
             <span className="font-bold">
               {activeTab === "company"
-                ? mockCompanyPosts.length
-                : communityData.length}
+                ? companySavedPosts.length
+                : communitySavedPosts.length}
             </span>{" "}
             bài lưu
           </p>
         </div>
         {/* Dynamic Content */}
         {activeTab === "company" ? (
-          mockCompanyPosts.length > 0 ? (
-            <CompanyTab />
+          companySavedPosts.length > 0 ? (
+            <CompanyTab companySavedPosts={companySavedPosts} />
           ) : (
             <EmptyState />
           )
-        ) : savedPosts.length > 0 ? (
+        ) : communitySavedPosts.length > 0 ? (
           <div className="space-y-6">
-            {savedPosts.map((post: CommunityPost) => (
+            {communitySavedPosts.map((post: CommunityPost) => (
               <CommunityPostCard
                 key={post.id}
                 id={post.id}

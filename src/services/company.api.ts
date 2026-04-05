@@ -1,4 +1,4 @@
-import { CompanyPostsPaginatedResponse, CompanyPostDetail, CompanyPost } from '@/types/companyPost';
+import { CompanyPostsPaginatedResponse, CompanyPostDetail } from '@/types/companyPost';
 
 /**
  * Company Posts API Service
@@ -472,18 +472,4 @@ export const createCompanyPost = async (
     }
     throw new Error("Network error. Please check your internet connection.");
   }
-};
-
-export const fetchSavedPosts = async (accessToken: string, userId: number): Promise<CompanyPost[]> => {
-  const response = await fetch(`${API_BASE_URL}/company-posts/${userId}/save`, { // Thay endpoint thực tế của bạn
-    headers: {
-      Authorization: `Bearer ${accessToken}`
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Không thể tải danh sách bài viết đã lưu");
-  }
-
-  return await response.json();
 };

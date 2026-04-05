@@ -39,3 +39,12 @@ export const createIntroThreeDraft = (value: unknown): IntroThreeDraft => {
     avatar: toText(data.avatar),
   };
 };
+
+export const createEmptyIntroThreeDraft = (): IntroThreeDraft => ({
+  fullName: "",
+  school: "",
+  department: "",
+  studyField: "",
+  gpa: "",
+  avatar: "",
+});

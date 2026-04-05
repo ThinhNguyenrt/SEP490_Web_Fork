@@ -461,74 +461,29 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
         };
       }
 
-      if (normalizedVariant === "SKILLTHREE") {
-        return [{ name: "", description: "" }];
-      }
-
-      return [{ name: "" }];
+      return [];
 
     case "EDUCATION":
-      if (normalizedVariant === "EDUCATIONTHREE") {
-        return [{ time: "", gpa: "", qualified: "", description: "" }];
-      }
-
-      if (normalizedVariant === "EDUCATIONTWO") {
-        return [{ schoolName: "", time: "", department: "", description: "" }];
-      }
-
-      return [{ schoolName: "", time: "", department: "", description: "" }];
+      return [];
 
     case "EXPERIMENT":
-      return [
-        {
-          jobName: "",
-          address: "",
-          startDate: "",
-          endDate: "",
-          description: "",
-        },
-      ];
+      return [];
 
     case "PROJECT":
-      if (normalizedVariant === "PROJECTTWO") {
-        return [
-          {
-            name: "",
-            description: "",
-            action: "",
-            publisher: "",
-            projectLinks: [],
-          },
-        ];
-      }
-
-      if (normalizedVariant === "PROJECTTHREE") {
-        return [{ name: "", publisher: "", time: "", description: "", action: "" }];
-      }
-
-      return [
-        {
-          name: "",
-          description: "",
-          role: "",
-          technology: "",
-          image: "",
-          projectLinks: [],
-        },
-      ];
+      return [];
 
     case "DIPLOMA":
-      return [{ name: "", issuer: "", provider: "", date: "", link: "" }];
+      return [];
 
     case "AWARD":
-      return [{ name: "", date: "", organization: "", description: "" }];
+      return [];
 
     case "ACTIVITIES":
-      return [{ name: "", date: "", description: "" }];
+      return [];
 
     case "OTHERINFO":
       if (normalizedVariant === "OTHERONE") {
-        return [{ detail: "" }];
+        return [];
       }
 
       if (normalizedVariant === "OTHERTWO" || normalizedVariant === "OTHERTHREE" || normalizedVariant === "OTHERFOUR") {
@@ -536,11 +491,11 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
       }
 
       if (normalizedVariant === "OTHERFIVE" || normalizedVariant === "OTHERSIX") {
-        return [{ name: "" }];
+        return [];
       }
 
       if (normalizedVariant === "OTHERSEVEN") {
-        return [{ name: "", detail: "" }];
+        return [];
       }
 
       if (normalizedVariant === "OTHEREIGHT") {
@@ -553,19 +508,19 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
         };
       }
 
-      return [{ detail: "" }];
+      return [];
 
     case "REFERENCE":
-      return [{ name: "", position: "", mail: "", phone: "" }];
+      return [];
 
     case "RESEARCH":
-      return [{ name: "", time: "", description: "", link: "" }];
+      return [];
 
     case "TEACHING":
-      return [{ subject: "", teachingplace: "" }];
+      return [];
 
     case "TYPICALCASE":
-      return [{ patient: "", age: "", caseName: "", stage: "", regiment: "" }];
+      return [];
 
     default:
       return {};
@@ -593,9 +548,14 @@ const shouldUseObjectData = (type: string, variant: string): boolean => {
 
 const getTemplateName = (
   templateId: number,
-  portfolioNames: Map<number, string>,
+  templates: PortfolioResponse[],
+  templateNames: Record<number, string>,
 ): string => {
-  return portfolioNames.get(templateId) ?? `Template ${templateId}`;
+  const index = templates.findIndex((t) => t.portfolioId === templateId);
+  if (index >= 0 && templateNames[index]) {
+    return templateNames[index];
+  }
+  return `Template ${templateId}`;
 };
 
 const getFirstProjectLink = (item: Record<string, unknown>): string => {
@@ -631,8 +591,14 @@ export default function CreatePortfolio() {
   // Get user authentication data
   const { user, accessToken } = useAppSelector((state) => state.auth);
 
-  // Empty portfolio names map (templates are displayed with default names)
-  const portfolioNames: Map<number, string> = new Map();
+  // Portfolio template display names by index
+  const TEMPLATE_DISPLAY_NAMES: Record<number, string> = {
+    0: "Hồ sơ xin việc",
+    1: "Hồ sơ xin thực tập",
+    2: "Hồ sơ xin học bổng",
+    3: "Hồ sơ xin học bổng",
+    4: "Hồ sơ xin thực tập",
+  };
 
   const [activeTab, setActiveTab] = useState<EditorTab>(isEditMode ? "component" : "template");
   const [templates, setTemplates] = useState<PortfolioResponse[]>([]);
@@ -757,7 +723,14 @@ export default function CreatePortfolio() {
   }, [activeEditorBlockType, activeEditorBlockVariant, blocks, selectedBlockId, showBlockSelector]);
 
   const selectedBlock = useMemo(
-    () => blocks.find((block) => block.id === selectedBlockId) ?? null,
+    () => {
+      const found = blocks.find((block) => block.id === selectedBlockId) ?? null;
+      console.log("📋 [selectedBlock useMemo] selectedBlockId:", selectedBlockId, "found:", found);
+      if (found) {
+        console.log("📋 [selectedBlock useMemo] Block data:", found.data);
+      }
+      return found;
+    },
     [blocks, selectedBlockId],
   );
 
@@ -865,13 +838,17 @@ export default function CreatePortfolio() {
 
   const isEditingIntroFive = useMemo<boolean>(() => {
     if (!selectedBlock) {
+      console.log("🎯 [isEditingIntroFive useMemo] No selectedBlock");
       return false;
     }
 
-    return (
+    const result = (
       normalizeBlockType(selectedBlock.type) === "INTRO"
       && selectedBlock.variant.toUpperCase() === "INTROFIVE"
     );
+    
+    console.log("🎯 [isEditingIntroFive useMemo] selectedBlock type:", selectedBlock.type, "variant:", selectedBlock.variant, "result:", result);
+    return result;
   }, [selectedBlock]);
 
   const isEditingSkillOne = selectedBlockVariantKey === "SKILL.SKILLONE";
@@ -1279,6 +1256,19 @@ export default function CreatePortfolio() {
     return createExperienceOneDraft(selectedBlock.data);
   }, [isEditingExperienceOne, selectedBlock]);
 
+  const experienceOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingExperienceOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createExperienceOneDraft(item));
+    }
+
+    return [];
+  }, [isEditingExperienceOne, selectedBlock]);
+
   const experienceOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingExperienceOne) {
       return "experience-one-editor";
@@ -1584,20 +1574,43 @@ export default function CreatePortfolio() {
   }, [isEditingResearchOne, selectedBlock]);
 
   const updateSelectedBlockData = (updater: (current: unknown) => unknown) => {
+    console.log("🔵 [updateSelectedBlockData] Called - selectedBlockId:", selectedBlockId);
     if (selectedBlockId === null) {
+      console.log("🔴 [updateSelectedBlockData] selectedBlockId is null, returning");
       return;
     }
 
-    setBlocks((prevBlocks) =>
-      prevBlocks.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              data: updater(deepClone(block.data)),
-            }
-          : block,
-      ),
-    );
+    console.log("🟡 [updateSelectedBlockData] Current blocks before update:", blocks);
+    
+    setBlocks((prevBlocks) => {
+      const blockFound = prevBlocks.some(b => b.id === selectedBlockId);
+      console.log("🟡 [updateSelectedBlockData] Looking for block with id", selectedBlockId, "found:", blockFound);
+      
+      const newBlocks = prevBlocks.map((block) => {
+        if (block.id === selectedBlockId) {
+          console.log("🟡 [updateSelectedBlockData] Found matching block:", block.id);
+          const deepClonedData = deepClone(block.data);
+          console.log("🟡 [updateSelectedBlockData] Deep cloned data:", deepClonedData);
+          const updatedData = updater(deepClonedData);
+          console.log("🟡 [updateSelectedBlockData] After updater, new data:", updatedData);
+          return {
+            ...block,
+            data: updatedData,
+          };
+        }
+        return block;
+      });
+      
+      // Verify the update actually happened
+      const updatedBlockFound = newBlocks.some(b => b.id === selectedBlockId);
+      console.log("🟢 [updateSelectedBlockData] After mapping, block found:", updatedBlockFound);
+      if (updatedBlockFound) {
+        const updatedBlock = newBlocks.find(b => b.id === selectedBlockId);
+        console.log("🟢 [updateSelectedBlockData] Updated block data:", updatedBlock?.data);
+      }
+      console.log("🟢 [updateSelectedBlockData] New blocks array:", newBlocks);
+      return newBlocks;
+    });
   };
 
   // Helper function to reset editor form after saving
@@ -1822,15 +1835,25 @@ export default function CreatePortfolio() {
 
       console.log("💾 Saving portfolio:", portfolioData);
 
-      // Call real API to create portfolio
+      // Collect all image files that were stored during editing
+      const portfolioFiles = portfolioService.getPortfolioImageFiles();
+      console.log("📸 Collected", portfolioFiles.length, "image files for portfolio");
+
+      // Call real API to create portfolio with files
       try {
         const result = await portfolioService.createPortfolioAPI(
           portfolioData,
           accessToken,
+          portfolioFiles,
         );
 
         console.log("✅ Portfolio created successfully:", result);
         notify.success("Hồ sơ đã được lưu thành công!");
+
+        // DON'T clear stored image files immediately - keep them in case
+        // backend returns reference IDs that need blob URLs for display
+        // Files will be cleared only when leaving the page or during logout
+        // portfolioService.clearPortfolioImageFiles();
 
         // Navigate to portfolio management page with refetch flag
         navigate("/portfolioManagement?refresh=true", { replace: true });
@@ -1868,6 +1891,7 @@ export default function CreatePortfolio() {
       nextData.avatar = nextDraft.avatar;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleIntroOneCancel = () => {
@@ -1892,6 +1916,7 @@ export default function CreatePortfolio() {
       nextData.avatar = nextDraft.avatar;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleIntroTwoCancel = () => {
@@ -1916,6 +1941,7 @@ export default function CreatePortfolio() {
       nextData.avatar = nextDraft.avatar;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleIntroThreeCancel = () => {
@@ -1940,6 +1966,7 @@ export default function CreatePortfolio() {
       nextData.avatar = nextDraft.avatar;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleIntroFourCancel = () => {
@@ -1948,22 +1975,31 @@ export default function CreatePortfolio() {
   };
 
   const handleIntroFiveSave = (nextDraft: IntroFiveDraft) => {
+    console.log("🔵 [handleIntroFiveSave] Called with nextDraft:", nextDraft);
     if (!selectedBlock || !isEditingIntroFive) {
+      console.log("🔴 [handleIntroFiveSave] Early return - selectedBlock:", selectedBlock, "isEditingIntroFive:", isEditingIntroFive);
       return;
     }
 
+    console.log("🟡 [handleIntroFiveSave] Before updateSelectedBlockData - selectedBlock.data:", selectedBlock.data);
+    
     updateSelectedBlockData((current) => {
+      console.log("🟡 [handleIntroFiveSave] Inside updater function - current data:", current);
       const nextData = toRecord(current);
       nextData.fullName = nextDraft.fullName;
       nextData.name = nextDraft.fullName;
       nextData.school = nextDraft.school;
       nextData.department = nextDraft.department;
-      nextData.studyField = nextDraft.studyField;
-      nextData.title = nextDraft.studyField;
-      nextData.gpa = nextDraft.gpa;
+      nextData.experience = nextDraft.experience;
       nextData.avatar = nextDraft.avatar;
+      nextData.studyField = nextDraft.studyField;
+      nextData.title = nextDraft.title;
+      console.log("🟢 [handleIntroFiveSave] Updated nextData:", nextData);
       return nextData;
     });
+    
+    console.log("🟢 [handleIntroFiveSave] Calling resetEditorFormAfterSave");
+    resetEditorFormAfterSave();
   };
 
   const handleIntroFiveCancel = () => {
@@ -2038,11 +2074,10 @@ export default function CreatePortfolio() {
 
     updateSelectedBlockData((current) => {
       const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
 
       return [
+        ...currentItems,
         {
-          ...currentItem,
           schoolName: nextDraft.schoolName,
           school: nextDraft.schoolName,
           time: nextDraft.time,
@@ -2053,6 +2088,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleEducationOneListSave = (educationList: EducationOneDraft[]) => {
@@ -2071,6 +2107,7 @@ export default function CreatePortfolio() {
         description: education.description,
       }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleEducationOneCancel = () => {
@@ -2096,6 +2133,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleEducationThreeCancel = () => {
@@ -2121,6 +2159,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleEducationTwoCancel = () => {
@@ -2137,11 +2176,10 @@ export default function CreatePortfolio() {
 
     updateSelectedBlockData((current) => {
       const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
 
       return [
+        ...currentItems,
         {
-          ...currentItem,
           jobName: nextDraft.jobName,
           address: nextDraft.address,
           startDate,
@@ -2151,6 +2189,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleExperienceOneCancel = () => {
@@ -2187,6 +2226,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleProjectOneListSave = (projectList: ProjectOneDraft[]) => {
@@ -2214,6 +2254,7 @@ export default function CreatePortfolio() {
         };
       });
     });
+    resetEditorFormAfterSave();
   };
 
   const handleProjectOneCancel = () => {
@@ -2243,6 +2284,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleProjectTwoCancel = () => {
@@ -2272,6 +2314,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleProjectThreeCancel = () => {
@@ -2300,6 +2343,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleAwardOneListSave = (awardList: AwardOneDraft[]) => {
@@ -2317,6 +2361,7 @@ export default function CreatePortfolio() {
         description: award.description,
       }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleAwardOneCancel = () => {
@@ -2343,6 +2388,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleActivityOneListSave = (activityList: ActivityOneDraft[]) => {
@@ -2358,6 +2404,7 @@ export default function CreatePortfolio() {
         description: activity.description,
       }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleActivityOneCancel = () => {
@@ -2373,6 +2420,7 @@ export default function CreatePortfolio() {
     updateSelectedBlockData(() => {
       return nextDraft.interests.map((interestName) => ({ detail: interestName }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoOneCancel = () => {
@@ -2390,6 +2438,7 @@ export default function CreatePortfolio() {
       nextData.detail = nextDraft.detail;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoTwoCancel = () => {
@@ -2405,6 +2454,7 @@ export default function CreatePortfolio() {
     updateSelectedBlockData(() => {
       return nextDraft.topics.map((topicName) => ({ name: topicName }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoFiveCancel = () => {
@@ -2420,6 +2470,7 @@ export default function CreatePortfolio() {
     updateSelectedBlockData(() => {
       return nextDraft.softSkills.map((skillName) => ({ name: skillName }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoSixCancel = () => {
@@ -2443,6 +2494,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoSevenCancel = () => {
@@ -2460,6 +2512,7 @@ export default function CreatePortfolio() {
       nextData.detail = nextDraft.detail;
       return nextData;
     });
+    resetEditorFormAfterSave();
   };
 
   const handleOtherInfoEightCancel = () => {
@@ -2488,6 +2541,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleReferenceOneCancel = () => {
@@ -2516,6 +2570,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleCertificateOneListSave = (certificateList: CertificateOneDraft[]) => {
@@ -2533,6 +2588,7 @@ export default function CreatePortfolio() {
         link: certificate.link,
       }));
     });
+    resetEditorFormAfterSave();
   };
 
   const handleCertificateOneCancel = () => {
@@ -2556,6 +2612,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleTeachingOneCancel = () => {
@@ -2582,6 +2639,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleTypicalCaseOneCancel = () => {
@@ -2608,6 +2666,7 @@ export default function CreatePortfolio() {
         },
       ];
     });
+    resetEditorFormAfterSave();
   };
 
   const handleResearchOneCancel = () => {
@@ -3127,8 +3186,10 @@ export default function CreatePortfolio() {
       <ExperienceOneEditor
         key={experienceOneEditorKey}
         initialData={experienceOneInitialData}
+        existingItems={experienceOneListData}
         onSave={handleExperienceOneSave}
         onCancel={handleExperienceOneCancel}
+        onDeleteItem={(index) => removeSelectedArrayItem(index)}
       />
     );
   };
@@ -3819,12 +3880,12 @@ export default function CreatePortfolio() {
                     >
                       <img
                         src={TemplatePreviewImage}
-                        alt={getTemplateName(template.portfolioId, portfolioNames)}
+                        alt={getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
                         className="h-44 w-full object-cover"
                       />
                       <div className="px-3 py-2">
                         <p className="text-sm font-semibold text-slate-800">
-                          {getTemplateName(template.portfolioId, portfolioNames)}
+                          {getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
                         </p>
                         <p className="text-xs text-slate-500">
                           {template.blocks.length} block(s)
@@ -3852,7 +3913,7 @@ export default function CreatePortfolio() {
                             ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
                             : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
                         }`}
-                        title={!isAllowed ? `Loại block này không được hỗ trợ bởi template ${getTemplateName(activeTemplateId ?? 0, portfolioNames)}` : ""}
+                        title={!isAllowed ? `Loại block này không được hỗ trợ bởi template ${getTemplateName(activeTemplateId ?? 0, templates, TEMPLATE_DISPLAY_NAMES)}` : ""}
                       >
                         <p className="text-sm font-semibold text-slate-800">{item.label}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{item.description}</p>
@@ -3882,7 +3943,8 @@ export default function CreatePortfolio() {
                       <h2 className="text-lg font-bold text-slate-900">
                         {getTemplateName(
                           activeTemplateId,
-                          portfolioNames,
+                          templates,
+                          TEMPLATE_DISPLAY_NAMES,
                         )}
                       </h2>
                       <p className="mt-2 text-sm text-slate-600">

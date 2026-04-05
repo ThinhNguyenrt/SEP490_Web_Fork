@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectItem } from '@/services/portfolio.api';
+import { ProjectItem, resolveImageUrl } from '@/services/portfolio.api';
 import StartupIcon from '../../../../assets/myWeb/start-up 2.png';
 
 interface ProjectOneProps {
@@ -30,7 +30,7 @@ const ProjectOne: React.FC<ProjectOneProps> = ({ data }) => {
               <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
                 {project.image && (
                   <img
-                    src={project.image}
+                    src={resolveImageUrl(project.image)}
                     alt={project.name}
                     className="w-full h-40 object-cover"
                   />

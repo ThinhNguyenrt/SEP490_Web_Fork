@@ -3,10 +3,11 @@ import {
   type ChangeEvent,
   useRef,
   useState,
+  useMemo,
+  useEffect,
 } from "react";
 import { type IntroTwoDraft } from "./introTwoDraft";
 import { portfolioService } from "@/services/portfolio.api";
-import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
 type IntroTwoEditorProps = {
@@ -18,9 +19,29 @@ type IntroTwoEditorProps = {
 export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroTwoEditorProps) {
   const [draft, setDraft] = useState<IntroTwoDraft>(initialData);
   const [isDirty, setIsDirty] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const { accessToken } = useAppSelector((state) => state.auth);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (avatarBlobUrl) {
+        URL.revokeObjectURL(avatarBlobUrl);
+      }
+    };
+  }, [avatarBlobUrl]);
+
+  const avatarPreviewUrl = useMemo(() => {
+    // If new file selected, use blob URL
+    if (avatarBlobUrl) {
+      return avatarBlobUrl;
+    }
+    if (draft.avatar && (draft.avatar.startsWith("http://") || draft.avatar.startsWith("https://"))) {
+      return draft.avatar;
+    }
+    return null;
+  }, [avatarBlobUrl, draft.avatar]);
 
   const updateDraftField = (field: keyof IntroTwoDraft, value: string) => {
     setDraft((prevDraft) => ({
@@ -30,7 +51,7 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
     setIsDirty(true);
   };
 
-  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -46,32 +67,28 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
       return;
     }
 
-    try {
-      setIsUploadingAvatar(true);
-      console.log("📸 Uploading avatar:", file.name);
-
-      if (!accessToken) {
-        notify.error("Bạn cần đăng nhập để tải ảnh.");
-        return;
-      }
-
-      // Upload image to server and get URL back
-      const imageUrl = await portfolioService.uploadPortfolioImage(file, accessToken);
-      console.log("✅ Avatar uploaded successfully:", imageUrl);
-
-      // Store URL instead of base64 data
-      updateDraftField("avatar", imageUrl);
-      notify.success("Ảnh đã tải lên thành công!");
-    } catch (error) {
-      console.error("❌ Avatar upload error:", error);
-      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
-    } finally {
-      setIsUploadingAvatar(false);
-      event.target.value = "";
-    }
+    console.log("📸 Avatar selected:", file.name);
+    
+    // Store file and create preview blob URL
+    setAvatarFile(file);
+    const blobUrl = URL.createObjectURL(file);
+    setAvatarBlobUrl(blobUrl);
+    
+    // Create a temporary reference for the file name
+    const tempReference = `avatar_${Date.now()}`;
+    updateDraftField("avatar", tempReference);
+    
+    notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    event.target.value = "";
   };
 
   const handleSave = () => {
+    // If there's a new file selected, store it for portfolio upload
+    if (avatarFile && draft.avatar) {
+      portfolioService.storePortfolioImageFile(draft.avatar, avatarFile);
+      console.log("📸 Avatar file stored for portfolio creation with reference:", draft.avatar);
+    }
+    
     onSave({
       fullName: draft.fullName.trim(),
       school: draft.school.trim(),
@@ -83,7 +100,7 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
     setIsDirty(false);
   };
 
-  const hasAvatar = draft.avatar.trim().length > 0;
+  const hasAvatar = avatarPreviewUrl !== null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
@@ -102,11 +119,15 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
       <div className="space-y-4 p-3">
         <div className="rounded-xl border border-[#d7dfeb] bg-white p-3">
           <div className="mb-3 flex justify-center">
-            {hasAvatar ? (
+            {hasAvatar && avatarPreviewUrl ? (
               <img
-                src={draft.avatar}
+                src={avatarPreviewUrl}
                 alt="Avatar"
                 className="h-24 w-24 rounded-full object-cover"
+                onError={(e) => {
+                  console.warn("❌ Failed to load avatar preview");
+                  e.currentTarget.style.display = "none";
+                }}
               />
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 text-2xl font-semibold text-slate-600">
@@ -120,7 +141,6 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
             type="file"
             accept="image/*"
             onChange={handleAvatarUpload}
-            disabled={isUploadingAvatar}
             className="hidden"
           />
 
@@ -128,15 +148,18 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
-              disabled={isUploadingAvatar}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#edf3ff] text-sm font-semibold text-[#4A79E8] transition-colors hover:bg-[#e2ebff]"
             >
-              <Upload size={15} /> {isUploadingAvatar ? "Đang tải..." : "Tải ảnh lên"}
+              <Upload size={15} /> Tải ảnh lên
             </button>
             <button
               type="button"
-              onClick={() => updateDraftField("avatar", "")}
-              disabled={!hasAvatar || isUploadingAvatar}
+              onClick={() => {
+                setAvatarFile(null);
+                setAvatarBlobUrl(null);
+                updateDraftField("avatar", "");
+              }}
+              disabled={!hasAvatar}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#eef1f6] text-sm font-semibold text-slate-500 transition-colors hover:bg-[#e2e8f0] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 size={15} /> Xóa ảnh

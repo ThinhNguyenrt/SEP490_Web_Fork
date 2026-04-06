@@ -4,6 +4,8 @@
  */
 import { Company } from "@/types/company";
 
+export type { Company };
+
 export interface EmployeeProfile {
   id: number;
   userId: number;

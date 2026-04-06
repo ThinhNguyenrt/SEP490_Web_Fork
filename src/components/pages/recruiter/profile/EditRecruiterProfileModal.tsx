@@ -13,27 +13,14 @@ import { useEffect, useState, useRef } from "react";
 import { notify } from "@/lib/toast";
 import { useAppSelector } from "@/store/hook";
 import { profileService } from "@/services/profile.api";
+import { Company } from "@/types/company";
 
 interface EditRecruiterProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyId: number | string;
-  initialProfile?: {
-    companyName?: string;
-    activityField?: string;
-    address?: string;
-    description?: string;
-    avatar?: string;
-    coverImage?: string;
-  } | null;
-  onProfileUpdated?: (profile: {
-    companyName?: string;
-    activityField?: string;
-    address?: string;
-    description?: string;
-    avatar?: string;
-    coverImage?: string;
-  }) => void;
+  initialProfile?: Partial<Company> | null;
+  onProfileUpdated?: (profile: Partial<Company>) => void;
 }
 
 const EditRecruiterProfileModal = ({

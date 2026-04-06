@@ -10,8 +10,6 @@ import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.a
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { notify } from "@/lib/toast";
 
-const mockCandidates: PortfolioMainBlockItem[] = [];
-
 // Helper to extract searchable data from portfolio
 interface PortfolioMetadata {
   portfolioId: number;

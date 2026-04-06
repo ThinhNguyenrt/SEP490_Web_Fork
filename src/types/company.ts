@@ -1,11 +1,14 @@
 export interface Company {
-  companyId: number;
+  id: number;
+  userId: number;
+  email?: string;
+  status?: string;
+  createAt?: string;
   companyName: string;
   activityField: string;
-  coverImage: string; // Ảnh đèn treo giống trong thiết kế của bạn
-  avatar: string;
+  coverImage: string | null;
+  avatar: string | null;
   taxIdentification: number;
   address: string;
-  userId: number;
-  description: string;
+  description: string | null;
 }

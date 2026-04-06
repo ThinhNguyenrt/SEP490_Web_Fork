@@ -12,6 +12,7 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { notify } from "@/lib/toast";
 import { useAppSelector } from "@/store/hook";
+import { profileService } from "@/services/profile.api";
 
 interface EditRecruiterProfileModalProps {
   isOpen: boolean;
@@ -169,46 +170,23 @@ const EditRecruiterProfileModal = ({
         return;
       }
 
-      const API_BASE_URL =
-        import.meta.env.VITE_API_BASE_URL || "/api";
-      const endpoint = `${API_BASE_URL}/Company/${companyId}`;
-
       console.log("💾 Saving recruiter profile changes...");
       console.log("📦 Form state:", formState);
       console.log("📦 Files:", fileState);
-      console.log("📡 Endpoint:", endpoint);
 
-      const formData = new FormData();
-      formData.append("companyName", formState.companyName);
-      formData.append("activityField", formState.activityField);
-      formData.append("address", formState.address);
-      formData.append("description", formState.description);
+      const updatedProfile = await profileService.updateCompanyProfile(
+        companyId,
+        accessToken,
+        {
+          companyName: formState.companyName,
+          activityField: formState.activityField,
+          address: formState.address,
+          description: formState.description,
+          avatarFile: fileState.avatarFile || undefined,
+          coverImageFile: fileState.coverImageFile || undefined,
+        }
+      );
 
-      // Append files if selected
-      if (fileState.avatarFile) {
-        formData.append("avatar", fileState.avatarFile);
-      }
-      if (fileState.coverImageFile) {
-        formData.append("coverImage", fileState.coverImageFile);
-      }
-
-      const response = await fetch(endpoint, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg =
-          errorData.message || `Failed to update profile (${response.status})`;
-        console.error("❌ Update failed:", errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const updatedProfile = await response.json();
       console.log("✅ Profile updated successfully:", updatedProfile);
 
       notify.success("Thông tin công ty đã được cập nhật");

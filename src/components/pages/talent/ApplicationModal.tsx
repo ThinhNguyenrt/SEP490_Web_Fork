@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createApplication } from '@/services/application.api';
 import { fetchPortfoliosByEmployeeId } from '@/services/portfolio.api';
 import { PortfolioMainBlockItem } from '@/services/portfolio.api';
@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 
 interface ApplicationModalProps {
   postId: number;
+  companyId: number;
   isOpen: boolean;
   onClose: () => void;
   onSubmitSuccess?: (applicationId: number) => void;
@@ -16,6 +17,7 @@ interface ApplicationModalProps {
 
 export const ApplicationModal = ({
   postId,
+  companyId,
   isOpen,
   onClose,
   onSubmitSuccess,
@@ -30,6 +32,17 @@ export const ApplicationModal = ({
 
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const user = useAppSelector((state) => state.auth.user);
+
+  // Store postId and companyId in ref to ensure they don't change during submission
+  const postIdRef = useRef<number>(postId);
+  const companyIdRef = useRef<number>(companyId);
+
+  // Update refs when props change
+  useEffect(() => {
+    postIdRef.current = postId;
+    companyIdRef.current = companyId;
+    console.log("📋 ApplicationModal props updated:", { postId, companyId, isOpen });
+  }, [postId, companyId, isOpen]);
 
   // Fetch portfolios when modal opens
   const loadPortfolios = useCallback(async () => {
@@ -85,9 +98,25 @@ export const ApplicationModal = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      console.log("💾 Submitting application...");
+      
+      // Use refs to get the current/stable values
+      const safePostId = postIdRef.current;
+      const safeCompanyId = companyIdRef.current;
+      
+      console.log("💾 Submitting application...", { 
+        postId: safePostId, 
+        companyId: safeCompanyId, 
+        portfolioId: selectedPortfolioId 
+      });
+      
+      if (!safePostId || safePostId <= 0) {
+        throw new Error(`Invalid postId: ${safePostId}`);
+      }
+      if (!safeCompanyId || safeCompanyId <= 0) {
+        throw new Error(`Invalid companyId: ${safeCompanyId}`);
+      }
 
-      const result = await createApplication(postId, selectedPortfolioId, accessToken);
+      const result = await createApplication(safePostId, selectedPortfolioId, safeCompanyId, accessToken);
       console.log("✅ Application submitted successfully:", result);
 
       onSubmitSuccess?.(result.applicationId);

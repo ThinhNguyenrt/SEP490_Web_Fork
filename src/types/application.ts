@@ -30,6 +30,7 @@ export interface Application {
 export interface CreateApplicationRequest {
   postId: number;
   portfolioId: number;
+  companyId: number;
 }
 
 /**

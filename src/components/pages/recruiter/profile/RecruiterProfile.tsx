@@ -25,7 +25,8 @@ import { notify } from "@/lib/toast";
 import EditRecruiterProfileModal from "./EditRecruiterProfileModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { useEffect, useState } from "react";
-import { profileService, Company } from "@/services/profile.api";
+import { profileService } from "@/services/profile.api";
+import { Company } from "@/types/company";
 
 export default function RecruiterProfile() {
   const navigate = useNavigate();
@@ -91,9 +92,15 @@ export default function RecruiterProfile() {
   const displayAddress = companyProfile?.address || "Vietnam";
   const displayDescription = companyProfile?.description || "Company description";
 
-  const handleProfileUpdated = (updatedProfile: Company) => {
+  const handleProfileUpdated = (updatedProfile: Partial<Company>) => {
     console.log("🔄 Profile updated, refreshing display...");
-    setCompanyProfile(updatedProfile);
+    if (companyProfile) {
+      const mergedProfile = { ...companyProfile, ...updatedProfile };
+      setCompanyProfile(mergedProfile);
+    } else {
+      // If no profile exists yet, use the updated profile as is
+      setCompanyProfile(updatedProfile as Company);
+    }
   };
 
   const handleInterviewScheduleClick = () => {

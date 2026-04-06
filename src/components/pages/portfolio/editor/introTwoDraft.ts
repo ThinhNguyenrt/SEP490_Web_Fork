@@ -1,9 +1,11 @@
 export type IntroTwoDraft = {
   fullName: string;
+  position: string;
+  yearOfStudy: string;
   school: string;
-  department: string;
   studyField: string;
-  gpa: string;
+  email: string;
+  phoneNumber: string;
   avatar: string;
 };
 
@@ -32,10 +34,12 @@ export const createIntroTwoDraft = (value: unknown): IntroTwoDraft => {
 
   return {
     fullName: toText(data.fullName ?? data.name),
+    position: toText(data.position ?? data.department ?? data.title),
+    yearOfStudy: toText(data.yearOfStudy),
     school: toText(data.school ?? data.schoolName),
-    department: toText(data.department),
-    studyField: toText(data.studyField ?? data.title),
-    gpa: toText(data.gpa),
+    studyField: toText(data.studyField),
+    email: toText(data.email),
+    phoneNumber: toText(data.phoneNumber ?? data.phone),
     avatar: toText(data.avatar),
   };
 };

@@ -19,9 +19,16 @@ type IntroTwoEditorProps = {
 export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroTwoEditorProps) {
   const [draft, setDraft] = useState<IntroTwoDraft>(initialData);
   const [isDirty, setIsDirty] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Debug: Log when component mounts and initialData changes
+  useEffect(() => {
+    console.log("🎯 [IntroTwoEditor] Mounted/updated with initialData:", initialData);
+    console.log("   fullName:", initialData.fullName);
+    console.log("   position:", initialData.position);
+    console.log("   avatar:", initialData.avatar);
+  }, [initialData]);
 
   // Cleanup blob URL on unmount
   useEffect(() => {
@@ -35,10 +42,18 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
   const avatarPreviewUrl = useMemo(() => {
     // If new file selected, use blob URL
     if (avatarBlobUrl) {
+      console.log("📸 Using blob URL for avatar preview");
       return avatarBlobUrl;
     }
+    // If avatar is an HTTP/HTTPS URL, use it directly
     if (draft.avatar && (draft.avatar.startsWith("http://") || draft.avatar.startsWith("https://"))) {
+      console.log("📸 Using HTTP/HTTPS URL for avatar:", draft.avatar.substring(0, 50));
       return draft.avatar;
+    }
+    // For reference IDs or other strings, don't try to display them
+    // They'll be preserved in the data but won't show a preview
+    if (draft.avatar) {
+      console.log("📸 Avatar is a reference/string, won't display preview:", draft.avatar);
     }
     return null;
   }, [avatarBlobUrl, draft.avatar]);
@@ -69,32 +84,36 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
 
     console.log("📸 Avatar selected:", file.name);
     
-    // Store file and create preview blob URL
-    setAvatarFile(file);
+    // Create preview blob URL
     const blobUrl = URL.createObjectURL(file);
     setAvatarBlobUrl(blobUrl);
     
     // Create a temporary reference for the file name
     const tempReference = `avatar_${Date.now()}`;
+    
+    // Automatically store the file for portfolio upload when selected
+    // This ensures the file is available even if the block isn't explicitly saved
+    portfolioService.storePortfolioImageFile(tempReference, file);
+    console.log("📸 Avatar file stored immediately with reference:", tempReference);
+    
     updateDraftField("avatar", tempReference);
     
-    notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    notify.success("Ảnh đã được chọn!");
     event.target.value = "";
   };
 
   const handleSave = () => {
-    // If there's a new file selected, store it for portfolio upload
-    if (avatarFile && draft.avatar) {
-      portfolioService.storePortfolioImageFile(draft.avatar, avatarFile);
-      console.log("📸 Avatar file stored for portfolio creation with reference:", draft.avatar);
-    }
+    // Avatar file is already stored when user uploads it
+    // No need to store it again here
     
     onSave({
       fullName: draft.fullName.trim(),
+      position: draft.position.trim(),
+      yearOfStudy: draft.yearOfStudy.trim(),
       school: draft.school.trim(),
-      department: draft.department.trim(),
       studyField: draft.studyField.trim(),
-      gpa: draft.gpa.trim(),
+      email: draft.email.trim(),
+      phoneNumber: draft.phoneNumber.trim(),
       avatar: draft.avatar,
     });
     setIsDirty(false);
@@ -155,7 +174,6 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
             <button
               type="button"
               onClick={() => {
-                setAvatarFile(null);
                 setAvatarBlobUrl(null);
                 updateDraftField("avatar", "");
               }}
@@ -177,19 +195,28 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-500">Tên trường</label>
+              <label className="text-sm font-semibold text-slate-500">Chức danh / Vị trí</label>
               <input
-                value={draft.school}
-                onChange={(event) => updateDraftField("school", event.target.value)}
+                value={draft.position}
+                onChange={(event) => updateDraftField("position", event.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-500">Khoa</label>
+              <label className="text-sm font-semibold text-slate-500">Sinh viên năm mấy?</label>
               <input
-                value={draft.department}
-                onChange={(event) => updateDraftField("department", event.target.value)}
+                value={draft.yearOfStudy}
+                onChange={(event) => updateDraftField("yearOfStudy", event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-500">Tên trường</label>
+              <input
+                value={draft.school}
+                onChange={(event) => updateDraftField("school", event.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
               />
             </div>
@@ -204,10 +231,21 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-500">Điểm GPA</label>
+              <label className="text-sm font-semibold text-slate-500">Địa chỉ email</label>
               <input
-                value={draft.gpa}
-                onChange={(event) => updateDraftField("gpa", event.target.value)}
+                type="email"
+                value={draft.email}
+                onChange={(event) => updateDraftField("email", event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-500">Số điện thoại</label>
+              <input
+                type="tel"
+                value={draft.phoneNumber}
+                onChange={(event) => updateDraftField("phoneNumber", event.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
               />
             </div>

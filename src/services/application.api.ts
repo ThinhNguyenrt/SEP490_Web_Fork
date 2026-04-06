@@ -29,15 +29,17 @@ const API_BASE_URL = getApiBaseUrl();
  * Create a new job application
  * @param postId - ID of the job post
  * @param portfolioId - ID of the portfolio to submit
+ * @param companyId - ID of the company
  * @param accessToken - Access token for authentication
  */
 export const createApplication = async (
   postId: number,
   portfolioId: number,
+  companyId: number,
   accessToken?: string
 ): Promise<Application> => {
   try {
-    console.log("📡 [createApplication] Starting with postId:", postId, "portfolioId:", portfolioId);
+    console.log("📡 [createApplication] Starting with postId:", postId, "portfolioId:", portfolioId, "companyId:", companyId);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -56,6 +58,7 @@ export const createApplication = async (
     const payload: CreateApplicationRequest = {
       postId,
       portfolioId,
+      companyId,
     };
 
     const fullUrl = `${API_BASE_URL}/applications`;

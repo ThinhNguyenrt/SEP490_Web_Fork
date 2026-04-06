@@ -1922,6 +1922,59 @@ export const getPortfolioImageFiles = (): File[] => {
   return files;
 };
 
+/**
+ * Collect all image files from portfolio blocks and stored files
+ * This ensures files are included even if block editors weren't explicitly saved
+ */
+export const collectPortfolioFilesFromBlocks = (blocks: any[]): File[] => {
+  const collectedFiles: File[] = [];
+  const processedReferences = new Set<string>();
+  
+  console.log("📸 Starting file collection from", blocks.length, "blocks");
+  
+  // Scan through all blocks to find file references
+  const scanBlockForFileReferences = (obj: any, depth = 0): void => {
+    if (!obj || typeof obj !== 'object' || depth > 10) return;
+    
+    if (Array.isArray(obj)) {
+      obj.forEach(item => scanBlockForFileReferences(item, depth + 1));
+    } else {
+      Object.values(obj).forEach(value => {
+        // Check for file reference patterns (avatar_..., image_..., project_...)
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if ((trimmed.startsWith('avatar_') || trimmed.startsWith('image_') || 
+               trimmed.startsWith('project_')) && trimmed.includes('_')) {
+            
+            // Try to get the file from stored files
+            const file = portfolioImageFiles.get(trimmed);
+            if (file && !processedReferences.has(trimmed)) {
+              console.log("📸 Found file reference in block data:", trimmed, "->", file.name);
+              collectedFiles.push(file);
+              processedReferences.add(trimmed);
+            } else if (!file) {
+              console.warn("⚠️ File reference found but file not in storage:", trimmed);
+            }
+          }
+        } else if (typeof value === 'object') {
+          scanBlockForFileReferences(value, depth + 1);
+        }
+      });
+    }
+  };
+  
+  blocks.forEach(block => {
+    if (block.data) {
+      scanBlockForFileReferences(block.data);
+    }
+  });
+  
+  console.log("📸 Collected total of", collectedFiles.length, "files from block data");
+  console.log("📸 Processed references:", Array.from(processedReferences));
+  
+  return collectedFiles;
+};
+
 export const getPortfolioImageFileMap = (): Map<string, string> => {
   const blobUrlMap = new Map<string, string>();
   portfolioImageFiles.forEach((file, referenceId) => {
@@ -2223,6 +2276,7 @@ export const portfolioService = {
   deletePortfolio,
   storePortfolioImageFile,
   getPortfolioImageFiles,
+  collectPortfolioFilesFromBlocks,
   clearPortfolioImageFiles,
   getPortfolioImageFileMap,
   markFileAsUploaded,

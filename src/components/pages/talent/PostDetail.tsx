@@ -25,6 +25,11 @@ export const PostDetail = () => {
   const savedPostIds = useAppSelector((state) => state.savedPosts.savedPostIds);
   const isSaved = postId ? savedPostIds.includes(Number(postId)) : false;
 
+  // Debug: Log postId from URL params
+  useEffect(() => {
+    console.log("🔍 PostDetail - postId from URL params:", postId, "Type:", typeof postId);
+  }, [postId]);
+
   useEffect(() => {
     const loadPostDetail = async () => {
       if (!postId) {
@@ -349,6 +354,7 @@ export const PostDetail = () => {
       {postId && post && (
         <ApplicationModal
           postId={Number(postId)}
+          companyId={post.companyId}
           isOpen={isApplicationModalOpen}
           onClose={() => setIsApplicationModalOpen(false)}
           onSubmitSuccess={handleApplicationSuccess}

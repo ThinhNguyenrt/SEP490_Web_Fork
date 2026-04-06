@@ -3,7 +3,20 @@ import { Mail, Phone } from 'lucide-react';
 import { resolveImageUrl } from '@/services/portfolio.api';
 
 interface IntroTwoProps {
-  data: { fullName?: string; name?: string; title?: string; studyField?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  data: { 
+    fullName?: string; 
+    name?: string; 
+    position?: string;
+    title?: string; 
+    studyField?: string; 
+    description?: string; 
+    avatar?: string; 
+    email?: string; 
+    phoneNumber?: string;
+    phone?: string;
+    yearOfStudy?: string;
+    school?: string;
+  };
 }
 
 /**
@@ -11,12 +24,12 @@ interface IntroTwoProps {
  * Hiển thị thông tin cá nhân với avatar ở sidebar bên trái
  */
 const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
-  const { fullName, name, title, studyField, description, avatar, email, phone } = data;
+  const { fullName, name, position, title, studyField, description, avatar, email, phoneNumber, phone } = data;
   
   // Use fullName first, then fall back to name, then 'Your Name'
   const displayName = fullName || name || 'Your Name';
-  // Use title first, then fall back to studyField
-  const displayTitle = title || studyField;
+  // Use position first, then title, then studyField
+  const displayTitle = position || title || studyField;
 
   return (
     <div className="intro-block flex bg-white border-b border-gray-200 last:border-b-0 mt-10">
@@ -58,10 +71,10 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
               <span>{email}</span>
             </a>
           )}
-          {phone && (
-            <a href={`tel:${phone}`} className="flex items-center gap-2 hover:text-blue-500 transition-colors">
+          {(phoneNumber || phone) && (
+            <a href={`tel:${phoneNumber || phone}`} className="flex items-center gap-2 hover:text-blue-500 transition-colors">
               <Phone size={18} />
-              <span>{phone}</span>
+              <span>{phoneNumber || phone}</span>
             </a>
           )}
         </div>

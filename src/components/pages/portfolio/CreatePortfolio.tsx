@@ -649,17 +649,18 @@ export default function CreatePortfolio() {
           }));
 
           const preferredType = getPreferredEditableType(sortedBlocks);
-          const preferredBlockId =
+          const preferredBlock =
             sortedBlocks.find(
               (block) => normalizeBlockType(block.type) === preferredType,
-            )?.id ?? sortedBlocks[0]?.id ?? null;
+            ) ?? sortedBlocks[0] ?? null;
 
           setBlocks(sortedBlocks);
           setActiveTab("component");
           setActiveEditorBlockType(preferredType);
-          setActiveEditorBlockVariant(null);
+          // Set the variant from the preferred block so the correct editor is shown
+          setActiveEditorBlockVariant(preferredBlock?.variant?.toUpperCase() ?? null);
           setEditorSlotPreset("default");
-          setSelectedBlockId(preferredBlockId);
+          setSelectedBlockId(preferredBlock?.id ?? null);
           setShowBlockSelector(false);
           setPortfolioName(`Portfolio ${portfolioId}`);
           return;
@@ -1835,8 +1836,10 @@ export default function CreatePortfolio() {
 
       console.log("💾 Saving portfolio:", portfolioData);
 
-      // Collect all image files that were stored during editing
-      const portfolioFiles = portfolioService.getPortfolioImageFiles();
+      // Collect all image files from portfolio blocks and stored files
+      // This ensures files are included even if block editors weren't explicitly saved
+      const reindexedBlocks = sortAndReindexBlocks(blocks);
+      const portfolioFiles = portfolioService.collectPortfolioFilesFromBlocks(reindexedBlocks);
       console.log("📸 Collected", portfolioFiles.length, "image files for portfolio");
 
       // Call real API to create portfolio with files
@@ -1850,10 +1853,9 @@ export default function CreatePortfolio() {
         console.log("✅ Portfolio created successfully:", result);
         notify.success("Hồ sơ đã được lưu thành công!");
 
-        // DON'T clear stored image files immediately - keep them in case
-        // backend returns reference IDs that need blob URLs for display
-        // Files will be cleared only when leaving the page or during logout
-        // portfolioService.clearPortfolioImageFiles();
+        // Clear stored image files after successful upload
+        portfolioService.clearPortfolioImageFiles();
+        console.log("📸 Cleared stored image files after successful portfolio creation");
 
         // Navigate to portfolio management page with refetch flag
         navigate("/portfolioManagement?refresh=true", { replace: true });
@@ -1908,11 +1910,14 @@ export default function CreatePortfolio() {
       const nextData = toRecord(current);
       nextData.fullName = nextDraft.fullName;
       nextData.name = nextDraft.fullName;
+      nextData.position = nextDraft.position;
+      nextData.title = nextDraft.position;
+      nextData.yearOfStudy = nextDraft.yearOfStudy;
       nextData.school = nextDraft.school;
-      nextData.department = nextDraft.department;
       nextData.studyField = nextDraft.studyField;
-      nextData.title = nextDraft.studyField;
-      nextData.gpa = nextDraft.gpa;
+      nextData.email = nextDraft.email;
+      nextData.phoneNumber = nextDraft.phoneNumber;
+      nextData.phone = nextDraft.phoneNumber;
       nextData.avatar = nextDraft.avatar;
       return nextData;
     });

@@ -32,8 +32,8 @@ const getApiBaseUrl = (): string => {
     return "/user-profile-api";
   }
   
-  // On production/deployed environment, use full URL
-  const fallbackUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+  // On production/deployed environment, use full URL with /api prefix
+  const fallbackUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
   console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
   return fallbackUrl;
 };

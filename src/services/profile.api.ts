@@ -1,7 +1,8 @@
 /**
  * User Profile API Service
- * Handles employee/talent profile operations
+ * Handles employee/talent profile operations and company profile operations
  */
+import { Company } from "@/types/company";
 
 export interface EmployeeProfile {
   id: number;
@@ -328,7 +329,275 @@ export const updateEmployeeProfile = async (
   }
 };
 
+/**
+ * Fetch current company profile information
+ */
+export const fetchCompanyProfile = async (accessToken: string): Promise<Company> => {
+  try {
+    console.log("📡 [fetchCompanyProfile] Starting...");
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Company profile fetch timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    // Use the userprofile-service URL for company profile
+    const apiBaseUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    const fullUrl = `${apiBaseUrl}/api/Company/me`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Company profile API response status:", response.status);
+
+    let data: unknown;
+    let responseText: string = "";
+
+    // Try to read response body first
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized specifically
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Try to parse JSON
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 Company profile API response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        console.error("📦 Raw response text:", responseText);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const dataAsObj = data as Record<string, unknown> | null;
+      const errors = dataAsObj?.errors as (string | unknown)[] | undefined;
+      const errorMsg: string =
+        (typeof dataAsObj?.message === "string" ? dataAsObj.message : undefined) ||
+        (errors?.[0] && typeof errors[0] === "string" ? errors[0] : undefined) ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Company profile fetch error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Handle multiple possible response formats
+    let profileData: unknown;
+    const dataAsObj = data as Record<string, unknown> | null;
+    
+    if (dataAsObj?.data && typeof dataAsObj.data === "object") {
+      profileData = dataAsObj.data;
+    } else if (dataAsObj) {
+      profileData = dataAsObj;
+    } else {
+      profileData = data;
+    }
+
+    if (!profileData || typeof profileData !== "object") {
+      console.warn("⚠️ Unexpected response format for company profile");
+      throw new Error("Invalid company profile data format");
+    }
+
+    console.log("✅ Company profile fetched successfully:", profileData);
+    return profileData as Company;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ [fetchCompanyProfile] CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      console.error("❌ [fetchCompanyProfile] Error:", error.message);
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
+/**
+ * Update company profile information with file uploads
+ */
+export const updateCompanyProfile = async (
+  companyId: string | number,
+  accessToken: string,
+  profileData: {
+    companyName?: string;
+    activityField?: string;
+    taxIdentification?: number;
+    address?: string;
+    description?: string;
+    avatarFile?: File;
+    coverImageFile?: File;
+  },
+): Promise<Company> => {
+  try {
+    console.log("📡 [updateCompanyProfile] Starting...");
+    console.log("📝 Company ID:", companyId);
+    console.log("📝 Profile data to update:", {
+      companyName: profileData.companyName,
+      activityField: profileData.activityField,
+      address: profileData.address,
+      description: profileData.description,
+    });
+
+    if (!companyId) {
+      console.error("❌ No companyId provided!");
+      throw new Error("Company ID is missing.");
+    }
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Company profile update timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const apiBaseUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    const fullUrl = `${apiBaseUrl}/api/Company/${companyId}`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const formData = new FormData();
+    if (profileData.companyName) formData.append("companyName", profileData.companyName);
+    if (profileData.activityField) formData.append("activityField", profileData.activityField);
+    if (profileData.taxIdentification) formData.append("taxIdentification", String(profileData.taxIdentification));
+    if (profileData.address) formData.append("address", profileData.address);
+    if (profileData.description) formData.append("description", profileData.description);
+
+    // Append files if provided
+    if (profileData.avatarFile) {
+      console.log("📸 Avatar file to upload:", profileData.avatarFile.name);
+      formData.append("avatar", profileData.avatarFile);
+    }
+    if (profileData.coverImageFile) {
+      console.log("📸 Cover image file to upload:", profileData.coverImageFile.name);
+      formData.append("coverImage", profileData.coverImageFile);
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(fullUrl, {
+      method: "PUT",
+      headers: headers,
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Company profile update response status:", response.status);
+
+    let data: unknown;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized specifically
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Try to parse JSON
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 Company profile update response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        console.error("📦 Raw response text:", responseText);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const dataAsObj = data as Record<string, unknown> | null;
+      const errors = dataAsObj?.errors as (string | unknown)[] | undefined;
+      const errorMsg: string =
+        (typeof dataAsObj?.message === "string" ? dataAsObj.message : undefined) ||
+        (errors?.[0] && typeof errors[0] === "string" ? errors[0] : undefined) ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Company profile update error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Handle multiple possible response formats
+    let updatedProfileData: unknown;
+    const dataAsObj = data as Record<string, unknown> | null;
+    
+    if (dataAsObj?.data && typeof dataAsObj.data === "object") {
+      updatedProfileData = dataAsObj.data;
+    } else if (dataAsObj) {
+      updatedProfileData = dataAsObj;
+    } else {
+      updatedProfileData = data;
+    }
+
+    if (!updatedProfileData || typeof updatedProfileData !== "object") {
+      console.warn("⚠️ Unexpected response format for updated company profile");
+      throw new Error("Invalid updated company profile data format");
+    }
+
+    console.log("✅ Company profile updated successfully:", updatedProfileData);
+    return updatedProfileData as Company;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ [updateCompanyProfile] CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      console.error("❌ [updateCompanyProfile] Error:", error.message);
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const profileService = {
   fetchEmployeeProfile,
   updateEmployeeProfile,
+  fetchCompanyProfile,
+  updateCompanyProfile,
 };

@@ -23,6 +23,15 @@ export type PortfolioMainBlockItem = {
   createdAt?: string;
 };
 
+// Type for paginated API response
+export type PortfoliosPageResponse = {
+  items: PortfolioMainBlockItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 // Type for API response structure
 export type PortfolioAPIResponse = {
   portfolioId: number;
@@ -2057,6 +2066,146 @@ export const deletePortfolio = async (
   }
 };
 
+// Fetch all portfolios without authentication (public listing)
+export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10): Promise<PortfoliosPageResponse> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+
+    // Build query params
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+
+    const endpoint = `${API_BASE_URL}/portfolio?${params.toString()}`;
+    console.log("📡 [fetchAllPortfolios] Fetching from:", endpoint);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Portfolio fetch timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [fetchAllPortfolios] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    if (!response.ok) {
+      console.error("❌ API returned error status:", response.status);
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 [fetchAllPortfolios] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    // Normalize the response - handle different response formats
+    let portfolios: any[] = [];
+    let paginationInfo = {
+      total: 0,
+      page: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+
+    if (Array.isArray(data)) {
+      // Format: [ {...}, {...}, ... ]
+      console.log("✅ Format: Direct array");
+      portfolios = data;
+      paginationInfo.total = data.length;
+      paginationInfo.totalPages = 1;
+    } else if (data && Array.isArray(data.data)) {
+      // Format: { data: [...] }
+      console.log("✅ Format: { data: [...] }");
+      portfolios = data.data;
+      paginationInfo.total = data.total || portfolios.length;
+      paginationInfo.page = data.page || page;
+      paginationInfo.pageSize = data.pageSize || pageSize;
+      paginationInfo.totalPages = data.totalPages || Math.ceil(paginationInfo.total / paginationInfo.pageSize);
+    } else if (data && Array.isArray(data.items)) {
+      // Format: { items: [...], total: ..., page: ... } (pagination)
+      console.log("✅ Format: { items: [...], total, page, ... } (Pagination)");
+      console.log("📦 Pagination info - total:", data.total, "page:", data.page, "pageSize:", data.pageSize);
+      portfolios = data.items;
+      paginationInfo = {
+        total: data.total || portfolios.length,
+        page: data.page || page,
+        pageSize: data.pageSize || pageSize,
+        totalPages: data.totalPages || Math.ceil((data.total || portfolios.length) / (data.pageSize || pageSize))
+      };
+    } else if (data && data.portfolios && Array.isArray(data.portfolios)) {
+      // Format: { portfolios: [...] }
+      console.log("✅ Format: { portfolios: [...] }");
+      portfolios = data.portfolios;
+      paginationInfo.total = portfolios.length;
+      paginationInfo.totalPages = 1;
+    } else {
+      console.warn("⚠️ Unexpected response format for fetchAllPortfolios");
+      console.warn("⚠️ data:", data);
+      console.warn("⚠️ data keys:", data ? Object.keys(data) : "null");
+      return {
+        items: [],
+        total: 0,
+        page: page,
+        pageSize: pageSize,
+        totalPages: 1
+      };
+    }
+
+    console.log("✅ Fetched", portfolios.length, "portfolios from page", paginationInfo.page, "of", paginationInfo.totalPages);
+    return {
+      items: portfolios,
+      total: paginationInfo.total,
+      page: paginationInfo.page,
+      pageSize: paginationInfo.pageSize,
+      totalPages: paginationInfo.totalPages
+    };
+  } catch (error) {
+    if (
+      error instanceof TypeError &&
+      error.message === "Failed to fetch"
+    ) {
+      console.error("❌ [fetchAllPortfolios] CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      console.error("❌ [fetchAllPortfolios] Error:", error.message);
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -2066,6 +2215,7 @@ export const portfolioService = {
   fetchMainPortfoliosManagerByUser,
   fetchMyPortfolios,
   fetchPortfoliosByEmployeeId,
+  fetchAllPortfolios,
   createPortfolioAPI,
   createPortfolio,
   updatePortfolioById,

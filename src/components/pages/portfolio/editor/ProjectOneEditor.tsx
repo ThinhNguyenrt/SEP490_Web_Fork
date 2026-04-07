@@ -9,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { type ProjectOneDraft } from "@/components/pages/portfolio/editor/projectOneDraft";
 import { portfolioService } from "@/services/portfolio.api";
-import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
 type ProjectOneEditorProps = {
@@ -58,8 +57,6 @@ export default function ProjectOneEditor({
     return null;
   }, [projectImageFile, draft.image]);
 
-  const { accessToken } = useAppSelector((state) => state.auth);
-
   const updateDraftField = (field: keyof ProjectOneDraft, value: string) => {
     setDraft((prevDraft) => ({
       ...prevDraft,
@@ -84,12 +81,8 @@ export default function ProjectOneEditor({
       return;
     }
 
-    // Store the image file if one was selected
-    if (projectImageFile) {
-      portfolioService.storePortfolioImageFile(draft.image, projectImageFile);
-      console.log("📸 Project image file stored for portfolio creation");
-    }
-
+    // Image file is already stored via uploadPortfolioImage in applyProjectImage
+    // No need to store again here
     const newProject = normalizeDraft(draft);
     const updatedList = [...projectList, newProject];
     setProjectList(updatedList);
@@ -142,16 +135,11 @@ export default function ProjectOneEditor({
       setIsUploadingImage(true);
       console.log("📸 Processing project image:", file.name);
 
-      if (!accessToken) {
-        notify.error("Bạn cần đăng nhập để tải ảnh.");
-        return;
-      }
-
-      // Upload image to server and get URL back
-      const referenceId = await portfolioService.uploadPortfolioImage(file, accessToken);
+      // Upload image to get reference ID
+      const referenceId = await portfolioService.uploadPortfolioImage(file);
       console.log("✅ Project image processed successfully:", referenceId);
 
-      // Store URL instead of base64 data
+      // Store file locally for preview and later upload
       setProjectImageFile(file);
       updateDraftField("image", referenceId);
       notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");

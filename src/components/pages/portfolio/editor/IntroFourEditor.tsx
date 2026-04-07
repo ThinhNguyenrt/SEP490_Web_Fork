@@ -24,12 +24,15 @@ export default function IntroFourEditor({
   onSave,
   onCancel,
 }: IntroFourEditorProps) {
+  console.log("🔵 [IntroFourEditor.init] Component mounted with initialData:", initialData);
+  
   const [draft, setDraft] = useState<IntroFourDraft>(initialData);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    console.log("📋 [IntroFourEditor.useEffect] initialData changed:", initialData);
     setDraft(initialData);
   }, [initialData]);
 
@@ -59,14 +62,29 @@ export default function IntroFourEditor({
     draft.gpa,
   ].some((value) => value.trim().length > 0);
 
+  console.log("📋 [IntroFourEditor] Current draft state:", {
+    fullName: draft.fullName,
+    school: draft.school,
+    department: draft.department,
+    studyField: draft.studyField,
+    gpa: draft.gpa,
+    avatar: draft.avatar,
+    hasContent,
+  });
+
   const updateDraftField = (field: keyof IntroFourDraft, value: string) => {
-    setDraft((prevDraft) => ({
-      ...prevDraft,
-      [field]: value,
-    }));
+    console.log(`📝 [updateDraftField] Updating field "${field}" with value:`, value);
+    setDraft((prevDraft) => {
+      const updated = {
+        ...prevDraft,
+        [field]: value,
+      };
+      console.log(`📝 [updateDraftField] After update, draft.${field} is now:`, updated[field]);
+      return updated;
+    });
   };
 
-  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -84,16 +102,25 @@ export default function IntroFourEditor({
 
     console.log("📸 Avatar selected:", file.name);
     
-    // Store file and create preview blob URL
-    setAvatarFile(file);
-    const blobUrl = URL.createObjectURL(file);
-    setAvatarBlobUrl(blobUrl);
+    try {
+      // Generate reference ID and store file
+      const referenceId = await portfolioService.uploadPortfolioImage(file);
+      console.log("📸 Avatar file stored with reference:", referenceId);
+      
+      // Store file and create preview blob URL
+      setAvatarFile(file);
+      const blobUrl = URL.createObjectURL(file);
+      setAvatarBlobUrl(blobUrl);
+      
+      // Store the reference ID in draft
+      updateDraftField("avatar", referenceId);
+      
+      notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    } catch (error) {
+      console.error("❌ Avatar upload error:", error);
+      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
+    }
     
-    // Create a temporary reference for the file name
-    const tempReference = `avatar_${Date.now()}`;
-    updateDraftField("avatar", tempReference);
-    
-    notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
     event.target.value = "";
   };
 
@@ -102,20 +129,30 @@ export default function IntroFourEditor({
       return;
     }
 
-    // If there's a new file selected, store it for portfolio upload
-    if (avatarFile && draft.avatar) {
-      portfolioService.storePortfolioImageFile(draft.avatar, avatarFile);
-      console.log("📸 Avatar file stored for portfolio creation with reference:", draft.avatar);
-    }
+    // Log data before saving
+    console.log("📝 [IntroFourEditor.handleSave] Current draft:", {
+      fullName: draft.fullName,
+      school: draft.school,
+      department: draft.department,
+      studyField: draft.studyField,
+      gpa: draft.gpa,
+      avatar: draft.avatar,
+    });
 
-    onSave({
+    // Avatar file is already stored in handleAvatarUpload via uploadPortfolioImage
+    // No need to store again here
+    
+    const dataToSave = {
       fullName: draft.fullName.trim(),
       school: draft.school.trim(),
       department: draft.department.trim(),
       studyField: draft.studyField.trim(),
       gpa: draft.gpa.trim(),
       avatar: draft.avatar,
-    });
+    };
+    
+    console.log("📝 [IntroFourEditor.handleSave] Data to save after trim:", dataToSave);
+    onSave(dataToSave);
     setDraft(createEmptyIntroFourDraft());
   };
 

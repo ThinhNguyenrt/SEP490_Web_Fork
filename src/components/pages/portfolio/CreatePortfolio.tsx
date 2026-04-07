@@ -637,7 +637,7 @@ export default function CreatePortfolio() {
 
         if (isEditMode && id) {
           const portfolioId = Number(id);
-          const detail = await portfolioService.fetchPortfolioById(portfolioId);
+          const detail = await portfolioService.fetchPortfolioByIdAPI(portfolioId, accessToken);
 
           if (!detail) {
             throw new Error("Không tìm thấy portfolio cần chỉnh sửa.");
@@ -1842,20 +1842,37 @@ export default function CreatePortfolio() {
       const portfolioFiles = portfolioService.collectPortfolioFilesFromBlocks(reindexedBlocks);
       console.log("📸 Collected", portfolioFiles.length, "image files for portfolio");
 
-      // Call real API to create portfolio with files
+      // Call API to create or update portfolio with files
       try {
-        const result = await portfolioService.createPortfolioAPI(
-          portfolioData,
-          accessToken,
-          portfolioFiles,
-        );
-
-        console.log("✅ Portfolio created successfully:", result);
-        notify.success("Hồ sơ đã được lưu thành công!");
+        let result;
+        
+        if (isEditMode && id) {
+          // Update existing portfolio
+          const portfolioId = Number(id);
+          console.log("📝 Updating portfolio ID:", portfolioId);
+          result = await portfolioService.updatePortfolioAPI(
+            portfolioId,
+            portfolioData,
+            accessToken,
+            portfolioFiles,
+          );
+          console.log("✅ Portfolio updated successfully:", result);
+          notify.success("Hồ sơ đã được cập nhật thành công!");
+        } else {
+          // Create new portfolio
+          console.log("📝 Creating new portfolio");
+          result = await portfolioService.createPortfolioAPI(
+            portfolioData,
+            accessToken,
+            portfolioFiles,
+          );
+          console.log("✅ Portfolio created successfully:", result);
+          notify.success("Hồ sơ đã được lưu thành công!");
+        }
 
         // Clear stored image files after successful upload
         portfolioService.clearPortfolioImageFiles();
-        console.log("📸 Cleared stored image files after successful portfolio creation");
+        console.log("📸 Cleared stored image files after successful portfolio save");
 
         // Navigate to portfolio management page with refetch flag
         navigate("/portfolioManagement?refresh=true", { replace: true });
@@ -1955,12 +1972,18 @@ export default function CreatePortfolio() {
   };
 
   const handleIntroFourSave = (nextDraft: IntroFourDraft) => {
+    console.log("🔵 [handleIntroFourSave] Called with nextDraft:", nextDraft);
+    
     if (!selectedBlock || !isEditingIntroFour) {
+      console.log("🔴 [handleIntroFourSave] Early return - selectedBlock:", selectedBlock, "isEditingIntroFour:", isEditingIntroFour);
       return;
     }
 
     updateSelectedBlockData((current) => {
+      console.log("🟡 [handleIntroFourSave] Current block data:", current);
       const nextData = toRecord(current);
+      console.log("🟡 [handleIntroFourSave] After toRecord:", nextData);
+      
       nextData.fullName = nextDraft.fullName;
       nextData.name = nextDraft.fullName;
       nextData.school = nextDraft.school;
@@ -1969,6 +1992,9 @@ export default function CreatePortfolio() {
       nextData.title = nextDraft.studyField;
       nextData.gpa = nextDraft.gpa;
       nextData.avatar = nextDraft.avatar;
+      
+      console.log("🟢 [handleIntroFourSave] Updated block data:", nextData);
+      
       return nextData;
     });
     resetEditorFormAfterSave();

@@ -66,7 +66,7 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
     setIsDirty(true);
   };
 
-  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -84,21 +84,24 @@ export default function IntroTwoEditor({ initialData, onSave, onCancel }: IntroT
 
     console.log("📸 Avatar selected:", file.name);
     
-    // Create preview blob URL
-    const blobUrl = URL.createObjectURL(file);
-    setAvatarBlobUrl(blobUrl);
+    try {
+      // Generate reference ID and store file
+      const referenceId = await portfolioService.uploadPortfolioImage(file);
+      console.log("📸 Avatar file stored with reference:", referenceId);
+      
+      // Create preview blob URL
+      const blobUrl = URL.createObjectURL(file);
+      setAvatarBlobUrl(blobUrl);
+      
+      // Store the reference ID in draft
+      updateDraftField("avatar", referenceId);
+      
+      notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    } catch (error) {
+      console.error("❌ Avatar upload error:", error);
+      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
+    }
     
-    // Create a temporary reference for the file name
-    const tempReference = `avatar_${Date.now()}`;
-    
-    // Automatically store the file for portfolio upload when selected
-    // This ensures the file is available even if the block isn't explicitly saved
-    portfolioService.storePortfolioImageFile(tempReference, file);
-    console.log("📸 Avatar file stored immediately with reference:", tempReference);
-    
-    updateDraftField("avatar", tempReference);
-    
-    notify.success("Ảnh đã được chọn!");
     event.target.value = "";
   };
 

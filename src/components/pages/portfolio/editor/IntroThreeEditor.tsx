@@ -51,7 +51,7 @@ export default function IntroThreeEditor({ initialData, onSave, onCancel }: Intr
     setIsDirty(true);
   };
 
-  const handleAvatarUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -69,25 +69,31 @@ export default function IntroThreeEditor({ initialData, onSave, onCancel }: Intr
 
     console.log("📸 Avatar selected:", file.name);
     
-    // Store file and create preview blob URL
-    setAvatarFile(file);
-    const blobUrl = URL.createObjectURL(file);
-    setAvatarBlobUrl(blobUrl);
+    try {
+      // Generate reference ID and store file
+      const referenceId = await portfolioService.uploadPortfolioImage(file);
+      console.log("📸 Avatar file stored with reference:", referenceId);
+      
+      // Store file and create preview blob URL
+      setAvatarFile(file);
+      const blobUrl = URL.createObjectURL(file);
+      setAvatarBlobUrl(blobUrl);
+      
+      // Store the reference ID in draft
+      updateDraftField("avatar", referenceId);
+      
+      notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
+    } catch (error) {
+      console.error("❌ Avatar upload error:", error);
+      notify.error(error instanceof Error ? error.message : "Lỗi khi tải ảnh");
+    }
     
-    // Create a temporary reference for the file name
-    const tempReference = `avatar_${Date.now()}`;
-    updateDraftField("avatar", tempReference);
-    
-    notify.success("Ảnh đã được chọn! Sẽ tải lên khi lưu hồ sơ.");
     event.target.value = "";
   };
 
   const handleSave = () => {
-    // If there's a new file selected, store it for portfolio upload
-    if (avatarFile && draft.avatar) {
-      portfolioService.storePortfolioImageFile(draft.avatar, avatarFile);
-      console.log("📸 Avatar file stored for portfolio creation with reference:", draft.avatar);
-    }
+    // Avatar file is already stored in handleAvatarUpload via uploadPortfolioImage
+    // No need to store again here
     
     onSave({
       fullName: draft.fullName.trim(),

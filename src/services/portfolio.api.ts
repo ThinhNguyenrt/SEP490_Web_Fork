@@ -1642,6 +1642,218 @@ export const createPortfolioAPI = async (
   }
 };
 
+// Update portfolio via real API (PUT /api/portfolio/{id}/full)
+export const updatePortfolioAPI = async (
+  portfolioId: number,
+  payload: {
+    employeeId: number;
+    name: string;
+    blocks: Array<{
+      type: string;
+      variant: string;
+      order: number;
+      data: any;
+    }>;
+  },
+  accessToken: string,
+  files?: File[],
+): Promise<{ portfolioId: number; message: string }> => {
+  let timeoutId: NodeJS.Timeout | null = null;
+  
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+    
+    const endpoint = `${API_BASE_URL}/portfolio/${portfolioId}/full`;
+    console.log("📡 Update API endpoint:", endpoint);
+    console.log("📡 API_BASE_URL:", API_BASE_URL);
+    console.log("📦 Portfolio ID:", portfolioId);
+    console.log("📦 Payload employeeId:", payload.employeeId);
+    console.log("📦 Payload name:", payload.name);
+    console.log("📦 Payload blocks count:", payload.blocks.length);
+    console.log("📦 Files count:", files?.length ?? 0);
+    console.log("📦 Full payload:", payload);
+    
+    // Debug: Check portfolioId
+    if (!portfolioId || portfolioId === 0) {
+      console.warn("⚠️ Warning: portfolioId is 0 or missing!");
+      console.warn("⚠️ Backend may reject this request");
+    }
+    
+    // Debug: Check employeeId
+    if (!payload.employeeId || payload.employeeId === 0) {
+      console.warn("⚠️ Warning: employeeId is 0 or missing!");
+      console.warn("⚠️ Backend may reject this request");
+    }
+    
+    // Debug: Check token
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+    console.log("🔐 Token available:", !!accessToken);
+    console.log("🔐 Token length:", accessToken.length);
+    console.log("🔐 Token type:", typeof accessToken);
+
+    // Create FormData to send as multipart/form-data
+    const formData = new FormData();
+    const jsonString = JSON.stringify(payload);
+    formData.append("portfolioJson", jsonString);
+    console.log("📦 FormData ready with portfolioJson");
+    
+    // Append image files if provided
+    if (files && files.length > 0) {
+      console.log("📸 Appending", files.length, "files to FormData");
+      files.forEach((file, index) => {
+        formData.append("files", file);
+        console.log(`   File ${index + 1}:`, file.name, `(${file.size} bytes)`);
+      });
+      console.log("📸 All files appended to FormData, total size:", 
+        files.reduce((sum, f) => sum + f.size, 0) / 1024, 'KB');
+    } else {
+      console.log("📸 No image files to append to FormData");
+    }
+
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => {
+      console.warn("⏱️ Portfolio update timeout after 120 seconds");
+      controller.abort();
+    }, 120000);
+
+    let response;
+    try {
+      const authHeader = `Bearer ${accessToken}`;
+      console.log("🔐 Authorization header prepared");
+      
+      const headers: Record<string, string> = {
+        Authorization: authHeader,
+      };
+      
+      console.log("📋 Sending request with headers:", {
+        hasAuthorization: !!headers.Authorization,
+        method: "PUT",
+        endpoint: endpoint,
+      });
+      
+      response = await fetch(endpoint, {
+        method: "PUT",
+        headers: headers,
+        body: formData,
+        signal: controller.signal,
+        credentials: "include", // Include cookies if backend uses session-based auth
+      });
+      
+      console.log("✅ Fetch completed, status:", response.status);
+    } catch (fetchError) {
+      // Handle abort error specifically
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        console.error("❌ Portfolio update timeout or cancelled:", fetchError.message);
+        throw new Error("Portfolio update timeout. Please try again or check your internet connection.");
+      }
+      throw fetchError;
+    } finally {
+      // Always clear timeout to prevent memory leaks
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+
+    console.log("📡 Portfolio update response status:", response.status);
+    console.log("📡 Response headers:", {
+      contentType: response.headers.get("content-type"),
+      contentLength: response.headers.get("content-length"),
+    });
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    // Try to read response body
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response:", responseText.substring(0, 200)); // Log first 200 chars
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response. Please try again.");
+    }
+
+    // Try to parse as JSON
+    if (contentType?.includes("application/json")) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 Portfolio update response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid JSON response from server");
+      }
+    } else {
+      // For non-JSON responses, try to parse anyway
+      if (responseText && responseText.trim().length > 0) {
+        try {
+          data = JSON.parse(responseText);
+          console.log("⚠️ Parsed JSON despite non-JSON Content-Type");
+        } catch (_) {
+          // Keep data as undefined since we can't parse it
+          console.warn("⚠️ Response body exists but is not JSON");
+          data = undefined;
+        }
+      } else {
+        // Empty response body
+        console.warn("⚠️ Response has empty body");
+        data = undefined;
+      }
+    }
+
+    // Handle error responses before checking response.ok
+    // This gives us a chance to catch 401 errors even with empty body
+    if (response.status === 401) {
+      console.error("❌ Authorization failed (401)");
+      console.error("🔐 Possible reasons:");
+      console.error("   - Token expired or invalid");
+      console.error("   - Token format incorrect");
+      console.error("   - Backend authentication not configured");
+      
+      // Try to get error message from response body
+      const errorMsg = data?.message || 
+                      data?.errors?.[0] ||
+                      data?.error ||
+                      "Unauthorized: Please login again";
+      throw new Error(errorMsg);
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        data?.error ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Portfolio update error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Validate response has required fields
+    if (!data || typeof data.portfolioId === "undefined") {
+      console.error("❌ Invalid response format:", data);
+      throw new Error("Invalid response format from server - missing portfolioId");
+    }
+
+    console.log("✅ Portfolio updated successfully:", data.portfolioId);
+    return data;
+  } catch (error) {
+    // Clear timeout if still active
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 // Fetch current user's portfolios from real API
 export const fetchMyPortfolios = async (
   accessToken: string,
@@ -1895,6 +2107,16 @@ export const fetchPortfoliosByEmployeeId = async (
 const portfolioImageFiles = new Map<string, File>();
 const fileUploadStatus = new Map<string, { status: 'pending' | 'uploaded' | 'failed', error?: string }>();
 
+/**
+ * Generate a unique reference ID for image files
+ * Format: {type}_{timestamp}_{randomString}
+ */
+const generateImageReferenceId = (type: 'avatar' | 'image' | 'project' = 'image'): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 10);
+  return `${type}_${timestamp}_${random}`;
+};
+
 export const storePortfolioImageFile = (referenceId: string, file: File): string => {
   console.log("📸 Storing image file reference:", referenceId, file.name);
   portfolioImageFiles.set(referenceId, file);
@@ -2031,7 +2253,6 @@ export const clearPortfolioImageFiles = (): void => {
 // Now stores file reference instead of uploading
 export const uploadPortfolioImage = async (
   file: File,
-  accessToken: string,
 ): Promise<string> => {
   try {
     console.log("📸 Processing portfolio image:", file.name, file.size);
@@ -2040,13 +2261,8 @@ export const uploadPortfolioImage = async (
       throw new Error("No file provided");
     }
 
-    if (!accessToken) {
-      console.error("❌ No access token provided!");
-      throw new Error("Access token is missing. Please login again.");
-    }
-
     // Generate unique reference ID for this file
-    const referenceId = `image_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const referenceId = generateImageReferenceId('image');
     
     // Store the file for later upload with portfolio creation
     storePortfolioImageFile(referenceId, file);
@@ -2270,6 +2486,7 @@ export const portfolioService = {
   fetchPortfoliosByEmployeeId,
   fetchAllPortfolios,
   createPortfolioAPI,
+  updatePortfolioAPI,
   createPortfolio,
   updatePortfolioById,
   uploadPortfolioImage,

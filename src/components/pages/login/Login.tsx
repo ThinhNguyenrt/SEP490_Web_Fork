@@ -4,9 +4,8 @@ import { Card } from "../../ui/card";
 import { cn } from "@/lib/utils";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
-import { RecruiterForm } from "./RecruiterForm";
 import { motion, AnimatePresence } from "framer-motion";
-type AuthMode = "login" | "register" | "recruiter";
+type AuthMode = "login" | "register";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -53,7 +52,7 @@ export default function LoginPage() {
                   onClick={() => setMode("register")}
                   className={cn(
                     "flex-1 pb-3 cursor-pointer text-sm transition-all",
-                    mode !== "login"
+                    mode === "register"
                       ? "text-[#0288D1] border-b-2 border-[#0288D1] font-bold"
                       : "text-slate-500",
                   )}
@@ -67,7 +66,6 @@ export default function LoginPage() {
                 <h1 className="text-2xl font-bold">
                   {mode === "login" && "Chào mừng trở lại!"}
                   {mode === "register" && "Tạo tài khoản mới"}
-                  {mode === "recruiter" && "Đăng ký Nhà tuyển dụng"}
                 </h1>
               </div>
 
@@ -93,18 +91,7 @@ export default function LoginPage() {
                       exit={{ x: -300, opacity: 0 }}
                       transition={{ duration: 0.4, ease: "easeInOut" }}
                     >
-                      <RegisterForm onSwitch={() => setMode("recruiter")} />
-                    </motion.div>
-                  )}
-                  {mode === "recruiter" && (
-                    <motion.div
-                      key="recruiter"
-                      initial={{ x: 300, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      exit={{ x: -300, opacity: 0 }}
-                      transition={{ duration: 0.4, ease: "easeInOut" }}
-                    >
-                      <RecruiterForm onSwitch={() => setMode("register")} />
+                      <RegisterForm onSwitch={() => {}} />
                     </motion.div>
                   )}
                 </AnimatePresence>

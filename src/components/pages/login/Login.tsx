@@ -91,7 +91,7 @@ export default function LoginPage() {
                       exit={{ x: -300, opacity: 0 }}
                       transition={{ duration: 0.4, ease: "easeInOut" }}
                     >
-                      <RegisterForm onSwitch={() => {}} />
+                      <RegisterForm />
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MessageSquare } from "lucide-react";
 import { Button } from "../../../ui/button";
 import { Badge } from "../../../ui/badge";
 import SortIcon from "../../../../assets/myWeb/sort.png";
-import ConnectIcon from "../../../../assets/myWeb/connect.png";
 import BookmarkIcon from "../../../../assets/myWeb/bookmark.png";
 import ShareIcon from "../../../../assets/myWeb/share1.png";
 import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.api";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
+import CommentModal from "./CommentModal";
 import { notify } from "@/lib/toast";
 
 // Helper to extract searchable data from portfolio
@@ -62,6 +62,7 @@ export default function RecruiterHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -300,12 +301,6 @@ export default function RecruiterHome() {
     setSkillTags(skillTags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleRefresh = () => {
-    // Refresh portfolio list
-    setFilteredPortfolios([...allPortfolios]);
-    setCurrentIndex(0);
-  };
-
   const handleBookmark = () => {
     if (currentPortfolio) {
       console.log("Bookmark portfolio:", currentPortfolio.portfolioId);
@@ -485,18 +480,11 @@ export default function RecruiterHome() {
               {/* Action Buttons */}
               <div className="flex justify-center items-center gap-6 sm:gap-8 py-4 sm:py-6 rounded-lg px-2 mb-4" style={{ backgroundColor: '#EFF6FF' }}>
                 <button
-                  onClick={handlePrev}
-                  className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
-                  title="Bỏ qua"
+                  onClick={() => setIsCommentModalOpen(true)}
+                  className="flex items-center justify-center gap-2 hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                  title="Nhận xét"
                 >
-                  <X className="text-red-500" size={30} />
-                </button>
-                <button
-                  onClick={handleRefresh}
-                  className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
-                  title="Kết nối"
-                >
-                  <img src={ConnectIcon} alt="Connect" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
+                  <MessageSquare className="text-blue-500" size={30} />
                 </button>
                 <button
                   onClick={handleBookmark}
@@ -614,6 +602,19 @@ export default function RecruiterHome() {
             </div>
           </div>
         </aside>
+
+        {/* Comment Modal */}
+        {currentPortfolio && (
+          <CommentModal
+            isOpen={isCommentModalOpen}
+            onClose={() => setIsCommentModalOpen(false)}
+            portfolioId={currentPortfolio.portfolioId}
+            onSuccess={() => {
+              // Refresh the page or show success message
+              console.log("Comment submitted successfully");
+            }}
+          />
+        )}
       </div>
     </div>
   );

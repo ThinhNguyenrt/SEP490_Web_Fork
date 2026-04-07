@@ -9,7 +9,7 @@ import { notify } from "@/lib/toast";
 
 type UserRole = "talent" | "recruiter";
 
-export const RegisterForm = ({ onSwitch }: { onSwitch: () => void }) => {
+export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>("talent");
   const [email, setEmail] = useState("");

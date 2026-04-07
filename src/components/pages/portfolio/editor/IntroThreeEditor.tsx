@@ -19,7 +19,6 @@ type IntroThreeEditorProps = {
 export default function IntroThreeEditor({ initialData, onSave, onCancel }: IntroThreeEditorProps) {
   const [draft, setDraft] = useState<IntroThreeDraft>(initialData);
   const [isDirty, setIsDirty] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -74,8 +73,7 @@ export default function IntroThreeEditor({ initialData, onSave, onCancel }: Intr
       const referenceId = await portfolioService.uploadPortfolioImage(file);
       console.log("📸 Avatar file stored with reference:", referenceId);
       
-      // Store file and create preview blob URL
-      setAvatarFile(file);
+      // Create preview blob URL
       const blobUrl = URL.createObjectURL(file);
       setAvatarBlobUrl(blobUrl);
       
@@ -161,7 +159,6 @@ export default function IntroThreeEditor({ initialData, onSave, onCancel }: Intr
             <button
               type="button"
               onClick={() => {
-                setAvatarFile(null);
                 setAvatarBlobUrl(null);
                 updateDraftField("avatar", "");
               }}

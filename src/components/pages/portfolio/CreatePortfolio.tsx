@@ -637,6 +637,12 @@ export default function CreatePortfolio() {
 
         if (isEditMode && id) {
           const portfolioId = Number(id);
+          
+          // Ensure accessToken is available
+          if (!accessToken) {
+            throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+          }
+          
           const detail = await portfolioService.fetchPortfolioByIdAPI(portfolioId, accessToken);
 
           if (!detail) {

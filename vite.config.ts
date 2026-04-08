@@ -16,6 +16,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
+      "/api/portfolio": {
+        target: "https://portfolio-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, "/api"),
+      },
       "/api": {
         target: "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
         changeOrigin: true,

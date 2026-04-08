@@ -46,12 +46,12 @@ export const createIntroFiveDraft = (value: unknown): IntroFiveDraft => {
   const source = getIntroFiveSource(value);
 
   return {
-    fullName: toText(source.fullName),
-    school: toText(source.school),
+    fullName: toText(source.fullName ?? source.name),
+    school: toText(source.school ?? source.schoolName),
     department: toText(source.department),
     experience: toText(source.experience),
     avatar: toText(source.avatar),
-    studyField: toText(source.studyField),
+    studyField: toText(source.studyField ?? source.title),
     title: toText(source.title),
   };
 };

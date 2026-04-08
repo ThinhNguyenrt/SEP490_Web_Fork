@@ -36,17 +36,22 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
       ? `${experience} năm kinh nghiệm`
       : '';
   const workplace = [department, school].filter(Boolean).join(' - ');
+  const avatarUrl = avatar ? resolveImageUrl(avatar) : undefined;
   
   console.log("📍 [IntroFive component] displayName:", displayName);
 
   return (
     <div className="intro-block bg-white px-6 py-8 border-b border-gray-200 last:border-b-0">
       <div className="flex items-start gap-4">
-        {avatar && (
+        {avatarUrl && (
           <img
-            src={resolveImageUrl(avatar)}
+            src={avatarUrl}
             alt={displayName}
             className="w-[6.2rem] h-[7.8rem] rounded-xl object-cover shrink-0"
+            onError={(e) => {
+              console.warn("❌ Failed to load avatar image");
+              e.currentTarget.style.display = "none";
+            }}
           />
         )}
 

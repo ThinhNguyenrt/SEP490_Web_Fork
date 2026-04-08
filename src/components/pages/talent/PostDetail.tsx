@@ -157,14 +157,14 @@ export const PostDetail = () => {
             {/* Main Job Post Section */}
             <div className="bg-white rounded-lg overflow-hidden shadow-sm">
               {/* Header Background */}
-              <div className="h-48 bg-gradient-to-br from-green-200 to-green-400 relative"></div>
+              <div className="h-48 bg-linear-to-br from-green-200 to-green-400 relative"></div>
 
               {/* Content Section with Overlapping Avatar */}
               <div className="relative px-6 pb-6">
                 {/* Avatar positioned to overlap header and content */}
                 <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
                   <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="w-16 h-16 rounded-full bg-linear-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
                       {post.companyName.charAt(0)}
                     </div>
                   </div>
@@ -339,7 +339,7 @@ export const PostDetail = () => {
             {/* Tips Section */}
             <div className="mt-6 p-6 rounded-lg" style={{ backgroundColor: '#EFF6FF' }}>
               <div className="flex gap-3 items-start">
-                <img src={LightIcon} alt="Light" className="w-6 h-6 mt-1 flex-shrink-0" />
+                <img src={LightIcon} alt="Light" className="w-6 h-6 mt-1 shrink-0" />
                 <div>
                   <h3 className="font-semibold mb-2" style={{ color: '#3B82F6' }}>Mẹo cho bạn</h3>
                   <p className="text-sm text-gray-700">Hoàn thiện hồ sơ với sự chi tiết cao sẽ giúp tăng 40% cơ hội được nhà tuyển dụng chú ý!</p>
@@ -354,7 +354,6 @@ export const PostDetail = () => {
       {postId && post && (
         <ApplicationModal
           postId={Number(postId)}
-          companyId={post.companyId}
           isOpen={isApplicationModalOpen}
           onClose={() => setIsApplicationModalOpen(false)}
           onSubmitSuccess={handleApplicationSuccess}

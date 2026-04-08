@@ -26,20 +26,64 @@ const getApiBaseUrl = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 
 /**
+ * Map application status to Vietnamese text and styling
+ */
+export const getApplicationStatusInfo = (status: Application['status']): {
+  text: string;
+  code: number;
+  description: string;
+} => {
+  const statusMap: Record<string, { text: string; code: number; description: string }> = {
+    WAITING: {
+      text: "Đơn mới, chờ xử lý",
+      code: 0,
+      description: "Ứng tuyển thành công, chờ nhà tuyển dụng xem xét",
+    },
+    REVIEWING: {
+      text: "Đang xem xét",
+      code: 1,
+      description: "Nhà tuyển dụng đang xem xét hồ sơ của bạn",
+    },
+    ACCEPTED: {
+      text: "Đã chấp nhận",
+      code: 2,
+      description: "Bạn đã được chấp nhận, chờ liên lạc từ nhà tuyển dụng",
+    },
+    REJECTED: {
+      text: "Đã từ chối",
+      code: 3,
+      description: "Hồ sơ của bạn không được chọn lần này",
+    },
+  };
+  return statusMap[status] || statusMap.WAITING;
+};
+
+/**
+ * Get CSS classes for status badge
+ */
+export const getApplicationStatusStyles = (status: Application['status']): string => {
+  const styles: Record<string, string> = {
+    WAITING: "bg-amber-100 text-amber-700 border border-amber-200",
+    REVIEWING: "bg-blue-100 text-blue-700 border border-blue-200",
+    ACCEPTED: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    REJECTED: "bg-slate-100 text-slate-600 border border-slate-200",
+  };
+  return styles[status] || styles.WAITING;
+};
+
+/**
  * Create a new job application
- * @param postId - ID of the job post
+ * @param companyPostId - ID of the company job post
  * @param portfolioId - ID of the portfolio to submit
- * @param companyId - ID of the company
  * @param accessToken - Access token for authentication
  */
 export const createApplication = async (
-  postId: number,
+  companyPostId: number,
   portfolioId: number,
-  companyId: number,
   accessToken?: string
 ): Promise<Application> => {
   try {
-    console.log("📡 [createApplication] Starting with postId:", postId, "portfolioId:", portfolioId, "companyId:", companyId);
+    console.log("📡 [createApplication] Starting with companyPostId:", companyPostId, "portfolioId:", portfolioId);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -56,9 +100,8 @@ export const createApplication = async (
     }
 
     const payload: CreateApplicationRequest = {
-      postId,
+      companyPostId,
       portfolioId,
-      companyId,
     };
 
     const fullUrl = `${API_BASE_URL}/applications`;
@@ -107,14 +150,23 @@ export const createApplication = async (
 };
 
 /**
- * Get user's applications
+ * Get user's applications with pagination
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of items per page
  * @param accessToken - Access token for authentication
  */
 export const getMyApplications = async (
+  page: number = 1,
+  pageSize: number = 10,
   accessToken?: string
-): Promise<Application[]> => {
+): Promise<{
+  items: Application[],
+  total: number,
+  page: number,
+  pageSize: number,
+}> => {
   try {
-    console.log("📡 [getMyApplications] Starting");
+    console.log("📡 [getMyApplications] Starting with page:", page, "pageSize:", pageSize);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -130,7 +182,12 @@ export const getMyApplications = async (
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    const fullUrl = `${API_BASE_URL}/applications/me`;
+    // Build query params
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("pageSize", pageSize.toString());
+
+    const fullUrl = `${API_BASE_URL}/applications/me?${params.toString()}`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -150,6 +207,7 @@ export const getMyApplications = async (
     if (contentType?.includes("application/json")) {
       try {
         data = await response.json();
+        console.log("📦 Response data:", data);
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
         throw new Error("Invalid response format from server");
@@ -165,7 +223,19 @@ export const getMyApplications = async (
       throw new Error(errorMessage);
     }
 
-    return data as Application[];
+    // Validate response structure
+    const responseData = data as Record<string, unknown>;
+    if (!Array.isArray(responseData.items)) {
+      throw new Error("Invalid response format: items array not found");
+    }
+
+    console.log("✅ Applications fetched successfully:", responseData.items?.length || 0, "items");
+    return {
+      items: responseData.items as Application[],
+      total: typeof responseData.total === 'number' ? responseData.total : 0,
+      page: typeof responseData.page === 'number' ? responseData.page : 1,
+      pageSize: typeof responseData.pageSize === 'number' ? responseData.pageSize : 10,
+    };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Failed to get applications";
     console.error("❌ [getMyApplications] Error:", errorMessage);

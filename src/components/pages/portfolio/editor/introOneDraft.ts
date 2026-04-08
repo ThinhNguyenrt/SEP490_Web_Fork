@@ -30,8 +30,11 @@ const toText = (value: unknown): string => {
 export const createIntroOneDraft = (value: unknown): IntroOneDraft => {
   const data = toRecord(value);
 
+  // Support both 'fullName' and 'name' fields from backend
+  const fullName = toText(data.fullName) || toText(data.name);
+
   return {
-    fullName: toText(data.fullName),
+    fullName: fullName,
     title: toText(data.title),
     email: toText(data.email),
     phone: toText(data.phone),

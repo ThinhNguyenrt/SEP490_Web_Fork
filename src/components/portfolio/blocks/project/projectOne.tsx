@@ -25,14 +25,19 @@ const ProjectOne: React.FC<ProjectOneProps> = ({ data }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {projects.map((project: ProjectItem, index: number) => {
             const projectLinks = project.projectLinks ?? project.links ?? [];
+            const projectImageUrl = project.image ? resolveImageUrl(project.image) : undefined;
 
             return (
               <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                {project.image && (
+                {projectImageUrl && (
                   <img
-                    src={resolveImageUrl(project.image)}
+                    src={projectImageUrl}
                     alt={project.name}
                     className="w-full h-40 object-cover"
+                    onError={(e) => {
+                      console.warn("❌ Failed to load project image");
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                 )}
                 <div className="p-6 flex flex-col flex-1">

@@ -1,7 +1,8 @@
 /**
- * Application Status enum
+ * Application Status enum - Maps to status codes from API
+ * 0 = WAITING, 1 = REVIEWING, 2 = ACCEPTED, 3 = REJECTED
  */
-export type ApplicationStatus = "WAITING" | "APPROVED" | "REJECTED";
+export type ApplicationStatus = "WAITING" | "REVIEWING" | "ACCEPTED" | "REJECTED";
 
 /**
  * Application response from API
@@ -15,7 +16,10 @@ export interface Application {
     position: string;
     salary: string;
     address: string;
-    media: string;
+    media: Array<{
+      type: string;
+      url: string;
+    }>;
   };
   company: {
     companyId: number;
@@ -25,12 +29,21 @@ export interface Application {
 }
 
 /**
+ * Paginated applications response from API
+ */
+export interface PaginatedApplicationsResponse {
+  items: Application[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
  * Create application request payload
  */
 export interface CreateApplicationRequest {
-  postId: number;
+  companyPostId: number;
   portfolioId: number;
-  companyId: number;
 }
 
 /**

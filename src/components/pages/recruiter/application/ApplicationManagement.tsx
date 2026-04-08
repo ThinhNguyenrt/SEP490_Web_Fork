@@ -1,50 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
   Banknote,
-  Calendar,
-  CalendarClock,
-  CheckCircle,
   Clock,
   MessageCircle,
   MoreVertical,
   Plus,
-  XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles } from "@/services/application.api";
+import { useAppSelector } from "@/store/hook";
+import { Application, ApplicationStatus } from "@/types/application";
+import { notify } from "@/lib/toast";
 
-type ApplicationStatus =
-  | "Mới nhận"
-  | "Đã nhận"
-  | "Đang xem xét"
-  | "Phỏng vấn"
-  | "Từ chối";
-
-type StatusFilter = "Tất cả" | ApplicationStatus;
-
+type StatusFilterType = "Tất cả" | "Đơn mới, chờ xử lý" | "Đang xem xét" | "Đã chấp nhận" | "Đã từ chối";
 type TimeFilter = "Tất cả" | "Gần đây" | "6 tháng qua" | "Cũ hơn (>6 tháng)";
-
-type ApplicationItem = {
-  id: number;
-  candidateName: string;
-  candidateAvatarUrl?: string;
-  jobTitle: string;
-  appliedAt: string;
-  status: ApplicationStatus;
-  interviewTime?: string;
-  interviewMode?: "Online" | "Trực tiếp";
-};
-
-type ScheduledInterview = {
-  id: number;
-  time: string;
-  candidateName: string;
-  mode: "Online" | "Trực tiếp";
-  dateLabel: string;
-  dateKey: string;
-};
 
 const TIME_FILTERS: TimeFilter[] = [
   "Tất cả",
@@ -53,103 +25,27 @@ const TIME_FILTERS: TimeFilter[] = [
   "Cũ hơn (>6 tháng)",
 ];
 
-const STATUS_FILTERS: StatusFilter[] = [
-  "Mới nhận",
-  "Đã nhận",
+const STATUS_FILTERS: StatusFilterType[] = [
+  "Đơn mới, chờ xử lý",
   "Đang xem xét",
-  "Phỏng vấn",
-  "Từ chối",
+  "Đã chấp nhận",
+  "Đã từ chối",
 ];
 
-const STATUS_STYLES: Record<ApplicationStatus, string> = {
-  "Mới nhận": "bg-sky-100 text-sky-700 border border-sky-200",
-  "Đã nhận": "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  "Đang xem xét": "bg-blue-100 text-blue-700 border border-blue-200",
-  "Phỏng vấn": "bg-rose-100 text-rose-700 border border-rose-200",
-  "Từ chối": "bg-slate-100 text-slate-600 border border-slate-200",
+const statusTextToApiStatus: Record<string, ApplicationStatus> = {
+  "Đơn mới, chờ xử lý": "WAITING",
+  "Đang xem xét": "REVIEWING",
+  "Đã chấp nhận": "ACCEPTED",
+  "Đã từ chối": "REJECTED",
 };
 
-const STATUS_ICONS: Record<ApplicationStatus, React.ReactNode> = {
-  "Mới nhận": <Clock size={15} />,
-  "Đã nhận": <CheckCircle size={15} />,
-  "Đang xem xét": <Clock size={15} />,
-  "Phỏng vấn": <Calendar size={15} />,
-  "Từ chối": <XCircle size={15} />,
+const toDate = (dateValue: string) => {
+  if (dateValue.includes('/') && dateValue.split('/').length === 2) {
+    const [month, year] = dateValue.split('/');
+    return new Date(`${year}-${month}-01T00:00:00`);
+  }
+  return new Date(`${dateValue}T00:00:00`);
 };
-
-const APPLICATIONS: ApplicationItem[] = [
-  {
-    id: 1,
-    candidateName: "Phạm An Nhiên",
-    candidateAvatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamAnNhien1",
-    jobTitle: "Senior UX/UI designer",
-    appliedAt: "2026-02-02",
-    status: "Mới nhận",
-  },
-  {
-    id: 2,
-    candidateName: "Phạm An Nhiên",
-    candidateAvatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamAnNhien2",
-    jobTitle: "Senior UX/UI designer",
-    appliedAt: "2026-02-02",
-    status: "Đang xem xét",
-  },
-  {
-    id: 3,
-    candidateName: "Phạm An Nhiên",
-    candidateAvatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamAnNhien3",
-    jobTitle: "Senior UX/UI designer",
-    appliedAt: "2026-02-02",
-    status: "Đang xem xét",
-  },
-  {
-    id: 4,
-    candidateName: "Phạm An Nhiên",
-    candidateAvatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamAnNhien4",
-    jobTitle: "Senior UX/UI designer",
-    appliedAt: "2026-02-02",
-    status: "Phỏng vấn",
-    interviewTime: "14:30 - 20/3/2026",
-    interviewMode: "Online",
-  },
-  {
-    id: 5,
-    candidateName: "Phạm An Nhiên",
-    candidateAvatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=PhamAnNhien5",
-    jobTitle: "Senior UX/UI designer",
-    appliedAt: "2026-02-02",
-    status: "Từ chối",
-  },
-];
-
-const SCHEDULED_INTERVIEWS: ScheduledInterview[] = [
-  {
-    id: 1,
-    time: "14:30",
-    candidateName: "Phạm An Nhiên",
-    mode: "Online",
-    dateLabel: "HÔM NAY - 14/3",
-    dateKey: "today",
-  },
-  {
-    id: 2,
-    time: "16:00",
-    candidateName: "Đỗ Tuấn Kiệt",
-    mode: "Trực tiếp",
-    dateLabel: "HÔM NAY - 14/3",
-    dateKey: "today",
-  },
-  {
-    id: 3,
-    time: "09:00",
-    candidateName: "Nguyễn Anh Thư",
-    mode: "Trực tiếp",
-    dateLabel: "NGÀY MAI - 15/3",
-    dateKey: "tomorrow",
-  },
-];
-
-const toDate = (dateValue: string) => new Date(`${dateValue}T00:00:00`);
 
 const formatDate = (dateValue: string) =>
   toDate(dateValue).toLocaleDateString("vi-VN", {
@@ -159,47 +55,88 @@ const formatDate = (dateValue: string) =>
   });
 
 const isMatchTimeFilter = (appliedAt: string, timeFilter: TimeFilter) => {
-  if (timeFilter === "Tất cả") return true;
+  if (timeFilter === "Tất cả") {
+    return true;
+  }
+
   const currentDate = new Date();
   const appliedDate = toDate(appliedAt);
   const dayDiff = Math.floor(
     (currentDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24)
   );
-  if (timeFilter === "Gần đây") return dayDiff <= 30;
-  if (timeFilter === "6 tháng qua") return dayDiff > 30 && dayDiff <= 180;
-  return dayDiff > 180;
-};
 
-const groupInterviewsByDate = (interviews: ScheduledInterview[]) => {
-  const groups: Record<string, { label: string; items: ScheduledInterview[] }> = {};
-  for (const interview of interviews) {
-    if (!groups[interview.dateKey]) {
-      groups[interview.dateKey] = { label: interview.dateLabel, items: [] };
-    }
-    groups[interview.dateKey].items.push(interview);
+  if (timeFilter === "Gần đây") {
+    return dayDiff <= 30;
   }
-  return Object.values(groups);
+
+  if (timeFilter === "6 tháng qua") {
+    return dayDiff > 30 && dayDiff <= 180;
+  }
+
+  return dayDiff > 180;
 };
 
 export default function ApplicationManagement() {
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter | "Tất cả">("Tất cả");
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
+
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("Tất cả");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Tất cả");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const filteredApplications = useMemo(
-    () =>
-      APPLICATIONS.filter(
-        (item) =>
-          (statusFilter === "Tất cả" || item.status === statusFilter) &&
-          isMatchTimeFilter(item.appliedAt, timeFilter)
-      ),
-    [statusFilter, timeFilter]
-  );
+  // Fetch applications from API
+  useEffect(() => {
+    const fetchApplications = async () => {
+      if (!accessToken) {
+        setError("Vui lòng đăng nhập lại");
+        return;
+      }
 
-  const interviewGroups = useMemo(
-    () => groupInterviewsByDate(SCHEDULED_INTERVIEWS),
-    []
-  );
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log("📥 Fetching company applications for page:", currentPage);
+
+        const response = await getCompanyApplications(currentPage, pageSize, accessToken);
+        console.log("✅ Company applications fetched:", response);
+
+        setApplications(response.items || []);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Không thể tải quản lý ứng tuyển";
+        console.error("❌ Error fetching applications:", errorMessage);
+        setError(errorMessage);
+        notify.error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [accessToken, currentPage]);
+
+  // Filter applications
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
+      // Status filter
+      if (statusFilter !== "Tất cả") {
+        const apiStatus = statusTextToApiStatus[statusFilter];
+        if (app.status !== apiStatus) {
+          return false;
+        }
+      }
+
+      // Time filter
+      if (!isMatchTimeFilter(app.appliedAt, timeFilter)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [applications, statusFilter, timeFilter]);
   
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8">
@@ -223,6 +160,12 @@ export default function ApplicationManagement() {
             </p>
           </div>
         </header>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-semibold text-red-700">{error}</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
           {/* Left: Filter panel */}
@@ -280,7 +223,7 @@ export default function ApplicationManagement() {
                           statusFilter === status ? "text-blue-500" : "text-slate-400"
                         }
                       >
-                        {STATUS_ICONS[status as ApplicationStatus]}
+                        <Clock size={15} />
                       </span>
                       {status}
                     </button>
@@ -302,92 +245,116 @@ export default function ApplicationManagement() {
                     Theo dõi và quản lý các yêu cầu ứng tuyển từ ứng viên
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0 rounded-xl border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Đánh dấu nhận tất cả
-                </Button>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                  {isLoading ? "..." : `${filteredApplications.length} kết quả`}
+                </span>
               </CardHeader>
               <CardContent className="space-y-3 pt-5">
-                {filteredApplications.length === 0 ? (
+                {isLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+                  </div>
+                ) : filteredApplications.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-medium text-slate-500">
                     Chưa có đơn ứng tuyển nào phù hợp với bộ lọc hiện tại.
                   </div>
                 ) : (
-                  filteredApplications.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-sm"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-b from-slate-300 to-slate-100">
-                          <span className="text-2xl font-medium text-slate-500">A</span>
-                        </div>
+                  filteredApplications.map((app) => {
+                    const statusInfo = getApplicationStatusInfo(app.status);
+                    const statusStyles = getApplicationStatusStyles(app.status);
 
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <h3 className="text-sm font-bold text-slate-800">
-                                {item.candidateName}
-                              </h3>
-                              <p className="text-xs font-medium text-slate-500">
-                                Ứng tuyển: {item.jobTitle}
-                              </p>
-                              <p className="mt-0.5 text-xs font-semibold text-slate-400">
-                                {formatDate(item.appliedAt)}
-                              </p>
-                            </div>
+                    return (
+                      <article
+                        key={app.applicationId}
+                        className="rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-sm"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-b from-slate-300 to-slate-100">
+                            <span className="text-2xl font-medium text-slate-500">
+                              A
+                            </span>
+                          </div>
 
-                            <div className="flex shrink-0 flex-col items-end gap-1.5">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[item.status]}`}
-                                >
-                                  {item.status}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                                  aria-label="Thêm tùy chọn"
-                                >
-                                  <MoreVertical size={15} />
-                                </button>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-slate-800">
+                                  Ứng viên
+                                </h3>
+                                <p className="text-xs font-medium text-slate-500">
+                                  Ứng tuyển: {app.post.position || "Vị trí công việc"}
+                                </p>
+                                <p className="mt-0.5 text-xs font-semibold text-slate-400">
+                                  {formatDate(app.appliedAt)}
+                                </p>
                               </div>
-                              {item.status === "Phỏng vấn" && item.interviewTime ? (
-                                <div className="flex items-center gap-1 text-right text-xs font-semibold text-[#FF4848]">
-                                  <CalendarClock size={13} className="shrink-0" />
-                                  <span>
-                                    {item.interviewTime} ({item.interviewMode})
+
+                              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles}`}
+                                  >
+                                    {statusInfo.text}
                                   </span>
+                                  <button
+                                    type="button"
+                                    className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                    aria-label="Thêm tùy chọn"
+                                  >
+                                    <MoreVertical size={15} />
+                                  </button>
                                 </div>
-                              ) : null}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-7 rounded-lg bg-blue-500 px-3 text-xs font-semibold text-white hover:bg-blue-600"
+                              >
+                                Xem hồ sơ
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 rounded-lg border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100"
+                              >
+                                <MessageCircle size={12} />
+                                Nhắn tin
+                              </Button>
                             </div>
                           </div>
-
-                          <div className="flex gap-2 pt-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="h-7 rounded-lg bg-blue-500 px-3 text-xs font-semibold text-white hover:bg-blue-600"
-                            >
-                              Xem hồ sơ
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 rounded-lg border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                            >
-                              <MessageCircle size={12} />
-                              Nhắn tin
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    </article>
-                  ))
+                      </article>
+                    );
+                  })
+                )}
+
+                {/* Pagination */}
+                {applications.length > 0 && (
+                  <div className="flex items-center justify-center gap-2 border-t border-slate-200 pt-4">
+                    <Button
+                      variant="outline"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      Trước
+                    </Button>
+                    <span className="text-sm font-semibold text-slate-600">
+                      Trang {currentPage}
+                    </span>
+                    <Button
+                      variant="outline"
+                      disabled={applications.length < pageSize}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      Tiếp
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -406,28 +373,14 @@ export default function ApplicationManagement() {
                 </button>
               </CardHeader>
               <CardContent className="space-y-5 pt-5">
-                {interviewGroups.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                      {group.label}
-                    </p>
-                    <div className="space-y-2 border-l-2 border-blue-400 pl-3">
-                      {group.items.map((interview) => (
-                        <div key={interview.id} className="space-y-0.5">
-                          <p className="text-xs font-bold text-slate-800">
-                            {interview.time}
-                          </p>
-                          <p className="text-sm font-semibold text-slate-700">
-                            {interview.candidateName}
-                          </p>
-                          <p className="text-xs font-medium text-slate-400">
-                            {interview.mode}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    Chưa có lịch phỏng vấn
+                  </p>
+                  <p className="text-sm font-medium text-slate-500">
+                    Lịch phỏng vấn sẽ hiển thị ở đây khi bạn tạo
+                  </p>
+                </div>
 
                 <button
                   type="button"

@@ -67,7 +67,7 @@ export default function TalentHome() {
 
   // Derived values
   const currentPost = filteredPosts[currentIndex];
-  const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-185" : "h-155";
+  const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-[740px]" : "h-[660px]";
 
   const handleNext = () => {
     if (currentIndex < filteredPosts.length - 1) {
@@ -156,8 +156,8 @@ export default function TalentHome() {
       {/* Main Content with Filter on Left */}
       <div className="flex gap-0 pt-10 min-h-screen ">
         {/* Left Filter Sidebar - Attached to left edge */}
-        <div className ="fixed left-3 h-screen  ">
-          <div className="w-82 bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2 ">
+        <div className="fixed left-3 h-screen">
+          <div className="w-[328px] bg-white rounded-lg p-6 shadow-md h-fit items-start ml-2">
             <div className="flex items-center gap-2 mb-6">
               <img src={SortIcon} alt="Sort" className="w-8 h-8"/>
               <h2 className="text-2xl font-bold text-gray-900">Bộ lọc tìm việc</h2>
@@ -228,7 +228,7 @@ export default function TalentHome() {
         {/* Center Content - Centered in remaining space */}
         {isInitialLoading ? (
           <div className="flex-1 flex items-start justify-center">
-            <div className="relative w-105 h-185 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
+            <div className="relative w-[420px] h-[740px] rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
               <div className="text-center space-y-6">
                 <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
                 <h2 className="text-xl font-semibold text-gray-900">Đang tải công việc...</h2>
@@ -239,7 +239,7 @@ export default function TalentHome() {
         ) : (
           <div className="flex-1 flex items-start justify-center gap-8">
             {/* Left Arrow */}
-            <div className={`${arrowTrackHeightClass} flex items-center`}>
+            <div className={`flex items-center ${arrowTrackHeightClass}`}>
               <button 
                 onClick={handlePrev}
                 disabled={currentIndex === 0 || filteredPosts.length === 0}
@@ -252,7 +252,7 @@ export default function TalentHome() {
             {/* Card Container */}
             {filteredPosts.length === 0 ? (
               // Màn hình không tìm thấy
-              <div className="relative w-105 h-185 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
+              <div className="relative w-[420px] h-[740px] rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
                 <div className="text-center space-y-6 px-8">
                   <div className="text-6xl">😕</div>
                   <h2 className="text-3xl font-bold text-gray-900">Không tìm thấy công việc</h2>
@@ -269,7 +269,7 @@ export default function TalentHome() {
               </div>
             ) : (
               // Thẻ công việc bình thường
-              <div className="relative w-100 h-165 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+              <div className="relative w-[400px] h-[660px] rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
                 {/* Background Image or Video */}
                 {currentPost?.mediaType === "video" ? (
                   <video 
@@ -379,7 +379,7 @@ export default function TalentHome() {
             )}
 
             {/* Right Arrow */}
-            <div className={`${arrowTrackHeightClass} flex items-center`}>
+            <div className={`flex items-center ${arrowTrackHeightClass}`}>
               <button 
                 onClick={handleNext}
                 disabled={currentIndex === filteredPosts.length - 1 || filteredPosts.length === 0}

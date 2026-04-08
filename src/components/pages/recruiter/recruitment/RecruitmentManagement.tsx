@@ -90,7 +90,7 @@ export default function RecruitmentManagement() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 mt-4">
-      <div className="max-w-480 mx-auto flex min-h-screen flex-col lg:flex-row">
+      <div className="max-w-[480px] mx-auto flex min-h-screen flex-col lg:flex-row">
         <main className="w-full lg:w-2/3 px-4 md:px-10 lg:pr-8 lg:border-r border-slate-200">
           <header className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3 md:gap-4">

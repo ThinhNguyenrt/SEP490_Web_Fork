@@ -44,10 +44,10 @@ export const createIntroFourDraft = (value: unknown): IntroFourDraft => {
   const source = getIntroFourSource(value);
 
   return {
-    fullName: toText(source.fullName),
-    school: toText(source.school),
+    fullName: toText(source.fullName ?? source.name),
+    school: toText(source.school ?? source.schoolName),
     department: toText(source.department),
-    studyField: toText(source.studyField),
+    studyField: toText(source.studyField ?? source.title),
     gpa: toText(source.gpa),
     avatar: toText(source.avatar),
   };

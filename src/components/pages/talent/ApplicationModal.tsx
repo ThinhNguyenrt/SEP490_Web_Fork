@@ -56,9 +56,9 @@ export const ApplicationModal = ({
       setError(null);
       setPortfolios([]); // Reset portfolios before loading
       setSelectedPortfolioId(null);
-      console.log("📥 Fetching user portfolios for employee:", user.id);
+      console.log("📥 Fetching user portfolios for employee:", user.employeeId || user.id);
 
-      const data = await fetchPortfoliosByEmployeeId(user.id, accessToken);
+      const data = await fetchPortfoliosByEmployeeId(user.employeeId || user.id, accessToken);
       console.log("✅ Portfolios loaded:", data);
       
       if (!data || data.length === 0) {

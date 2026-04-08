@@ -30,15 +30,20 @@ const IntroThree: React.FC<IntroThreeProps> = ({ data }) => {
   const displayName = fullName || name || 'Your Name';
   const educationLine = [school, department].filter(Boolean).join(' - ');
   const gpaLabel = formatGpa(gpa);
+  const avatarUrl = avatar ? resolveImageUrl(avatar) : undefined;
 
   return (
     <div className="intro-block bg-white px-6 py-10 border-b border-gray-200 last:border-b-0 text-center">
-      {avatar && (
+      {avatarUrl && (
         <div className="mb-6 flex justify-center">
           <img
-            src={resolveImageUrl(avatar)}
+            src={avatarUrl}
             alt={displayName}
             className="w-28 h-28 rounded-full object-cover"
+            onError={(e) => {
+              console.warn("❌ Failed to load avatar image");
+              e.currentTarget.style.display = "none";
+            }}
           />
         </div>
       )}

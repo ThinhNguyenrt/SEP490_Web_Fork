@@ -41,6 +41,13 @@ export default function IntroOneEditor({ initialData, onSave, onCancel }: IntroO
     if (draft.avatar && (draft.avatar.startsWith("http://") || draft.avatar.startsWith("https://"))) {
       return draft.avatar;
     }
+    // Try to resolve avatar reference ID to URL/data URL
+    if (draft.avatar && (draft.avatar.startsWith("avatar_") || draft.avatar.startsWith("image_") || draft.avatar.startsWith("project_"))) {
+      const resolved = portfolioService.resolveImageUrl(draft.avatar);
+      if (resolved) {
+        return resolved;
+      }
+    }
     return null;
   }, [avatarBlobUrl, draft.avatar]);
 

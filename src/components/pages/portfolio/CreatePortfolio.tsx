@@ -1830,7 +1830,7 @@ export default function CreatePortfolio() {
 
       // Prepare the portfolio data structure
       const portfolioData = {
-        employeeId: user.id,  // Use user.id since employeeId is null from backend
+        employeeId: user.employeeId || user.id,  // Use employeeId, fallback to user.id if null
         name: portfolioName.trim() || "Hồ sơ mới",
         blocks: sortAndReindexBlocks(blocks).map((block) => ({
           type: normalizeBlockType(block.type),
@@ -1842,13 +1842,8 @@ export default function CreatePortfolio() {
 
       console.log("💾 Saving portfolio:", portfolioData);
 
-      // Collect all image files from portfolio blocks and stored files
-      // This ensures files are included even if block editors weren't explicitly saved
-      const reindexedBlocks = sortAndReindexBlocks(blocks);
-      const portfolioFiles = portfolioService.collectPortfolioFilesFromBlocks(reindexedBlocks);
-      console.log("📸 Collected", portfolioFiles.length, "image files for portfolio");
-
       // Call API to create or update portfolio with files
+      // Files are now collected inside the API function itself
       try {
         let result;
         
@@ -1860,7 +1855,6 @@ export default function CreatePortfolio() {
             portfolioId,
             portfolioData,
             accessToken,
-            portfolioFiles,
           );
           console.log("✅ Portfolio updated successfully:", result);
           notify.success("Hồ sơ đã được cập nhật thành công!");
@@ -1870,7 +1864,6 @@ export default function CreatePortfolio() {
           result = await portfolioService.createPortfolioAPI(
             portfolioData,
             accessToken,
-            portfolioFiles,
           );
           console.log("✅ Portfolio created successfully:", result);
           notify.success("Hồ sơ đã được lưu thành công!");
@@ -1909,6 +1902,7 @@ export default function CreatePortfolio() {
     updateSelectedBlockData((current) => {
       const nextData = toRecord(current);
       nextData.fullName = nextDraft.fullName;
+      nextData.name = nextDraft.fullName; // Also save as 'name' for backend compatibility
       nextData.title = nextDraft.title;
       nextData.email = nextDraft.email;
       nextData.phone = nextDraft.phone;

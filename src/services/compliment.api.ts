@@ -6,7 +6,7 @@
 export interface ComplimentRequest {
   portfolioId: number;
   content: string;
-  score: number; // 1-5
+  score: number; // 0-9.99
 }
 
 export interface ComplimentResponse {
@@ -47,15 +47,19 @@ const API_BASE_URL = getApiBaseUrl();
 /**
  * Submit a compliment/review for a portfolio
  */
-export const submitCompliment = async (compliment: ComplimentRequest): Promise<ComplimentResponse> => {
+export const submitCompliment = async (compliment: ComplimentRequest, accessToken: string): Promise<ComplimentResponse> => {
   try {
-    const token = localStorage.getItem("access_token");
-    
+    if (!accessToken) {
+      const errorMsg = "Access token is missing. Please login again.";
+      console.error("❌", errorMsg);
+      throw new Error(errorMsg);
+    }
+
     const response = await fetch(`${API_BASE_URL}/compliments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(compliment),
     });

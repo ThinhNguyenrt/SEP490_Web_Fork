@@ -241,19 +241,19 @@ export default function ProfileManagement() {
         }
 
         // Get employeeId from auth state
-        if (!user?.id) {
-          console.warn("⚠️ [PortfolioManagement] No user id found in auth state");
+        if (!user?.id && !user?.employeeId) {
+          console.warn("⚠️ [PortfolioManagement] No user id or employeeId found in auth state");
           console.warn("⚠️ [PortfolioManagement] user object:", user);
           notify.error("User information not loaded. Please login again");
           navigate("/login");
           return;
         }
 
-        console.log("📡 [PortfolioManagement] Fetching portfolios for employee:", user.id);
+        console.log("📡 [PortfolioManagement] Fetching portfolios for employee:", user.employeeId || user.id);
 
         // Use the working employee ID endpoint instead of /me
         const data = await portfolioService.fetchPortfoliosByEmployeeId(
-          user.id,
+          user.employeeId || user.id,
           accessToken,
         );
         
@@ -317,14 +317,25 @@ export default function ProfileManagement() {
         return;
       }
 
-      if (!accessToken) {
+      console.log("🗑️ [handleDeletePortfolio] Starting delete process");
+      console.log("🗑️ [handleDeletePortfolio] portfolioId:", portfolioId);
+      console.log("🗑️ [handleDeletePortfolio] accessToken exists:", !!accessToken);
+      console.log("🗑️ [handleDeletePortfolio] accessToken length:", accessToken?.length || 0);
+
+      // Fallback to localStorage if Redux token is not available (redux-persist timing)
+      const tokenToUse = accessToken || localStorage.getItem("access_token");
+      
+      console.log("🗑️ [handleDeletePortfolio] Token to use exists:", !!tokenToUse);
+      console.log("🗑️ [handleDeletePortfolio] Token to use length:", tokenToUse?.length || 0);
+
+      if (!tokenToUse) {
         notify.error("Vui lòng đăng nhập để xóa portfolio");
         navigate("/login");
         return;
       }
 
-      console.log("🗑️ Deleting portfolio:", portfolioId);
-      await portfolioService.deletePortfolio(portfolioId, accessToken);
+      console.log("🗑️ [handleDeletePortfolio] Calling deletePortfolio service");
+      await portfolioService.deletePortfolio(portfolioId, tokenToUse);
 
       // Remove portfolio from list
       setPortfolios((prev) =>

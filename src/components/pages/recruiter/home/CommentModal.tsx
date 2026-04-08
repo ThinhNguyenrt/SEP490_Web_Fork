@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { X, MessageSquare } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { complimentService, ComplimentRequest } from "@/services/compliment.api";
+import { RootState } from "@/store";
 
 interface CommentModalProps {
   isOpen: boolean;
@@ -16,8 +18,9 @@ const CommentModal = ({
   portfolioId,
   onSuccess,
 }: CommentModalProps) => {
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [content, setContent] = useState("");
-  const [score, setScore] = useState<number>(5);
+  const [score, setScore] = useState<number>(5.0);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ const CommentModal = ({
       document.body.style.overflow = "unset";
       // Reset state when closing modal
       setContent("");
-      setScore(5);
+      setScore(5.0);
     }
     return () => {
       document.body.style.overflow = "unset";
@@ -37,13 +40,18 @@ const CommentModal = ({
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
+    if (!accessToken) {
+      notify.error("Vui lòng đăng nhập lại để gửi nhận xét");
+      return;
+    }
+
     if (!content.trim()) {
       notify.error("Vui lòng nhập nội dung nhận xét");
       return;
     }
 
-    if (score < 1 || score > 5) {
-      notify.error("Điểm số phải từ 1 đến 5");
+    if (score < 0 || score > 9.99) {
+      notify.error("Điểm số phải từ 0 đến 9.99");
       return;
     }
 
@@ -55,7 +63,7 @@ const CommentModal = ({
         score,
       };
 
-      await complimentService.submitCompliment(compliment);
+      await complimentService.submitCompliment(compliment, accessToken);
       notify.success("Gửi nhận xét thành công!");
       onSuccess();
       onClose();
@@ -122,24 +130,26 @@ const CommentModal = ({
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Chấm điểm <span className="text-red-500">*</span>
               </label>
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setScore(star)}
-                    disabled={isLoading}
-                    className={`w-12 h-12 rounded-lg font-semibold text-lg transition-all ${
-                      score === star
-                        ? "bg-blue-500 text-white shadow-lg scale-110"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {star}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  max="9.99"
+                  step="0.01"
+                  value={score}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value)) {
+                      setScore(Math.min(9.99, Math.max(0, value)));
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-24 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-semibold text-lg text-center"
+                />
+                <span className="text-sm font-semibold text-gray-700">/9.99</span>
               </div>
               <p className="text-xs text-gray-500 text-center mt-2">
-                Chọn điểm từ 1 (thấp nhất) đến 5 (cao nhất)
+                Nhập điểm từ 0 (thấp nhất) đến 9.99 (cao nhất)
               </p>
             </div>
           </div>

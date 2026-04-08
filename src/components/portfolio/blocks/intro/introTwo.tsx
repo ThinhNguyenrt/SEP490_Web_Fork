@@ -30,16 +30,23 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
   const displayName = fullName || name || 'Your Name';
   // Use position first, then title, then studyField
   const displayTitle = position || title || studyField;
+  
+  // Resolve avatar URL (handles HTTP URLs, reference IDs, and data URLs)
+  const avatarUrl = avatar ? resolveImageUrl(avatar) : undefined;
 
   return (
     <div className="intro-block flex bg-white border-b border-gray-200 last:border-b-0 mt-10">
       {/* Left Sidebar - Avatar */}
       <div className="ml-8 rounded-md border-gray-300">
-        {avatar && (
+        {avatarUrl && (
           <img
-            src={resolveImageUrl(avatar)}
+            src={avatarUrl}
             alt={displayName}
             className="w-40 h-48 object-cover"
+            onError={(e) => {
+              console.warn("❌ Failed to load avatar image");
+              e.currentTarget.style.display = "none";
+            }}
           />
         )}
       </div>

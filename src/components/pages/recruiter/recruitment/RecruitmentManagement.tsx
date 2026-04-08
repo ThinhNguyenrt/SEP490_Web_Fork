@@ -20,7 +20,7 @@ function RecruitmentPostCard({
 }) {
   return (
     <article
-      className="group relative w-90 aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm cursor-pointer"
+      className="group relative w-72 aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm cursor-pointer"
       onClick={onClick}
     >
       <img
@@ -133,7 +133,7 @@ export default function RecruitmentManagement() {
                 Bạn đang có {recruitmentPosts.length} bài đăng tuyển dụng
               </p>
 
-              <section className="inline-grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8 justify-items-start">
+              <section className="inline-grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-8 justify-items-start">
                 {recruitmentPosts.map((post) => (
                   <RecruitmentPostCard
                     key={post.postId}

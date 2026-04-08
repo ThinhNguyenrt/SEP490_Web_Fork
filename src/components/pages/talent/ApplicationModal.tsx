@@ -33,16 +33,14 @@ export const ApplicationModal = ({
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const user = useAppSelector((state) => state.auth.user);
 
-  // Store postId and companyId in ref to ensure they don't change during submission
+  // Store companyPostId (passed as postId prop) in ref to ensure it doesn't change during submission
   const postIdRef = useRef<number>(postId);
-  const companyIdRef = useRef<number>(companyId);
 
   // Update refs when props change
   useEffect(() => {
     postIdRef.current = postId;
-    companyIdRef.current = companyId;
-    console.log("📋 ApplicationModal props updated:", { postId, companyId, isOpen });
-  }, [postId, companyId, isOpen]);
+    console.log("📋 ApplicationModal props updated:", { companyPostId: postId, isOpen });
+  }, [postId, isOpen]);
 
   // Fetch portfolios when modal opens
   const loadPortfolios = useCallback(async () => {
@@ -100,23 +98,18 @@ export const ApplicationModal = ({
       setError(null);
       
       // Use refs to get the current/stable values
-      const safePostId = postIdRef.current;
-      const safeCompanyId = companyIdRef.current;
+      const safeCompanyPostId = postIdRef.current;
       
       console.log("💾 Submitting application...", { 
-        postId: safePostId, 
-        companyId: safeCompanyId, 
+        companyPostId: safeCompanyPostId, 
         portfolioId: selectedPortfolioId 
       });
       
-      if (!safePostId || safePostId <= 0) {
-        throw new Error(`Invalid postId: ${safePostId}`);
-      }
-      if (!safeCompanyId || safeCompanyId <= 0) {
-        throw new Error(`Invalid companyId: ${safeCompanyId}`);
+      if (!safeCompanyPostId || safeCompanyPostId <= 0) {
+        throw new Error(`Invalid companyPostId: ${safeCompanyPostId}`);
       }
 
-      const result = await createApplication(safePostId, selectedPortfolioId, safeCompanyId, accessToken);
+      const result = await createApplication(safeCompanyPostId, selectedPortfolioId, accessToken);
       console.log("✅ Application submitted successfully:", result);
 
       onSubmitSuccess?.(result.applicationId);

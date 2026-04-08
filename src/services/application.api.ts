@@ -242,3 +242,97 @@ export const getMyApplications = async (
     throw err;
   }
 };
+
+/**
+ * Get company's received applications with pagination
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of items per page
+ * @param accessToken - Access token for authentication
+ */
+export const getCompanyApplications = async (
+  page: number = 1,
+  pageSize: number = 10,
+  accessToken?: string
+): Promise<{
+  items: Application[],
+  total: number,
+  page: number,
+  pageSize: number,
+}> => {
+  try {
+    console.log("📡 [getCompanyApplications] Starting with page:", page, "pageSize:", pageSize);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Get company applications timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    // Build query params
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("pageSize", pageSize.toString());
+
+    const fullUrl = `${API_BASE_URL}/applications/company?${params.toString()}`;
+    console.log("📡 Making request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Get company applications API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    } else {
+      throw new Error("Server returned non-JSON response");
+    }
+
+    if (!response.ok) {
+      const errorMessage = typeof data === "object" && data !== null && "message" in data
+        ? (data as { message: string }).message
+        : `HTTP ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    // Validate response structure
+    const responseData = data as Record<string, unknown>;
+    if (!Array.isArray(responseData.items)) {
+      throw new Error("Invalid response format: items array not found");
+    }
+
+    console.log("✅ Company applications fetched successfully:", responseData.items?.length || 0, "items");
+    return {
+      items: responseData.items as Application[],
+      total: typeof responseData.total === 'number' ? responseData.total : 0,
+      page: typeof responseData.page === 'number' ? responseData.page : 1,
+      pageSize: typeof responseData.pageSize === 'number' ? responseData.pageSize : 10,
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Failed to get company applications";
+    console.error("❌ [getCompanyApplications] Error:", errorMessage);
+    throw err;
+  }
+};

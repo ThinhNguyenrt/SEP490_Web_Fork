@@ -7,7 +7,6 @@ import { ArrowLeft } from 'lucide-react';
 
 interface ApplicationModalProps {
   postId: number;
-  companyId: number;
   isOpen: boolean;
   onClose: () => void;
   onSubmitSuccess?: (applicationId: number) => void;
@@ -17,7 +16,6 @@ interface ApplicationModalProps {
 
 export const ApplicationModal = ({
   postId,
-  companyId,
   isOpen,
   onClose,
   onSubmitSuccess,
@@ -225,7 +223,7 @@ export const ApplicationModal = ({
                               className="w-12 h-12 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
+                            <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
                               {introData.name?.[0] || 'P'}
                             </div>
                           )}

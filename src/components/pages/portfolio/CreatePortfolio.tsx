@@ -1833,6 +1833,7 @@ export default function CreatePortfolio() {
         employeeId: user.employeeId || user.id,  // Use employeeId, fallback to user.id if null
         name: portfolioName.trim() || "Hồ sơ mới",
         blocks: sortAndReindexBlocks(blocks).map((block) => ({
+          id: block.id,
           type: normalizeBlockType(block.type),
           variant: block.variant.toUpperCase(),
           order: block.order,

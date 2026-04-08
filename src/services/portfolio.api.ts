@@ -1444,6 +1444,7 @@ export const createPortfolioAPI = async (
     employeeId: number;
     name: string;
     blocks: Array<{
+      id: number;
       type: string;
       variant: string;
       order: number;
@@ -1658,6 +1659,7 @@ export const updatePortfolioAPI = async (
     employeeId: number;
     name: string;
     blocks: Array<{
+      id: number;
       type: string;
       variant: string;
       order: number;

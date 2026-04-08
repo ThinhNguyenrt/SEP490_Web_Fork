@@ -1,4 +1,4 @@
-import { Application, CreateApplicationRequest, PaginatedApplicationsResponse } from '@/types/application';
+import { Application, CreateApplicationRequest } from '@/types/application';
 
 /**
  * Application Service API

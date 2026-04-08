@@ -67,7 +67,7 @@ export default function TalentHome() {
 
   // Derived values
   const currentPost = filteredPosts[currentIndex];
-  const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-205" : "h-176";
+  const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-185" : "h-155";
 
   const handleNext = () => {
     if (currentIndex < filteredPosts.length - 1) {
@@ -228,7 +228,7 @@ export default function TalentHome() {
         {/* Center Content - Centered in remaining space */}
         {isInitialLoading ? (
           <div className="flex-1 flex items-start justify-center">
-            <div className="relative w-125 h-205 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
+            <div className="relative w-105 h-185 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
               <div className="text-center space-y-6">
                 <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
                 <h2 className="text-xl font-semibold text-gray-900">Đang tải công việc...</h2>
@@ -252,7 +252,7 @@ export default function TalentHome() {
             {/* Card Container */}
             {filteredPosts.length === 0 ? (
               // Màn hình không tìm thấy
-              <div className="relative w-125 h-205 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
+              <div className="relative w-105 h-185 rounded-2xl overflow-hidden shadow-lg flex-shrink-0 bg-white flex flex-col items-center justify-center">
                 <div className="text-center space-y-6 px-8">
                   <div className="text-6xl">😕</div>
                   <h2 className="text-3xl font-bold text-gray-900">Không tìm thấy công việc</h2>
@@ -269,7 +269,7 @@ export default function TalentHome() {
               </div>
             ) : (
               // Thẻ công việc bình thường
-              <div className="relative w-110 h-176 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+              <div className="relative w-100 h-165 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
                 {/* Background Image or Video */}
                 {currentPost?.mediaType === "video" ? (
                   <video 
@@ -294,10 +294,10 @@ export default function TalentHome() {
                     <img 
                       src={currentPost.companyAvatar} 
                       alt="Company Logo" 
-                      className="w-15 h-15 rounded-full object-cover flex-shrink-0"
+                      className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-15 h-15 rounded-full bg-teal-800 flex-shrink-0"></div>
+                    <div className="w-14 h-14 rounded-full bg-teal-800 flex-shrink-0"></div>
                   )}
                   
                   {/* Company Name, Position & Details */}

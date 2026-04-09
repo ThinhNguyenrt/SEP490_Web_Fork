@@ -5,40 +5,43 @@ import { CompanyTab } from "./CompanyTab";
 import { useAppSelector } from "@/store/hook";
 import { CompanyPost } from "@/types/companyPost";
 import { notify } from "@/lib/toast";
+import { Loader2 } from "lucide-react";
 
 type TabType = "company" | "community";
 
 export default function TalentSavePost() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
   const [isLoading, setIsLoading] = useState(false);
-  const [communitySavedPosts, setCommunitySavedPosts] = useState<CommunityPost[]>([]); // Lưu danh sách bài viết đã lưu
+  const [communitySavedPosts, setCommunitySavedPosts] = useState<
+    CommunityPost[]
+  >([]); // Lưu danh sách bài viết đã lưu
   // Giả sử lọc dữ liệu cho từng tab
 
   const { accessToken } = useAppSelector((state) => state.auth);
   const [companySavedPosts, setCompanySavedPosts] = useState<CompanyPost[]>([]);
 
-    const fetchCompanySavedPosts = async () => {
-      if (!accessToken) return;
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
-          {
-            // Thay endpoint thực tế của bạn
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
+  const fetchCompanySavedPosts = async () => {
+    if (!accessToken) return;
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
+        {
+          // Thay endpoint thực tế của bạn
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
           },
-        );
-        const data = await response.json();
-        setCompanySavedPosts(data.items);
-        console.log("data: ", data.items);
-      } catch (error) {
-        notify.error("Lỗi khi tải bài viết đã lưu");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        },
+      );
+      const data = await response.json();
+      setCompanySavedPosts(data.items);
+      console.log("data: ", data.items);
+    } catch (error) {
+      notify.error("Lỗi khi tải bài viết đã lưu");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const fetchTalentSavePosts = async () => {
     if (isLoading) return;
 
@@ -67,7 +70,7 @@ export default function TalentSavePost() {
   useEffect(() => {
     if (activeTab === "community") {
       fetchTalentSavePosts();
-    }else {
+    } else {
       fetchCompanySavedPosts();
     }
   }, [activeTab]);
@@ -114,36 +117,56 @@ export default function TalentSavePost() {
         </div>
         {/* Dynamic Content */}
         {activeTab === "company" ? (
-          companySavedPosts.length > 0 ? (
-            <CompanyTab companySavedPosts={companySavedPosts} />
-          ) : (
-            <EmptyState />
-          )
-        ) : communitySavedPosts.length > 0 ? (
-          <div className="space-y-6">
-            {communitySavedPosts.map((post: CommunityPost) => (
-              <CommunityPostCard
-                key={post.id}
-                id={post.id}
-                author={post.author.name}
-                authorId={post.author.id}
-                time={post.createdAt}
-                avatar={post.author.avatar}
-                isVerified={post.author.role === "COMPANY"}
-                content={post.description || ""}
-                images={
-                  post?.media && post?.media.length > 0 ? post?.media : []
-                }
-                imageTitle={post.portfolioPreview?.data?.title || ""}
-                likes={post.favoriteCount}
-                comments={post.commentCount}
-                isFavorited={post.isFavorited}
-                isSaved={post.isSaved}
-              />
-            ))}
+          <div>
+            {isLoading ? (
+              // HIỂN THỊ LOADING TẠI ĐÂY
+              <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>Đang tải...</p>
+              </div>
+            ) : companySavedPosts.length > 0 ? (
+              <CompanyTab companySavedPosts={companySavedPosts} />
+            ) : (
+              // TRẠNG THÁI TRỐNG (EMPTY)
+              <EmptyState />
+            )}
           </div>
         ) : (
-          <EmptyState />
+          <div>
+            {isLoading ? (
+              // HIỂN THỊ LOADING TẠI ĐÂY
+              <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>Đang tải...</p>
+              </div>
+            ) : companySavedPosts.length > 0 ? (
+              <div className="space-y-6">
+                {communitySavedPosts.map((post: CommunityPost) => (
+                  <CommunityPostCard
+                    key={post.id}
+                    id={post.id}
+                    author={post.author.name}
+                    authorId={post.author.id}
+                    time={post.createdAt}
+                    avatar={post.author.avatar}
+                    isVerified={post.author.role === "COMPANY"}
+                    content={post.description || ""}
+                    images={
+                      post?.media && post?.media.length > 0 ? post?.media : []
+                    }
+                    imageTitle={post.portfolioPreview?.data?.title || ""}
+                    likes={post.favoriteCount}
+                    comments={post.commentCount}
+                    isFavorited={post.isFavorited}
+                    isSaved={post.isSaved}
+                  />
+                ))}
+              </div>
+            ) : (
+              // TRẠNG THÁI TRỐNG (EMPTY)
+              <EmptyState />
+            )}
+          </div>
         )}
       </div>
     </div>

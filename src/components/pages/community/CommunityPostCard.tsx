@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Heart,
   MessageCircle,
@@ -101,7 +101,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
 
     // Từ 4 ảnh trở lên
     return (
-      <div className="grid grid-cols-2 gap-1 mt-4 rounded-xl overflow-hidden relative">
+      <div className="grid grid-cols-2 gap-1 mt-2 rounded-xl overflow-hidden relative">
         {images.slice(0, 4).map((img, i) => (
           <div key={i} className="relative">
             <img
@@ -129,6 +129,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user, accessToken } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
   // Xử lý click outside để đóng menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -253,12 +254,33 @@ export const CommunityPostCard: React.FC<PostProps> = ({
 
     setIsActionLoading(false);
   };
+  const handleNavigateProfile = (id: number) => {
+    if (id === user?.id && user.role === 1) {
+      navigate("/profile");
+      return;
+    }
+
+    if (id === user?.id && user.role === 2) {
+      navigate("/recruiter-profile");
+      return;
+    }
+    if (!isVerified) {
+      navigate(`/profile/${id}`);
+      return;
+    } else {
+      navigate(`/recruiter-profile/${id}`);
+      return;
+    }
+  };
   return (
-    <article className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+    <article className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-2">
       <div className="p-4">
         {/* Header: Avatar & Name */}
         <div className="flex items-start justify-between">
-          <div className="flex space-x-3">
+          <div
+            className="flex space-x-3 cursor-pointer"
+            onClick={() => handleNavigateProfile(authorId)}
+          >
             <div className="relative">
               <img
                 alt={"Avatar"}

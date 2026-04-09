@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ImageIcon, Contact, Send } from "lucide-react";
+import { ImageIcon, Contact, Send, Loader2 } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import type { CommunityPost } from "@/types/communityPost.ts";
 import CreatePostModal from "./CreatePostModal";
@@ -111,10 +111,10 @@ export default function CommunityPost() {
     }
   };
   return (
-    <div className="bg-slate-50 text-slate-900 min-h-screen transition-colors duration-200">
-      <div className="max-w-2xl mx-auto py-4 px-4">
+    <div className="bg-[#f2ede6] text-slate-900 min-h-screen transition-colors duration-200">
+      <div className="max-w-2xl mx-auto py-2 px-2">
         {/* Create Post Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 cursor-pointer">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-2 cursor-pointer">
           <div className="flex space-x-3 mb-4">
             <div className="relative inline-block">
               <img
@@ -210,17 +210,9 @@ export default function CommunityPost() {
               className="text-sm font-semibold text-blue-500 hover:underline cursor-pointer"
             >
               {isLoading ? (
-                <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-                  {/* Container cho Spinner và Text */}
-                  <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
-                    {/* Vòng tròn Loading Spinner */}
-                    <div className="relative">
-                      {/* Vòng tròn nhạt phía dưới */}
-                      <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
-                      {/* Vòng xoay chính */}
-                      <div className="absolute top-0 left-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  </div>
+                <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+                  <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                  <p>Đang tải bài viết...</p>
                 </div>
               ) : (
                 "Xem thêm bài viết"

@@ -12,6 +12,8 @@ import { realtimeService } from "./services/realtimeService";
 import { useAppSelector } from "./store/hook";
 import { notify } from "./lib/toast";
 import { useUserProfile } from "./hook/useUserProfile";
+import OtherTalentProfilePage from "./components/pages/profile/otherProfile/OtherTalentProfile";
+import OtherCompanyProfilePage from "./components/pages/profile/otherProfile/OtherCompanyProfile";
 
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
 const LoginPage = lazy(() => import("./components/pages/login/Login"));
@@ -183,6 +185,8 @@ function App() {
             <Route path="/job/:postId" element={<PostDetail />} />
             <Route path="/chat" element={<ChatRoom />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:userId" element={<OtherTalentProfilePage />} />
+            <Route path="/recruiter-profile/:userId" element={<OtherCompanyProfilePage />} />
             <Route
               path="/application-history"
               element={<ApplicationHistory />}

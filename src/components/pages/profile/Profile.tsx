@@ -11,6 +11,8 @@ import {
   Award,
   Calendar,
   Briefcase,
+  Mail,
+  Phone,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,11 +25,13 @@ import { logout } from "@/store/features/auth/authSlice";
 import { notify } from "@/lib/toast";
 import { useDispatch } from "react-redux";
 import ChangePasswordModal from "./ChangePasswordModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
 
   const handlePortfolioClick = async () => {
     try {
@@ -87,6 +91,54 @@ export default function ProfilePage() {
       {/* <CompanyProfile /> */}
       {/* CỘT GIỮA - Main Profile & Services */}
       <div className="lg:col-span-6 space-y-6">
+        <Card className="border-2 border-slate-200 shadow-sm rounded-3xl p-8 pb-4 bg-white">
+          <CardContent className="p-0 flex flex-col items-center text-center space-y-4">
+            <Avatar className="h-24 w-24 border-2 border-slate-200 shadow-sm">
+              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=AnNhien" />
+              <AvatarFallback>AN</AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-slate-900">
+                Phạm An Nhiên
+              </h2>
+              <p className="text-[#3B82F6] font-bold">
+                Nhà thiết kế UI/UX & Lập trình viên Frontend
+              </p>
+            </div>
+            <p className="text-slate-600 leading-relaxed max-w-md font-medium">
+              Một nhà thiết kế sản phẩm đầy nhiệt huyết với hơn 5 năm kinh
+              nghiệm. Tôi tập trung vào việc tạo ra những trải nghiệm người dùng
+              trực quan.
+            </p>
+            <div className="flex gap-8 text-slate-500 text-sm pt-2 font-semibold">
+              <div className="flex items-center gap-2">
+                <Mail size={16} /> annhien@gmail.com
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone size={16} /> 0123456789
+              </div>
+            </div>
+
+            <div className="pt-4 w-full flex justify-center ">
+              <button className="flex items-center gap-1 text-slate-400 text-sm font-medium hover:text-slate-600 transition-colors cursor-pointer">
+                Xem thêm
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 gap-4">
           <ServiceCard

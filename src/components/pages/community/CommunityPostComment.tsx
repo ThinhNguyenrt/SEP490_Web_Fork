@@ -3,6 +3,7 @@ import { PostComment } from "@/types/communityPost";
 import { formatTimeAgo } from "@/utils/FormatTime";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface CommentProps {
   comment: PostComment;
@@ -106,7 +107,8 @@ const CommentItem = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // Lấy user hiện tại từ Redux
-
+  const navigate = useNavigate();
+  const { user } = useAppSelector((state) => state.auth);
   const isMyComment = currentUser?.id === author.id;
 
   // Xử lý click ra ngoài để đóng dropdown
@@ -122,8 +124,30 @@ const CommentItem = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  const handleViewUserProfile = (userId: number, role: string) => {
+    if (userId === user?.id && user.role === 1) {
+      navigate("/profile");
+      return;
+    }
+
+    if (userId === user?.id && user.role === 2) {
+      navigate("/recruiter-profile");
+      return;
+    }
+    if (role === "USER") {
+      navigate(`/profile/${userId}`);
+      return;
+    }
+    if (role === "COMPANY") {
+      navigate(`/recruiter-profile/${userId}`);
+      return;
+    }
+  };
   return (
-    <div className="flex gap-3 mb-2 group">
+    <div
+      className="flex gap-3 mb-2 group"
+      onClick={() => handleViewUserProfile(author.id, author.role)}
+    >
       <img
         src={author.avatar || "/default-avatar.png"}
         className="w-10 h-10 rounded-full z-10 bg-white object-cover shadow-sm"

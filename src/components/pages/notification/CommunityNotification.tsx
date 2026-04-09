@@ -1,9 +1,9 @@
 import { useAppSelector } from "@/store/hook";
 import { UserNotification } from "@/types/notification";
 import { formatTimeAgo } from "@/utils/FormatTime";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-
 
 const CommunityNotification = () => {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
@@ -15,9 +15,12 @@ const CommunityNotification = () => {
   const { accessToken } = useAppSelector((state) => state.auth);
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const response = await fetch("https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/unread-count", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(
+        "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/unread-count",
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       const data = await response.json();
       setUnreadCount(data.count || 0);
     } catch (error) {
@@ -65,7 +68,7 @@ const CommunityNotification = () => {
     [accessToken, loading],
   );
   const handleMarkAsRead = async (id: number, isRead: boolean) => {
-    if (isRead) return; 
+    if (isRead) return;
 
     try {
       const response = await fetch(
@@ -82,7 +85,6 @@ const CommunityNotification = () => {
           prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
-        
       }
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
@@ -138,7 +140,11 @@ const CommunityNotification = () => {
         {notifications.map((notif) => (
           <div
             key={notif.id}
-            onClick={() => handleMarkAsRead(notif.id, notif.isRead).then(() => navigate(`/community/${notif.objectId}`))}
+            onClick={() =>
+              handleMarkAsRead(notif.id, notif.isRead).then(() =>
+                navigate(`/community/${notif.objectId}`),
+              )
+            }
             className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 transition-all cursor-pointer group ${
               notif.isRead
                 ? "border-gray-100 opacity-80"
@@ -194,17 +200,9 @@ const CommunityNotification = () => {
       {/* Loading & Load More Section */}
       <div className="py-4 flex justify-center">
         {loading ? (
-          <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-            {/* Container cho Spinner và Text */}
-            <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
-              {/* Vòng tròn Loading Spinner */}
-              <div className="relative">
-                {/* Vòng tròn nhạt phía dưới */}
-                <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
-                {/* Vòng xoay chính */}
-                <div className="absolute top-0 left-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            </div>
+          <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <p>Đang tải thông báo...</p>
           </div>
         ) : (
           hasMore && (

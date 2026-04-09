@@ -12,7 +12,8 @@ import SortIcon from "../../../assets/myWeb/sort.png";
 import { fetchCompanyPosts, saveCompanyPost } from "@/services/company.api";
 import { CompanyPostAPI } from "@/types/companyPost";
 import { useAppSelector, useAppDispatch } from "@/store/hook";
-import { addSavedPost } from "@/store/features/savedPosts/savedPostsSlice";
+import { addSavedPost, removeSavedPost } from "@/store/features/savedPosts/savedPostsSlice";
+import { notify } from "@/lib/toast";
 
 export default function TalentHome() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -101,20 +102,27 @@ export default function TalentHome() {
 
     try {
       setIsSavingPost(postId);
-      console.log("💾 [handleSavePost] Saving post:", postId);
-      console.log("💾 [handleSavePost] AccessToken available:", !!accessToken);
-      console.log("💾 [handleSavePost] Current savedPostIds before save:", savedPostIds);
+      console.log("💾 [handleSavePost] Toggling post:", postId);
+      console.log("💾 [handleSavePost] Current saved status:", savedPostIds.includes(postId));
       
       const result = await saveCompanyPost(postId, accessToken || undefined);
       console.log("💾 [handleSavePost] API Response:", result);
       
-      dispatch(addSavedPost(postId));
-      console.log("✅ [handleSavePost] Dispatched addSavedPost for postId:", postId);
-      console.log("✅ [handleSavePost] Updated savedPostIds should include:", postId);
+      // Toggle logic: if already saved, remove it; otherwise, add it
+      const isSaved = savedPostIds.includes(postId);
+      if (isSaved) {
+        dispatch(removeSavedPost(postId));
+        notify.success("Đã xóa bài viết khỏi danh sách lưu");
+        console.log("✅ [handleSavePost] Dispatched removeSavedPost for postId:", postId);
+      } else {
+        dispatch(addSavedPost(postId));
+        notify.success("Đã lưu bài viết");
+        console.log("✅ [handleSavePost] Dispatched addSavedPost for postId:", postId);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save post";
       console.error("❌ [handleSavePost] Error saving post:", errorMessage);
-      // You can show a toast notification here for errors
+      notify.error(errorMessage);
     } finally {
       setIsSavingPost(null);
     }
@@ -352,17 +360,17 @@ export default function TalentHome() {
                   <button 
                     onClick={() => currentPost && handleSavePost(currentPost.postId)}
                     disabled={isSavingPost === currentPost?.postId}
-                    className="hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed group"
+                    title={savedPostIds.includes(currentPost?.postId || 0) ? "Xóa bài viết khỏi danh sách lưu" : "Lưu bài viết"}
                   >
                     <img 
                       src={BookmarkIcon} 
                       alt="Bookmark" 
-                      className="w-9 h-9"
+                      className="w-9 h-9 transition-all duration-300"
                       style={{
                         filter: savedPostIds.includes(currentPost?.postId || 0) 
-                          ? 'brightness(1.2) sepia(0.8) saturate(3) hue-rotate(8deg)' 
-                          : 'brightness(0) saturate(100%)',
-                        transition: 'filter 0.3s ease-in-out'
+                          ? 'brightness(0) saturate(100%) invert(82%) sepia(76%) saturate(417%) hue-rotate(4deg)' // Yellow color
+                          : 'brightness(0) saturate(100%) invert(100%)', // White color
                       }}
                     />
                   </button>

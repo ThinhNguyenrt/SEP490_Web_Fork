@@ -4,7 +4,8 @@ import { fetchCompanyPostDetail, saveCompanyPost } from '@/services/company.api'
 import { CompanyPostDetail } from '@/types/companyPost';
 import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { addSavedPost } from '@/store/features/savedPosts/savedPostsSlice';
+import { addSavedPost, removeSavedPost } from '@/store/features/savedPosts/savedPostsSlice';
+import { notify } from '@/lib/toast';
 import { ApplicationModal } from './ApplicationModal';
 import ArrowBackIcon from './../../../assets/myWeb/arrowback.png';
 import BookmarkIcon from './../../../assets/myWeb/bookmark.png';
@@ -64,15 +65,24 @@ export const PostDetail = () => {
 
     try {
       setIsSaving(true);
-      console.log("💾 Saving post:", postId);
+      console.log("💾 Toggling post:", postId);
       
       await saveCompanyPost(Number(postId), accessToken || undefined);
-      dispatch(addSavedPost(Number(postId)));
-      console.log("✅ Post saved successfully");
+      
+      // Toggle logic: if already saved, remove it; otherwise, add it
+      if (isSaved) {
+        dispatch(removeSavedPost(Number(postId)));
+        notify.success("Đã xóa bài viết khỏi danh sách lưu");
+        console.log("✅ Post removed from saved");
+      } else {
+        dispatch(addSavedPost(Number(postId)));
+        notify.success("Đã lưu bài viết");
+        console.log("✅ Post saved successfully");
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save post";
       console.error("❌ Error saving post:", errorMessage);
-      // Still toggle the UI even if there's an error, but you could show a toast notification here
+      notify.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -136,9 +146,10 @@ export const PostDetail = () => {
             <button
               onClick={handleSavePost}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
+              title={isSaved ? "Xóa bài viết khỏi danh sách lưu" : "Lưu bài viết"}
             >
-              <img src={BookmarkIcon} alt="Bookmark" className="w-5 h-5" style={{ filter: isSaved ? 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' : 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' }} />
+              <img src={BookmarkIcon} alt="Bookmark" className="w-5 h-5 transition-all duration-300" style={{ filter: isSaved ? 'brightness(0) saturate(100%) invert(82%) sepia(76%) saturate(417%) hue-rotate(4deg)' : 'brightness(0) saturate(100%) invert(100%)' }} />
               <span>{isSaved ? 'Đã lưu' : 'Lưu tin'}</span>
             </button>
             <button className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg bg-white hover:border-gray-400">

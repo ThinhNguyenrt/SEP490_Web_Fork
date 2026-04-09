@@ -3,6 +3,12 @@ import {
   Plus,
   Save,
   Trash2,
+  Target,
+  Lightbulb,
+  Users,
+  FileText,
+  ScrollText,
+  Briefcase,
 } from "lucide-react";
 import {
   useEffect,
@@ -12,6 +18,8 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
+import { BLOCK_CATALOG, getBlockInfo } from "./blockCatalog";
+import VariantSelector from "./VariantSelector";
 import ActivityOneEditor from "./editor/ActivityOneEditor";
 import AwardEditor from "./editor/AwardEditor";
 import IntroTwoEditor from "./editor/IntroTwoEditor";
@@ -57,7 +65,6 @@ import {
   type OtherFiveDraft,
 } from "./editor/otherFiveDraft";
 import {
-  createEmptyOtherEightDraft,
   createOtherEightDraft,
   type OtherEightDraft,
 } from "./editor/otherEightDraft";
@@ -75,7 +82,6 @@ import {
 } from "./editor/otherInfoSixDraft";
 import {
   createOtherSevenDraft,
-  createEmptyOtherSevenDraft,
   type OtherSevenDraft,
 } from "./editor/otherSevenDraft";
 import {
@@ -176,12 +182,6 @@ type FieldDefinition = {
   multiline?: boolean;
 };
 
-type BlockCatalogItem = {
-  type: string;
-  label: string;
-  description: string;
-};
-
 type EditableBlockType =
   | "INTRO"
   | "SKILL"
@@ -231,7 +231,6 @@ const EDITABLE_BLOCK_TYPES: EditableBlockType[] = [
   "OTHERINFO",
   "REFERENCE",
   "DIPLOMA",
-
 ];
 
 const TEMPLATE_TWO_EDITOR_SLOTS: EditorSlot[] = [
@@ -283,7 +282,7 @@ const TEMPLATE_FOUR_REQUIRED_VARIANTS = new Set(
 const TEMPLATE_FIVE_EDITOR_SLOTS: EditorSlot[] = [
   { type: "INTRO", variant: "INTROFIVE", label: "Giới thiệu" },
   { type: "OTHERINFO", variant: "OTHERFOUR", label: "Giới thiệu chuyên môn" },
-  { type: "SKILL", variant: "SKILLTHREE", label: "Kỹ năng lâm sàng" },
+  { type: "SKILL", variant: "SKILLTHREE", label: "Kỹ năng lâm sàn" },
   { type: "EXPERIMENT", variant: "EXPERIMENTONE", label: "Kinh nghiệm làm việc" },
   { type: "TYPICALCASE", variant: "TYPICALCASEONE", label: "Trường hợp điển hình" },
   { type: "DIPLOMA", variant: "DIPLOMAONE", label: "Chứng chỉ" },
@@ -293,7 +292,6 @@ const TEMPLATE_FIVE_EDITOR_SLOTS: EditorSlot[] = [
 const TEMPLATE_FIVE_REQUIRED_VARIANTS = new Set(
   TEMPLATE_FIVE_EDITOR_SLOTS.map((slot) => slot.variant?.toUpperCase()).filter(Boolean) as string[],
 );
-
 
 const BLOCK_VARIANTS: Record<string, string[]> = {
   INTRO: ["INTROONE", "INTROTWO", "INTROTHREE", "INTROFOUR", "INTROFIVE"],
@@ -319,22 +317,6 @@ const BLOCK_VARIANTS: Record<string, string[]> = {
   TEACHING: ["TEACHINGONE"],
   TYPICALCASE: ["TYPICALCASEONE"],
 };
-
-const COMPONENT_CATALOG: BlockCatalogItem[] = [
-  { type: "INTRO", label: "Giới thiệu", description: "Thông tin cá nhân và liên hệ" },
-  { type: "SKILL", label: "Kỹ năng", description: "Kỹ năng chuyên môn hoặc nền tảng" },
-  { type: "EDUCATION", label: "Học vấn", description: "Trường học và thành tích" },
-  { type: "EXPERIMENT", label: "Kinh nghiệm", description: "Quá trình làm việc" },
-  { type: "PROJECT", label: "Dự án", description: "Dự án thực hiện" },
-  { type: "DIPLOMA", label: "Chứng chỉ", description: "Bằng cấp và chứng nhận" },
-  { type: "AWARD", label: "Giải thưởng", description: "Thành tựu nổi bật" },
-  { type: "ACTIVITIES", label: "Hoạt động", description: "Hoạt động cộng đồng hoặc CLB" },
-  { type: "OTHERINFO", label: "Thông tin bổ sung", description: "Mục tiêu, tài liệu, kỹ năng mềm" },
-  { type: "REFERENCE", label: "Người tham chiếu", description: "Thông tin người giới thiệu" },
-  { type: "RESEARCH", label: "Nghiên cứu", description: "Công bố khoa học" },
-  { type: "TEACHING", label: "Giảng dạy", description: "Kinh nghiệm giảng dạy" },
-  { type: "TYPICALCASE", label: "Ca điển hình", description: "Case study chuyên môn" },
-];
 
 const OTHERINFO_OBJECT_VARIANTS = new Set([
   "OTHERTWO",
@@ -583,6 +565,33 @@ const getFirstProjectLink = (item: Record<string, unknown>): string => {
   return "";
 };
 
+const getOrderedBlockCatalog = (): typeof BLOCK_CATALOG => {
+  const catalog = [...BLOCK_CATALOG];
+  
+  // Define custom order: position of each block type
+  const blockOrder: Record<string, number> = {
+    INTRO: 0,
+    SKILL: 1,
+    EDUCATION: 2,
+    EXPERIMENT: 3,
+    PROJECT: 4,
+    DIPLOMA: 5,
+    AWARD: 6,
+    ACTIVITIES: 7,
+    REFERENCE: 8,
+    RESEARCH: 9,
+    TEACHING: 10,
+    TYPICALCASE: 11,
+  };
+  
+  // Sort blocks by custom order
+  return catalog.sort((a, b) => {
+    const orderA = blockOrder[a.type] ?? 999;
+    const orderB = blockOrder[b.type] ?? 999;
+    return orderA - orderB;
+  });
+};
+
 export default function CreatePortfolio() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -618,6 +627,10 @@ export default function CreatePortfolio() {
   const [editorResetKey, setEditorResetKey] = useState(0);
 
   const nextTempBlockIdRef = useRef(-1);
+
+  // Variant selector state
+  const [showVariantSelector, setShowVariantSelector] = useState(false);
+  const [selectedBlockTypeForVariant, setSelectedBlockTypeForVariant] = useState<string | null>(null);
 
   const allocateTempBlockId = (): number => {
     const nextId = nextTempBlockIdRef.current;
@@ -692,7 +705,7 @@ export default function CreatePortfolio() {
     };
 
     initialize();
-  }, [id, isEditMode]);
+  }, [id, isEditMode, accessToken]);
 
   useEffect(() => {
     if (blocks.length === 0) {
@@ -1544,6 +1557,48 @@ export default function CreatePortfolio() {
     return `certificate-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
   }, [isEditingCertificateOne, selectedBlock]);
 
+  const skillOneInitialData = useMemo(() => {
+    console.log("📊 [skillOneInitialData useMemo] isEditingSkillOne:", isEditingSkillOne, "selectedBlock:", selectedBlock);
+    
+    if (!selectedBlock || !isEditingSkillOne) {
+      console.log("  ✗ Returning null");
+      return null;
+    }
+
+    const draft = createSkillOneDraft(selectedBlock.data);
+    console.log("  ✓ Created draft:", draft);
+    return draft;
+  }, [isEditingSkillOne, selectedBlock]);
+
+  const skillOneEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingSkillOne) {
+      return "skill-one-editor";
+    }
+
+    return `skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`;
+  }, [isEditingSkillOne, selectedBlock, editorResetKey]);
+
+  const skillTwoInitialData = useMemo(() => {
+    console.log("📊 [skillTwoInitialData useMemo] isEditingSkillTwo:", isEditingSkillTwo, "selectedBlock:", selectedBlock);
+    
+    if (!selectedBlock || !isEditingSkillTwo) {
+      console.log("  ✗ Returning null");
+      return null;
+    }
+
+    const draft = createSkillTwoDraft(selectedBlock.data);
+    console.log("  ✓ Created draft:", draft);
+    return draft;
+  }, [isEditingSkillTwo, selectedBlock]);
+
+  const skillTwoEditorKey = useMemo(() => {
+    if (!selectedBlock || !isEditingSkillTwo) {
+      return "skill-two-editor";
+    }
+
+    return `skill-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
+  }, [isEditingSkillTwo, selectedBlock]);
+
   const skillThreeEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingSkillThree) {
       return "skill-three-editor";
@@ -1552,6 +1607,90 @@ export default function CreatePortfolio() {
     const entryCount = toRecordArray(selectedBlock.data).length;
     return `skill-three-${selectedBlock.id}-${entryCount}`;
   }, [isEditingSkillThree, selectedBlock]);
+
+  const teachingOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingTeachingOne) {
+      return null;
+    }
+
+    return createEmptyTeachingOneDraft();
+  }, [isEditingTeachingOne, selectedBlock]);
+
+  const teachingOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingTeachingOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => {
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          return {
+            subject: toText(record.subject),
+            teachingplace: toText(record.teachingplace),
+          };
+        }
+        return createEmptyTeachingOneDraft();
+      });
+    }
+
+    return [];
+  }, [isEditingTeachingOne, selectedBlock]);
+
+  const typicalCaseOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingTypicalCaseOne) {
+      return null;
+    }
+
+    return createEmptyTypicalCaseOneDraft();
+  }, [isEditingTypicalCaseOne, selectedBlock]);
+
+  const typicalCaseOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingTypicalCaseOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => {
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          return {
+            patient: toText(record.patient),
+            age: toText(record.age),
+            caseName: toText(record.caseName),
+            stage: toText(record.stage),
+            regiment: toText(record.regiment),
+          };
+        }
+        return createEmptyTypicalCaseOneDraft();
+      });
+    }
+
+    return [];
+  }, [isEditingTypicalCaseOne, selectedBlock]);
+
+  const researchOneInitialData = useMemo(() => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return null;
+    }
+
+    return createResearchOneDraft(selectedBlock.data);
+  }, [isEditingResearchOne, selectedBlock]);
+
+  const researchOneListData = useMemo(() => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return [];
+    }
+
+    const data = selectedBlock.data;
+    if (Array.isArray(data)) {
+      return data.map((item) => createResearchOneDraft(item));
+    }
+
+    return [];
+  }, [isEditingResearchOne, selectedBlock]);
 
   const teachingOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingTeachingOne) {
@@ -1754,7 +1893,7 @@ export default function CreatePortfolio() {
 
     if (isExtendedEditorBlockType(normalizedType)) {
       setActiveEditorBlockType(normalizedType);
-      setActiveEditorBlockVariant(forcedVariant?.toUpperCase() ?? null);
+      setActiveEditorBlockVariant(variant);
     }
 
     setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
@@ -2037,6 +2176,26 @@ export default function CreatePortfolio() {
   const handleIntroFiveCancel = () => {
     setSelectedBlockId(null);
     setShowBlockSelector(true);
+  };
+
+  const handleVariantSelect = (variant: string) => {
+    if (!selectedBlockTypeForVariant) return;
+    addBlockFromCatalog(selectedBlockTypeForVariant, variant);
+    setSelectedBlockTypeForVariant(null);
+    setShowVariantSelector(false);
+  };
+
+  const handleDeleteBlock = (blockId: number) => {
+    setBlocks((current) => {
+      const updated = current.filter((block) => block.id !== blockId);
+      return sortAndReindexBlocks(updated);
+    });
+
+    // Clear selection
+    if (selectedBlockId === blockId) {
+      setSelectedBlockId(null);
+      setShowBlockSelector(true);
+    }
   };
 
   const handleSkillOneSave = (nextDraft: SkillOneDraft) => {
@@ -2706,6 +2865,54 @@ export default function CreatePortfolio() {
     setShowBlockSelector(true);
   };
 
+  const handleTeachingOneListSave = (teachingList: TeachingOneDraft[]) => {
+    if (!selectedBlock || !isEditingTeachingOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return teachingList.map((teaching) => ({
+        subject: teaching.subject,
+        teachingplace: teaching.teachingplace,
+      }));
+    });
+    resetEditorFormAfterSave();
+  };
+
+  const handleTypicalCaseOneListSave = (caseList: TypicalCaseOneDraft[]) => {
+    if (!selectedBlock || !isEditingTypicalCaseOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return caseList.map((typicalCase) => ({
+        patient: typicalCase.patient,
+        age: typicalCase.age,
+        caseName: typicalCase.caseName,
+        stage: typicalCase.stage,
+        regiment: typicalCase.regiment,
+      }));
+    });
+    resetEditorFormAfterSave();
+  };
+
+  const handleResearchOneListSave = (researchList: ResearchOneDraft[]) => {
+    if (!selectedBlock || !isEditingResearchOne) {
+      return;
+    }
+
+    updateSelectedBlockData(() => {
+      return researchList.map((research) => ({
+        name: research.title,
+        time: research.date,
+        description: research.conference,
+        link: research.link,
+        conference: research.conference,
+      }));
+    });
+    resetEditorFormAfterSave();
+  };
+
   const renderFieldInput = (
     field: FieldDefinition,
     value: string,
@@ -3100,16 +3307,18 @@ export default function CreatePortfolio() {
   };
 
   const renderSkillOneEditor = () => {
-    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLONE") {
+    console.log("📝 [renderSkillOneEditor] Called - skillOneInitialData:", skillOneInitialData);
+    
+    if (!skillOneInitialData) {
+      console.log("❌ [renderSkillOneEditor] skillOneInitialData is null/undefined, returning null");
       return null;
     }
 
-    const initialData = createSkillOneDraft(selectedBlock.data);
-
+    console.log("✅ [renderSkillOneEditor] Rendering component");
     return (
       <SkillOneEditor
-        key={`skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`}
-        initialData={initialData}
+        key={skillOneEditorKey}
+        initialData={skillOneInitialData}
         onSave={handleSkillOneSave}
         onCancel={handleSkillOneCancel}
       />
@@ -3117,16 +3326,18 @@ export default function CreatePortfolio() {
   };
 
   const renderSkillTwoEditor = () => {
-    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLTWO") {
+    console.log("📝 [renderSkillTwoEditor] Called - skillTwoInitialData:", skillTwoInitialData);
+    
+    if (!skillTwoInitialData) {
+      console.log("❌ [renderSkillTwoEditor] skillTwoInitialData is null/undefined, returning null");
       return null;
     }
 
-    const initialData = createSkillTwoDraft(selectedBlock.data);
-
+    console.log("✅ [renderSkillTwoEditor] Rendering component");
     return (
       <SkillTwoEditor
-        key={`skill-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`}
-        initialData={initialData}
+        key={skillTwoEditorKey}
+        initialData={skillTwoInitialData}
         onSave={handleSkillTwoSave}
         onCancel={handleSkillTwoCancel}
       />
@@ -3134,10 +3345,6 @@ export default function CreatePortfolio() {
   };
 
   const renderSkillThreeEditor = () => {
-    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLTHREE") {
-      return null;
-    }
-
     return (
       <SkillThreeEditor
         key={skillThreeEditorKey}
@@ -3149,14 +3356,22 @@ export default function CreatePortfolio() {
   };
 
   const renderSkillDedicatedEditor = () => {
+    console.log("📝 [renderSkillDedicatedEditor] Called - selectedBlockVariantKey:", selectedBlockVariantKey);
+    console.log("  - skillOneInitialData:", skillOneInitialData);
+    console.log("  - skillTwoInitialData:", skillTwoInitialData);
+    
     switch (selectedBlockVariantKey) {
       case "SKILL.SKILLONE":
+        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillOne");
         return renderSkillOneEditor();
       case "SKILL.SKILLTWO":
+        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillTwo");
         return renderSkillTwoEditor();
       case "SKILL.SKILLTHREE":
+        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillThree");
         return renderSkillThreeEditor();
       default:
+        console.log("❌ [renderSkillDedicatedEditor] No match for variant key, returning null");
         return null;
     }
   };
@@ -3375,7 +3590,7 @@ export default function CreatePortfolio() {
     return (
       <OtherInfoSevenEditor
         key={otherInfoSevenEditorKey}
-        initialData={createEmptyOtherSevenDraft()}
+        initialData={otherInfoSevenInitialData}
         onSave={handleOtherInfoSevenSave}
         onCancel={handleOtherInfoSevenCancel}
       />
@@ -3390,7 +3605,7 @@ export default function CreatePortfolio() {
     return (
       <OtherEightEditor
         key={otherInfoEightEditorKey}
-        initialData={otherInfoEightInitialData ?? createEmptyOtherEightDraft()}
+        initialData={otherInfoEightInitialData}
         onSave={handleOtherInfoEightSave}
         onCancel={handleOtherInfoEightCancel}
       />
@@ -3430,47 +3645,72 @@ export default function CreatePortfolio() {
   };
 
   const renderTeachingOneEditor = () => {
-    if (!isEditingTeachingOne) {
+    console.log("🔷 [renderTeachingOneEditor]", {
+      teachingOneInitialData,
+      isEditingTeachingOne,
+      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
+    });
+
+    if (!teachingOneInitialData) {
+      console.log("🔴 [renderTeachingOneEditor] teachingOneInitialData is null, returning null");
       return null;
     }
 
     return (
       <TeachingOneEditor
         key={teachingOneEditorKey}
-        initialData={createEmptyTeachingOneDraft()}
+        initialData={teachingOneInitialData}
+        initialList={teachingOneListData}
         onSave={handleTeachingOneSave}
+        onSaveList={handleTeachingOneListSave}
         onCancel={handleTeachingOneCancel}
       />
     );
   };
 
   const renderTypicalCaseOneEditor = () => {
-    if (!isEditingTypicalCaseOne) {
+    console.log("🟪 [renderTypicalCaseOneEditor]", {
+      typicalCaseOneInitialData,
+      isEditingTypicalCaseOne,
+      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
+    });
+
+    if (!typicalCaseOneInitialData) {
+      console.log("🔴 [renderTypicalCaseOneEditor] typicalCaseOneInitialData is null, returning null");
       return null;
     }
 
     return (
       <TypicalCaseOneEditor
         key={typicalCaseOneEditorKey}
-        initialData={createEmptyTypicalCaseOneDraft()}
+        initialData={typicalCaseOneInitialData}
+        initialList={typicalCaseOneListData}
         onSave={handleTypicalCaseOneSave}
+        onSaveList={handleTypicalCaseOneListSave}
         onCancel={handleTypicalCaseOneCancel}
       />
     );
   };
 
   const renderResearchOneEditor = () => {
-    if (!selectedBlock || !isEditingResearchOne) {
+    console.log("🟫 [renderResearchOneEditor]", {
+      researchOneInitialData,
+      isEditingResearchOne,
+      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
+    });
+
+    if (!researchOneInitialData) {
+      console.log("🔴 [renderResearchOneEditor] researchOneInitialData is null, returning null");
       return null;
     }
-
-    const initialData = createResearchOneDraft(selectedBlock.data);
 
     return (
       <ResearchOneEditor
         key={researchOneEditorKey}
-        initialData={initialData}
+        initialData={researchOneInitialData}
+        initialList={researchOneListData}
         onSave={handleResearchOneSave}
+        onSaveList={handleResearchOneListSave}
         onCancel={handleResearchOneCancel}
       />
     );
@@ -3488,8 +3728,15 @@ export default function CreatePortfolio() {
     const blockType = normalizeBlockType(selectedBlock.type);
     const variant = selectedBlock.variant.toUpperCase();
 
+    console.log("📝 [renderEditorForm]", { blockType, variant });
+
     if (blockType === "INTRO" && variant === "INTROONE") {
       return renderIntroOneEditor();
+    }
+
+    if (blockType === "TEACHING" && variant === "TEACHINGONE") {
+      console.log("✅ [renderEditorForm] Matching TEACHING/TEACHINGONE");
+      return renderTeachingOneEditor();
     }
 
     if (blockType === "INTRO" && variant === "INTROTWO") {
@@ -3581,15 +3828,13 @@ export default function CreatePortfolio() {
       return renderCertificateOneEditor();
     }
 
-    if (blockType === "TEACHING" && variant === "TEACHINGONE") {
-      return renderTeachingOneEditor();
-    }
-
     if (blockType === "TYPICALCASE" && variant === "TYPICALCASEONE") {
+      console.log("✅ [renderEditorForm] Matching TYPICALCASE/TYPICALCASEONE");
       return renderTypicalCaseOneEditor();
     }
 
     if (blockType === "RESEARCH" && variant === "RESEARCHONE") {
+      console.log("✅ [renderEditorForm] Matching RESEARCH/RESEARCHONE");
       return renderResearchOneEditor();
     }
 
@@ -3725,6 +3970,15 @@ export default function CreatePortfolio() {
       return renderObjectFields([{ key: "detail", label: "Nội dung", multiline: true }]);
     }
 
+    if (blockType === "OTHERINFO" && variant === "OTHERONE") {
+      return renderArrayFields(
+        [{ key: "detail", label: "Sở thích" }],
+        () => ({ detail: "" }),
+        "Thêm sở thích",
+        "Chưa có sở thích nào.",
+      );
+    }
+
     if (blockType === "OTHERINFO" && (variant === "OTHERFIVE" || variant === "OTHERSIX")) {
       return renderArrayFields(
         [{ key: "name", label: "Nội dung" }],
@@ -3816,10 +4070,14 @@ export default function CreatePortfolio() {
     );
   }
 
+  const blockInfoForVariantSelector =
+    selectedBlockTypeForVariant ? getBlockInfo(selectedBlockTypeForVariant) : null;
+
   return (
+    <>
     <div className="min-h-[calc(100vh-56px)] bg-slate-100">
       <div className="border-b border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto flex w-full max-w-[425px] items-center justify-between gap-3">
+        <div className="mx-auto flex w-full items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -3838,7 +4096,7 @@ export default function CreatePortfolio() {
             </div>
           </div>
 
-          <div className="flex w-full max-w-xl items-center gap-2">
+          <div className="flex flex-1 items-center gap-2 min-w-0">
             <input
               value={portfolioName}
               onChange={(event) => setPortfolioName(event.target.value)}
@@ -3849,7 +4107,7 @@ export default function CreatePortfolio() {
               type="button"
               disabled={saving}
               onClick={handleSave}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 whitespace-nowrap"
             >
               <Save size={16} /> {saving ? "Đang lưu..." : "Lưu hồ sơ"}
             </button>
@@ -3857,14 +4115,14 @@ export default function CreatePortfolio() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-[425px] px-3 py-4">
+      <div className="mx-auto w-full px-3 py-4">
         {error && (
           <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)_360px]">
+        <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
           <aside className="rounded-2xl border border-slate-200 bg-white">
             <div className="flex border-b border-slate-200">
               {!isEditMode && (
@@ -3930,26 +4188,212 @@ export default function CreatePortfolio() {
 
               {activeTab === "component" && (
                 <div className="space-y-2">
-                  {COMPONENT_CATALOG.map((item) => {
+                  {getOrderedBlockCatalog().map((blockItem) => {
                     // In create mode with template, filter to allowed block types
-                    const isAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has(item.type);
+                    const isAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has(blockItem.type);
+                    const BlockIcon = blockItem.icon;
                     
                     return (
-                      <button
-                        key={item.type}
-                        type="button"
-                        onClick={() => addBlockFromCatalog(item.type)}
-                        disabled={!isAllowed}
-                        className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                          isAllowed
-                            ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                            : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                        }`}
-                        title={!isAllowed ? `Loại block này không được hỗ trợ bởi template ${getTemplateName(activeTemplateId ?? 0, templates, TEMPLATE_DISPLAY_NAMES)}` : ""}
-                      >
-                        <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{item.description}</p>
-                      </button>
+                      <div key={blockItem.type}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isAllowed) return;
+                            setSelectedBlockTypeForVariant(blockItem.type);
+                            setShowVariantSelector(true);
+                          }}
+                          disabled={!isAllowed}
+                          className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                            isAllowed
+                              ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                              : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                          }`}
+                          title={!isAllowed ? `Loại block này không được hỗ trợ bởi template ${getTemplateName(activeTemplateId ?? 0, templates, TEMPLATE_DISPLAY_NAMES)}` : ""}
+                        >
+                          <div className="mt-0.5 rounded-lg bg-slate-100 p-1.5 text-slate-600">
+                            <BlockIcon size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800">{blockItem.label}</p>
+                            <p className="mt-0.5 text-xs text-slate-500">{blockItem.description}</p>
+                          </div>
+                        </button>
+                        
+                        {/* Add specific OTHERINFO variants after certain blocks */}
+                        {blockItem.type === "REFERENCE" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERONE");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Sở thích cá nhân"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-indigo-100 p-1.5 text-indigo-600">
+                                <Lightbulb size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Sở thích cá nhân</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Tag các hoạt động yêu thích</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERTWO");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Mục tiêu nghề nghiệp"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-blue-100 p-1.5 text-blue-600">
+                                <Briefcase size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Mục tiêu nghề nghiệp</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Mục tiêu dài hạn mô tả chi tiết</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERTHREE");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Tầm nhìn và động lực"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-purple-100 p-1.5 text-purple-600">
+                                <Target size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Tầm nhìn và động lực</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Tầm nhìn dài hạn và động lực</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERFIVE");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Lĩnh vực nghiên cứu"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-purple-100 p-1.5 text-purple-600">
+                                <Lightbulb size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Lĩnh vực nghiên cứu</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Các lĩnh vực chuyên môn</p>
+                              </div>
+                            </button>
+                          </>
+                        )}
+                        
+                        {blockItem.type === "RESEARCH" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERSIX");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Kỹ năng mềm"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-cyan-100 p-1.5 text-cyan-600">
+                                <Users size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Kỹ năng mềm</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Kỹ năng giao tiếp, lãnh đạo...</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                if (!isAllowed2) return;
+                                addBlockFromCatalog("OTHERINFO", "OTHERSEVEN");
+                              }}
+                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                              }`}
+                              title="Tài liệu bổ sung"
+                            >
+                              <div className="mt-0.5 rounded-lg bg-cyan-100 p-1.5 text-cyan-600">
+                                <FileText size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Tài liệu bổ sung</p>
+                                <p className="mt-0.5 text-xs text-slate-500">Link, tài liệu tham khảo...</p>
+                              </div>
+                            </button>
+                          </>
+                        )}
+                        
+                        {blockItem.type === "TYPICALCASE" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                              if (!isAllowed2) return;
+                              addBlockFromCatalog("OTHERINFO", "OTHEREIGHT");
+                            }}
+                            disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                            className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                              (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                                ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                            }`}
+                            title="Giấy phép hành nghề"
+                          >
+                            <div className="mt-0.5 rounded-lg bg-orange-100 p-1.5 text-orange-600">
+                              <ScrollText size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800">Giấy phép hành nghề</p>
+                              <p className="mt-0.5 text-xs text-slate-500">Số hiệu, nơi cấp, ngày cấp...</p>
+                            </div>
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -4038,6 +4482,67 @@ export default function CreatePortfolio() {
                 Chỉ hiển thị form chỉnh sửa cho các block đã hỗ trợ editor riêng.
               </p>
             </div>
+
+            {/* List of added blocks */}
+            {activeTab === "component" && blocks.length > 0 && !isUsingDedicatedEditor && (
+              <div className={cn("mb-4 pb-4 border-b border-slate-200")}>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Các block đã thêm ({blocks.length})
+                </h3>
+                <div className="space-y-1.5">
+                  {blocks.map((block) => {
+                    const blockInfo = getBlockInfo(normalizeBlockType(block.type));
+                    const BlockIcon = blockInfo?.icon;
+                    const variantInfo = blockInfo?.variants.find(
+                      (v) => v.variant === block.variant.toUpperCase()
+                    );
+
+                    return (
+                      <div
+                        key={block.id}
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs transition-colors cursor-pointer",
+                          selectedBlockId === block.id
+                            ? "border-blue-400 bg-blue-50"
+                            : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50"
+                        )}
+                        onClick={() => {
+                          setSelectedBlockId(block.id);
+                          setShowBlockSelector(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {BlockIcon && (
+                            <BlockIcon size={14} className="text-slate-600 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {blockInfo?.label || block.type}
+                            </p>
+                            {variantInfo && (
+                              <p className="text-[10px] text-slate-500 truncate">
+                                {variantInfo.label}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBlock(block.id);
+                          }}
+                          className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          title="Xóa block này"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className={cn("mb-3 grid grid-cols-3 gap-2", isUsingDedicatedEditor && "hidden")}>
               {editorSlots.map((slot) => {
@@ -4140,5 +4645,17 @@ export default function CreatePortfolio() {
         </div>
       </div>
     </div>
+
+    {showVariantSelector && blockInfoForVariantSelector && (
+      <VariantSelector
+        blockInfo={blockInfoForVariantSelector}
+        onSelectVariant={handleVariantSelect}
+        onClose={() => {
+          setShowVariantSelector(false);
+          setSelectedBlockTypeForVariant(null);
+        }}
+      />
+    )}
+  </>
   );
 }

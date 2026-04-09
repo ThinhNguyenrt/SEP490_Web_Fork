@@ -58,10 +58,22 @@ const deduplicateInterests = (interests: string[]): string[] => {
 };
 
 export const createOtherInfoOneDraft = (value: unknown): OtherInfoOneDraft => {
-  if (!Array.isArray(value)) {
-    return { interests: [] };
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    if (record.interests && Array.isArray(record.interests)) {
+      const interests = deduplicateInterests(record.interests.map((item) => extractInterest(item)));
+      return { interests };
+    }
   }
 
-  const interests = deduplicateInterests(value.map((item) => extractInterest(item)));
-  return { interests };
+  if (Array.isArray(value)) {
+    const interests = deduplicateInterests(value.map((item) => extractInterest(item)));
+    return { interests };
+  }
+
+  return { interests: [] };
+};
+
+export const createEmptyOtherInfoOneDraft = (): OtherInfoOneDraft => {
+  return { interests: [] };
 };

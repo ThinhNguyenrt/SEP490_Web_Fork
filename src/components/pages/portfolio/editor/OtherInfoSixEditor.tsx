@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
+  createEmptyOtherInfoSixDraft,
   normalizeOtherInfoSixDraft,
   type OtherInfoSixDraft,
 } from "./otherInfoSixDraft";
@@ -34,7 +35,7 @@ export default function OtherInfoSixEditor({
   onCancel,
 }: OtherInfoSixEditorProps) {
   const [selectedSkills, setSelectedSkills] = useState<string[]>(() =>
-    normalizeOtherInfoSixDraft(initialData).softSkills,
+    normalizeOtherInfoSixDraft(initialData ?? createEmptyOtherInfoSixDraft()).softSkills,
   );
   const [newSkillName, setNewSkillName] = useState("");
   const [isDirty, setIsDirty] = useState(false);

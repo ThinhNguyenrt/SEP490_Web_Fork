@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type OtherFiveDraft } from "./otherFiveDraft";
+import {
+  createEmptyOtherFiveDraft,
+  type OtherFiveDraft,
+} from "./otherFiveDraft";
 
 type OtherFiveEditorProps = {
   initialData: OtherFiveDraft;
@@ -13,11 +16,13 @@ export default function OtherFiveEditor({
   onSave,
   onCancel,
 }: OtherFiveEditorProps) {
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(initialData.topics);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(
+    (initialData?.topics ?? createEmptyOtherFiveDraft().topics) ?? []
+  );
   const [customTopic, setCustomTopic] = useState("");
 
   useEffect(() => {
-    setSelectedTopics(initialData.topics);
+    setSelectedTopics((initialData?.topics ?? createEmptyOtherFiveDraft().topics) ?? []);
   }, [initialData]);
 
   const suggestions = [

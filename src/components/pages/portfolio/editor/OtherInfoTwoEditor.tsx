@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-import { type OtherInfoTwoDraft } from "./otherInfoTwoDraft";
+import {
+  createEmptyOtherInfoTwoDraft,
+  type OtherInfoTwoDraft,
+} from "./otherInfoTwoDraft";
 
 type OtherInfoTwoEditorProps = {
   initialData: OtherInfoTwoDraft;
@@ -13,7 +16,7 @@ export default function OtherInfoTwoEditor({
   onSave,
   onCancel,
 }: OtherInfoTwoEditorProps) {
-  const [draft, setDraft] = useState<OtherInfoTwoDraft>(initialData);
+  const [draft, setDraft] = useState<OtherInfoTwoDraft>(initialData || createEmptyOtherInfoTwoDraft());
   const [isDirty, setIsDirty] = useState(false);
 
   const updateDetail = (value: string) => {
@@ -22,7 +25,7 @@ export default function OtherInfoTwoEditor({
   };
 
   const handleSave = () => {
-    onSave({ detail: draft.detail.trim() });
+    onSave({ detail: (draft?.detail || "").trim() });
     setIsDirty(false);
   };
 

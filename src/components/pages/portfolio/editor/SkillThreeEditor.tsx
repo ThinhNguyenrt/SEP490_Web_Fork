@@ -16,12 +16,12 @@ export default function SkillThreeEditor({
   onSave,
   onCancel,
 }: SkillThreeEditorProps) {
-  const [draft, setDraft] = useState<SkillThreeDraft>(initialData);
+  const [draft, setDraft] = useState<SkillThreeDraft>(initialData ?? { name: "", description: "" });
 
   const hasContent = [
-    draft.name,
-    draft.description,
-  ].some((value) => value.trim().length > 0);
+    draft.name ?? "",
+    draft.description ?? "",
+  ].some((value) => (value as string).trim().length > 0);
 
   const updateDraftField = (field: keyof SkillThreeDraft, value: string) => {
     setDraft((prevDraft) => ({
@@ -36,8 +36,8 @@ export default function SkillThreeEditor({
     }
 
     onSave({
-      name: draft.name.trim(),
-      description: draft.description.trim(),
+      name: (draft.name ?? "").trim(),
+      description: (draft.description ?? "").trim(),
     });
     setDraft(createEmptySkillThreeDraft());
   };

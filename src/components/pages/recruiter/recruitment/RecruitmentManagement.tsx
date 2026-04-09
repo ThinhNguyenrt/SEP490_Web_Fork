@@ -89,10 +89,10 @@ export default function RecruitmentManagement() {
   }, [user?.companyId, accessToken]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 mt-4">
-      <div className="max-w-[480px] mx-auto flex min-h-screen flex-col lg:flex-row">
-        <main className="w-full lg:w-2/3 px-4 md:px-10 lg:pr-8 lg:border-r border-slate-200">
-          <header className="flex items-center justify-between mb-5">
+    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 mt-2">
+      <div className="flex min-h-screen flex-col lg:flex-row gap-6 px-4 sm:px-6 md:px-8 lg:px-4">
+        <main className="flex-1 lg:w-2/3">
+          <header className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3 md:gap-4">
               <button
                 className="p-2 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
@@ -129,11 +129,11 @@ export default function RecruitmentManagement() {
             </div>
           ) : (
             <>
-              <p className="text-slate-500 font-medium mb-6">
-                Bạn đang có {recruitmentPosts.length} bài đăng tuyển dụng
+              <p className="text-slate-700 font-semibold mb-6 text-lg">
+                Bạn đang có <span className="text-blue-600">{recruitmentPosts.length}</span> bài đăng tuyển dụng
               </p>
 
-              <section className="inline-grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-8 justify-items-start">
+              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 {recruitmentPosts.map((post) => (
                   <RecruitmentPostCard
                     key={post.postId}
@@ -148,9 +148,11 @@ export default function RecruitmentManagement() {
           )}
         </main>
 
-        <aside className="w-full lg:w-1/3 px-4 md:px-10 lg:px-6 pt-2 pb-8">
+        <aside className="w-full lg:w-1/3 lg:pr-4">
           <PremiumAndTips />
         </aside>
+         
+       
       </div>
     </div>
   );

@@ -156,17 +156,40 @@ export const PostDetail = () => {
           <div className="col-span-2 space-y-6">
             {/* Main Job Post Section */}
             <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-              {/* Header Background */}
-              <div className="h-48 bg-linear-to-br from-green-200 to-green-400 relative"></div>
+              {/* Header Background with Image or Fallback Gradient */}
+              <div 
+                className="h-48 relative bg-cover bg-center"
+                style={{
+                  backgroundImage: post.coverImageUrl 
+                    ? `url(${post.coverImageUrl})` 
+                    : post.media?.[0]?.url 
+                    ? `url(${post.media[0].url})`
+                    : undefined,
+                  backgroundColor: !post.coverImageUrl && !post.media?.[0]?.url ? '#86efac' : undefined
+                }}
+              >
+                {/* Optional overlay for better text readability if needed */}
+                {(post.coverImageUrl || post.media?.[0]?.url) && (
+                  <div className="absolute inset-0 bg-black/5"></div>
+                )}
+              </div>
 
               {/* Content Section with Overlapping Avatar */}
               <div className="relative px-6 pb-6">
                 {/* Avatar positioned to overlap header and content */}
                 <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
-                  <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-linear-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
-                      {post.companyName.charAt(0)}
-                    </div>
+                  <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
+                    {post.companyAvatar ? (
+                      <img 
+                        src={post.companyAvatar} 
+                        alt={post.companyName}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-linear-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg">
+                        {post.companyName.charAt(0)}
+                      </div>
+                    )}
                   </div>
                 </div>
 

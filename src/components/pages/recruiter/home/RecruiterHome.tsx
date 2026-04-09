@@ -63,40 +63,31 @@ export default function RecruiterHome() {
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const pageSize = 10;
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
-  // Load portfolios with pagination
-  const loadPortfolios = async (page: number = 1) => {
+  // Load all portfolios (no pagination - load all at once)
+  const loadPortfolios = async () => {
     try {
       setIsLoading(true);
       
-      console.log("📡 Loading portfolios from page:", page);
+      console.log("📡 Loading all portfolios...");
       
-      const response = await portfolioService.fetchAllPortfolios(page, pageSize);
+      // Load all portfolios with a large pageSize
+      const response = await portfolioService.fetchAllPortfolios(1, 10000);
       console.log("📦 Loaded portfolios response:", response);
       
       if (!response || !response.items || response.items.length === 0) {
         console.warn("⚠️ API returned empty response");
         setFilteredPortfolios([]);
         setCurrentIndex(0);
-        setCurrentPage(page);
-        setTotalPages(response?.totalPages || 1);
-        setTotalItems(response?.total || 0);
         setIsLoading(false);
         return;
       }
       
       const portfolios = response.items;
       
-      console.log("✅ Loaded", portfolios.length, "portfolios from page", response.page);
-      console.log("📊 Pagination info - total:", response.total, "totalPages:", response.totalPages);
+      console.log("✅ Loaded", portfolios.length, "portfolios in total");
       
       // Extract metadata from portfolios
       const metadata = new Map<number, PortfolioMetadata>();
@@ -106,14 +97,10 @@ export default function RecruiterHome() {
         console.log("📋 Portfolio metadata:", data);
       });
       
-      // Replace portfolios with current page (not append like infinite scroll)
       setFilteredPortfolios(portfolios);
       setAllPortfolios(portfolios);
       setPortfolioMetadata(metadata);
-      setCurrentIndex(0); // Reset to first item when changing pages
-      setCurrentPage(response.page);
-      setTotalItems(response.total);
-      setTotalPages(response.totalPages);
+      setCurrentIndex(0);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to load portfolios";
       console.error("❌ Error loading portfolios:", errorMsg);
@@ -127,7 +114,7 @@ export default function RecruiterHome() {
 
   // Load all portfolios on component mount
   useEffect(() => {
-    loadPortfolios(1);
+    loadPortfolios();
   }, []);
 
   const handleNext = () => {
@@ -142,93 +129,24 @@ export default function RecruiterHome() {
     }
   };
 
-  // Generate array of page numbers to display
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total pages <= 5
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Show pages around current page
-      pages.push(1);
-      
-      const startPage = Math.max(2, currentPage - 1);
-      const endPage = Math.min(totalPages - 1, currentPage + 1);
-      
-      if (startPage > 2) {
-        pages.push('...');
-      }
-      
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-      
-      if (endPage < totalPages - 1) {
-        pages.push('...');
-      }
-      
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  };
-
-  // Load all portfolios for filtering (use large pageSize to get all results)
-  const loadAllPortfoliosForFilter = async () => {
-    try {
-      console.log("📡 Loading all portfolios for filtering...");
-      
-      // Load with a large pageSize to get all portfolios at once
-      const response = await portfolioService.fetchAllPortfolios(1, 1000);
-      
-      if (!response || !response.items || response.items.length === 0) {
-        console.warn("⚠️ No portfolios found for filtering");
-        return [];
-      }
-      
-      // Extract metadata from all portfolios
-      const metadata = new Map<number, PortfolioMetadata>();
-      response.items.forEach(portfolio => {
-        const data = extractPortfolioMetadata(portfolio);
-        metadata.set(portfolio.portfolioId, data);
-      });
-      
-      setPortfolioMetadata(metadata);
-      console.log("✅ Loaded", response.items.length, "portfolios for filtering");
-      
-      return response.items;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to load portfolios";
-      console.error("❌ Error loading portfolios for filtering:", errorMsg);
-      notify.error("Lỗi khi tải danh sách portfolio để lọc");
-      return [];
-    }
+  const handleResetFilter = () => {
+    setFilters({
+      position: '',
+      skills: '',
+      location: ''
+    });
+    setSkillTags([]);
+    setSkillInput("");
+    setFilteredPortfolios(allPortfolios);
+    setCurrentIndex(0);
   };
 
   const handleApplyFilter = async () => {
     setIsLoading(true);
     
     try {
-      // Load all portfolios for filtering if not already loaded or if filtering
+      // Use all portfolios that are already loaded
       let portfoliosToFilter = allPortfolios;
-      
-      // If we only have 10 or fewer portfolios, load all for comprehensive search
-      if (allPortfolios.length <= pageSize) {
-        portfoliosToFilter = await loadAllPortfoliosForFilter();
-        if (portfoliosToFilter.length === 0) {
-          setFilteredPortfolios([]);
-          setCurrentIndex(0);
-          setTotalItems(0);
-          setCurrentPage(1);
-          setTotalPages(1);
-          setIsLoading(false);
-          return;
-        }
-      }
       
       setTimeout(() => {
         let results = portfoliosToFilter;
@@ -263,31 +181,12 @@ export default function RecruiterHome() {
 
         setFilteredPortfolios(results);
         setCurrentIndex(0);
-        setTotalItems(results.length);
-        // Reset to page 1 after filter
-        setCurrentPage(1);
-        setTotalPages(1);
         setIsLoading(false);
       }, 300);
     } catch (error) {
       console.error("❌ Error applying filter:", error);
       setIsLoading(false);
     }
-  };
-
-  const handleResetFilter = () => {
-    setFilters({
-      position: '',
-      skills: '',
-      location: ''
-    });
-    setSkillTags([]);
-    setSkillInput("");
-    setFilteredPortfolios(allPortfolios);
-    setCurrentIndex(0);
-    setTotalItems(allPortfolios.length);
-    setCurrentPage(1);
-    setTotalPages(1);
   };
 
   const handleAddSkillTag = () => {
@@ -330,10 +229,10 @@ export default function RecruiterHome() {
 
   return (
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
-      <div className="flex gap-0 pt-10 min-h-screen">
+      <div className="flex gap-0 pt-6 min-h-screen">
         {/* Left Filter Sidebar */}
-        <div className="fixed left-3 top-24 z-10 hidden xl:block">
-          <div className="w-[20rem] bg-white rounded-lg p-6 shadow-md max-h-[calc(100vh-7rem)] overflow-y-auto overflow-x-hidden">
+        <div className="fixed left-3 top-20 z-10 hidden xl:block">
+          <div className="w-[20rem] bg-white rounded-lg p-4 shadow-md max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-2 mb-6">
               <img src={SortIcon} alt="Sort" className="w-8 h-8"/>
               <h2 className="text-2xl font-bold text-gray-900">Bộ lọc ứng viên</h2>
@@ -448,120 +347,58 @@ export default function RecruiterHome() {
               </div>
             </div>
           ) : (
-            // Portfolio Card
-          <div className="w-full max-w-3xl min-w-0">
-            {/* Navigation Counter */}
-            <div className="flex justify-center items-center mb-4">
-              <span className="text-sm text-gray-600">
-                Portfolio {currentIndex + 1} / {filteredPortfolios.length}
-              </span>
-            </div>
+            <>
+              {/* Portfolio Card - No outer frame */}
+              <div className="w-full max-w-3xl min-w-0">
+                {/* Portfolio Blocks Content */}
+                <div className="mb-3 p-4 sm:p-5 md:p-6">
+                  {currentPortfolio?.blocks && Array.isArray(currentPortfolio.blocks) && currentPortfolio.blocks.length > 0 ? (
+                    <PortfolioRenderer blocks={currentPortfolio.blocks} />
+                  ) : currentPortfolio?.blocks && !Array.isArray(currentPortfolio.blocks) ? (
+                    <PortfolioRenderer blocks={[currentPortfolio.blocks]} />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        {currentPortfolio?.portfolio?.name || "Portfolio"}
+                      </h3>
+                      <p className="text-sm text-gray-600">Portfolio này chưa có nội dung để hiển thị.</p>
+                    </div>
+                  )}
+                </div>
 
-            {/* Portfolio Card with Scroll */}
-            <div 
-              className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 relative transition-all duration-300 max-h-[calc(100vh-11rem)] overflow-y-auto overflow-x-hidden"
-            >
-              {/* Portfolio Blocks Content */}
-              <div className="mb-6">
-                {currentPortfolio?.blocks && Array.isArray(currentPortfolio.blocks) && currentPortfolio.blocks.length > 0 ? (
-                  <PortfolioRenderer blocks={currentPortfolio.blocks} />
-                ) : currentPortfolio?.blocks && !Array.isArray(currentPortfolio.blocks) ? (
-                  <PortfolioRenderer blocks={[currentPortfolio.blocks]} />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">
-                      {currentPortfolio?.portfolio?.name || "Portfolio"}
-                    </h3>
-                    <p className="text-sm text-gray-600">Portfolio này chưa có nội dung để hiển thị.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-center items-center gap-6 sm:gap-8 py-4 sm:py-6 rounded-lg px-2 mb-4" style={{ backgroundColor: '#EFF6FF' }}>
-                <button
-                  onClick={() => setIsCommentModalOpen(true)}
-                  className="flex items-center justify-center gap-2 hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
-                  title="Nhận xét"
-                >
-                  <MessageSquare className="text-blue-500" size={30} />
-                </button>
-                <button
-                  onClick={handleBookmark}
-                  className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
-                  title="Lưu"
-                >
-                  <img src={BookmarkIcon} alt="Bookmark" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
-                  title="Chia sẻ"
-                >
-                  <img src={ShareIcon} alt="Share" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%)' }} />
-                </button>
-              </div>
-            </div>
-
-            {/* Pagination Info */}
-            <div className="flex justify-between items-center mt-4 px-2 mb-6">
-              <span className="text-xs text-gray-500">
-                Trang {currentPage}/{totalPages} • Tổng {totalItems} portfolios
-              </span>
-            </div>
-
-            {/* Pagination Buttons */}
-            <div className="flex justify-center items-center gap-2 px-2">
-              {/* Previous Page Button */}
-              <button
-                onClick={() => loadPortfolios(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
-                className="px-3 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-white transition-colors text-sm"
-              >
-                ← Trước
-              </button>
-
-              {/* Page Numbers */}
-              <div className="flex gap-1 flex-wrap justify-center">
-                {getPageNumbers().map((page, idx) => (
+                {/* Action Buttons */}
+                <div className="flex justify-center items-center gap-6 sm:gap-8 py-3 sm:py-4 rounded-lg px-2 mb-2" style={{ backgroundColor: '#EFF6FF' }}>
                   <button
-                    key={idx}
-                    onClick={() => {
-                      if (typeof page === 'number') {
-                        loadPortfolios(page);
-                      }
-                    }}
-                    disabled={page === '...' || isLoading}
-                    className={`px-2 py-1 rounded-lg text-sm transition-colors ${
-                      page === currentPage
-                        ? 'bg-blue-500 text-white border border-blue-500'
-                        : page === '...'
-                        ? 'text-gray-400 cursor-default'
-                        : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
-                    } disabled:cursor-not-allowed`}
+                    onClick={() => setIsCommentModalOpen(true)}
+                    className="flex items-center justify-center gap-2 hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    title="Nhận xét"
                   >
-                    {page}
+                    <MessageSquare className="text-blue-500" size={30} />
                   </button>
-                ))}
+                  <button
+                    onClick={handleBookmark}
+                    className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    title="Lưu"
+                  >
+                    <img src={BookmarkIcon} alt="Bookmark" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    title="Chia sẻ"
+                  >
+                    <img src={ShareIcon} alt="Share" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%)' }} />
+                  </button>
+                </div>
               </div>
 
-              {/* Next Page Button */}
-              <button
-                onClick={() => loadPortfolios(currentPage + 1)}
-                disabled={currentPage === totalPages || isLoading}
-                className="px-3 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-white transition-colors text-sm"
-              >
-                Sau →
-              </button>
-            </div>
-
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex justify-center mt-4">
-                <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
-              </div>
-            )}
-          </div>
+              {/* Loading Indicator */}
+              {isLoading && (
+                <div className="flex justify-center mt-4">
+                  <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Right Arrow */}
@@ -575,8 +412,8 @@ export default function RecruiterHome() {
         </div>
 
         {/* Right Premium Section */}
-        <aside className="hidden 2xl:block w-[20rem] shrink-0 py-6 pr-4">
-          <div className="sticky top-24">
+        <aside className="hidden 2xl:block w-[20rem] shrink-0 py-6 pr-4 h-fit">
+          <div className="sticky top-6">
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
               {/* Premium Badge */}
               <div className="mb-6">

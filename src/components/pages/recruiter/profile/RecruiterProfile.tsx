@@ -1,6 +1,5 @@
 import {
   Calendar,
-  Users,
   Bookmark,
   ChevronRight,
   HelpCircle,
@@ -133,11 +132,6 @@ export default function RecruiterProfile() {
     console.log("Navigate to saved items");
   };
 
-  const handleHRManagementClick = () => {
-    // Navigate to HR management
-    console.log("Navigate to HR management");
-  };
-
   const handleSupportCenterClick = () => {
     navigate("/support-center");
   };
@@ -241,12 +235,6 @@ export default function RecruiterProfile() {
             title="Quản lý lịch phỏng vấn"
             desc="Quản lý, theo dõi lịch trình phỏng vấn"
             onClick={handleInterviewScheduleClick}
-          />
-          <ServiceCard
-            icon={<Users className="text-blue-600" />}
-            title="Nhân sự"
-            desc="Quản lý nhân sự"
-            onClick={handleHRManagementClick}
           />
         </div>
 

@@ -1,7 +1,9 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { type OtherInfoOneDraft } from "./otherInfoOneDraft";
+import {
+  type OtherInfoOneDraft,
+} from "./otherInfoOneDraft";
 
 type OtherInfoOneEditorProps = {
   initialData: OtherInfoOneDraft;
@@ -47,9 +49,10 @@ export default function OtherInfoOneEditor({
   onSave,
   onCancel,
 }: OtherInfoOneEditorProps) {
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(() =>
-    deduplicateInterests(initialData.interests),
-  );
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(() => {
+    const interests = deduplicateInterests(initialData?.interests ?? []);
+    return interests;
+  });
   const [newInterestName, setNewInterestName] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 

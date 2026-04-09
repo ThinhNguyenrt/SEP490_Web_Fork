@@ -51,7 +51,9 @@ const hasSkill = (skills: string[], skillName: string): boolean => {
 };
 
 export default function SkillTwoEditor({ initialData, onSave, onCancel }: SkillTwoEditorProps) {
-  const [draft, setDraft] = useState<SkillTwoDraft>(() => normalizeSkillTwoDraft(initialData));
+  const [draft, setDraft] = useState<SkillTwoDraft>(() =>
+    normalizeSkillTwoDraft(initialData ?? { languages: [], frameworks: [], tools: [] }),
+  );
   const [activeCategory, setActiveCategory] = useState<SkillTwoCategory>("languages");
   const [newSkillName, setNewSkillName] = useState("");
   const [isDirty, setIsDirty] = useState(false);

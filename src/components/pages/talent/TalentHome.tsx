@@ -69,6 +69,15 @@ export default function TalentHome() {
   const currentPost = filteredPosts[currentIndex];
   const arrowTrackHeightClass = filteredPosts.length === 0 ? "h-[740px]" : "h-[660px]";
 
+  // Monitor savedPostIds changes
+  useEffect(() => {
+    console.log("🔔 [savedPostIds Changed] Current savedPostIds:", savedPostIds);
+    if (currentPost) {
+      const isSaved = savedPostIds.includes(currentPost.postId);
+      console.log("🔔 [savedPostIds Changed] Current post ID:", currentPost.postId, "is saved:", isSaved);
+    }
+  }, [savedPostIds, currentPost]);
+
   const handleNext = () => {
     if (currentIndex < filteredPosts.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -92,14 +101,19 @@ export default function TalentHome() {
 
     try {
       setIsSavingPost(postId);
-      console.log("💾 Saving post:", postId);
+      console.log("💾 [handleSavePost] Saving post:", postId);
+      console.log("💾 [handleSavePost] AccessToken available:", !!accessToken);
+      console.log("💾 [handleSavePost] Current savedPostIds before save:", savedPostIds);
       
-      await saveCompanyPost(postId, accessToken || undefined);
+      const result = await saveCompanyPost(postId, accessToken || undefined);
+      console.log("💾 [handleSavePost] API Response:", result);
+      
       dispatch(addSavedPost(postId));
-      console.log("✅ Post saved successfully");
+      console.log("✅ [handleSavePost] Dispatched addSavedPost for postId:", postId);
+      console.log("✅ [handleSavePost] Updated savedPostIds should include:", postId);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save post";
-      console.error("❌ Error saving post:", errorMessage);
+      console.error("❌ [handleSavePost] Error saving post:", errorMessage);
       // You can show a toast notification here for errors
     } finally {
       setIsSavingPost(null);
@@ -343,11 +357,12 @@ export default function TalentHome() {
                     <img 
                       src={BookmarkIcon} 
                       alt="Bookmark" 
-                      className="w-10 h-10"
+                      className="w-9 h-9"
                       style={{
                         filter: savedPostIds.includes(currentPost?.postId || 0) 
-                          ? 'brightness(0) saturate(100%) invert(48%) sepia(81%) saturate(1093%) hue-rotate(203deg)' 
-                          : 'brightness(0) saturate(100%)'
+                          ? 'brightness(1.2) sepia(0.8) saturate(3) hue-rotate(8deg)' 
+                          : 'brightness(0) saturate(100%)',
+                        transition: 'filter 0.3s ease-in-out'
                       }}
                     />
                   </button>
@@ -357,7 +372,7 @@ export default function TalentHome() {
                     <img 
                       src={ShareIcon} 
                       alt="Share" 
-                      className="w-10 h-10"
+                      className="w-9 h-9"
                     />
                   </button>
                 </div>

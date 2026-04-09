@@ -31,12 +31,20 @@ const extractSkillName = (item: unknown): string => {
   return "";
 };
 
-const deduplicateSkills = (skills: string[]): string[] => {
+const deduplicateSkills = (skills: string[] | undefined): string[] => {
+  if (!Array.isArray(skills)) {
+    return [];
+  }
+
   const used = new Set<string>();
   const nextSkills: string[] = [];
 
   skills.forEach((skillName) => {
-    const normalized = normalizeSkillName(skillName);
+    if (typeof skillName !== "string" && typeof skillName !== "number") {
+      return;
+    }
+    
+    const normalized = normalizeSkillName(String(skillName));
     if (!normalized) {
       return;
     }

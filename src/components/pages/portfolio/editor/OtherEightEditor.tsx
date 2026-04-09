@@ -4,7 +4,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { type OtherEightDraft } from "./otherEightDraft";
+import {
+  createEmptyOtherEightDraft,
+  type OtherEightDraft,
+} from "./otherEightDraft";
 
 type OtherEightEditorProps = {
   initialData: OtherEightDraft;
@@ -17,7 +20,7 @@ export default function OtherEightEditor({
   onSave,
   onCancel,
 }: OtherEightEditorProps) {
-  const [draft, setDraft] = useState<OtherEightDraft>(initialData);
+  const [draft, setDraft] = useState<OtherEightDraft>(initialData || createEmptyOtherEightDraft());
   const [uploadedFileName, setUploadedFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -38,7 +41,7 @@ export default function OtherEightEditor({
   };
 
   const handleSave = () => {
-    onSave({ detail: draft.detail.trim() });
+    onSave({ detail: (draft?.detail || "").trim() });
   };
 
   return (

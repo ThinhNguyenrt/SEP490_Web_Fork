@@ -31,3 +31,7 @@ export const createOtherInfoTwoDraft = (value: unknown): OtherInfoTwoDraft => {
   const data = toRecord(value);
   return { detail: toText(data.detail) };
 };
+
+export const createEmptyOtherInfoTwoDraft = (): OtherInfoTwoDraft => {
+  return { detail: "" };
+};

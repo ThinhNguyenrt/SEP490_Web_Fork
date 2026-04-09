@@ -16,13 +16,13 @@ export default function OtherInfoSevenEditor({
   onSave,
   onCancel,
 }: OtherInfoSevenEditorProps) {
-  const [draft, setDraft] = useState<OtherSevenDraft>(initialData);
+  const [draft, setDraft] = useState<OtherSevenDraft>(initialData || createEmptyOtherSevenDraft());
 
   useEffect(() => {
-    setDraft(initialData);
+    setDraft(initialData || createEmptyOtherSevenDraft());
   }, [initialData]);
 
-  const hasContent = [draft.name, draft.detail].some((value) => value.trim().length > 0);
+  const hasContent = [(draft?.name || ""), (draft?.detail || "")].some((value) => value.trim().length > 0);
 
   const updateDraftField = (field: keyof OtherSevenDraft, value: string) => {
     setDraft((prevDraft) => ({
@@ -37,8 +37,8 @@ export default function OtherInfoSevenEditor({
     }
 
     onSave({
-      name: draft.name.trim(),
-      detail: draft.detail.trim(),
+      name: (draft?.name || "").trim(),
+      detail: (draft?.detail || "").trim(),
     });
     setDraft(createEmptyOtherSevenDraft());
   };

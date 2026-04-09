@@ -317,6 +317,11 @@ export const saveCompanyPost = async (
 ): Promise<{ message: string }> => {
   try {
     console.log("📡 [saveCompanyPost] Starting for postId:", postId);
+    console.log("📡 [saveCompanyPost] accessToken provided:", !!accessToken);
+
+    if (!accessToken) {
+      console.warn("⚠️ [saveCompanyPost] No accessToken provided - API may reject request");
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -330,47 +335,61 @@ export const saveCompanyPost = async (
 
     if (accessToken) {
       headers["Authorization"] = `Bearer ${accessToken}`;
+      console.log("📡 [saveCompanyPost] Authorization header added");
     }
 
     const fullUrl = `${API_BASE_URL}/company-posts/${postId}/save`;
-    console.log("📡 Making request to:", fullUrl);
+    console.log("📡 [saveCompanyPost] Making request to:", fullUrl);
+    console.log("📡 [saveCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
 
     const response = await fetch(fullUrl, {
       method: "POST",
       headers: headers,
+      body: JSON.stringify({}),  // Send empty body to be explicit
       signal: controller.signal,
       credentials: "include",
     });
 
     clearTimeout(timeoutId);
 
-    console.log("📡 Save post API response status:", response.status);
+    console.log("📡 [saveCompanyPost] Response status:", response.status);
+    console.log("📡 [saveCompanyPost] Response statusText:", response.statusText);
+    console.log("📡 [saveCompanyPost] Response OK:", response.ok);
 
     const contentType = response.headers.get("content-type");
+    console.log("📡 [saveCompanyPost] Content-Type:", contentType);
+
     let data: unknown;
 
     if (contentType?.includes("application/json")) {
       try {
         data = await response.json();
+        console.log("📡 [saveCompanyPost] Parsed response data:", data);
       } catch (parseError) {
-        console.error("❌ JSON parse error:", parseError);
-        throw new Error("Invalid response format from server");
+        console.error("❌ [saveCompanyPost] JSON parse error:", parseError);
+        console.error("❌ [saveCompanyPost] Response status:", response.status);
+        throw new Error("Invalid response format from server (JSON parse failed)");
       }
     } else {
+      console.error("❌ [saveCompanyPost] Non-JSON response, content-type:", contentType);
       throw new Error("Server returned non-JSON response");
     }
 
+    // Check response status
     if (!response.ok) {
-      throw new Error((data as Record<string, unknown>)?.message as string || "Failed to save post");
+      const errorMessage = (data as Record<string, unknown>)?.message as string || "Failed to save post";
+      console.error("❌ [saveCompanyPost] API returned error:", response.status, errorMessage);
+      throw new Error(errorMessage);
     }
 
-    console.log("✅ Post saved successfully");
+    console.log("✅ [saveCompanyPost] Post saved successfully");
     return data as { message: string };
   } catch (error) {
+    console.error("❌ [saveCompanyPost] Caught error:", error);
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error("Network error");
+    throw new Error("Network error while saving post");
   }
 };
 

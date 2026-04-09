@@ -43,9 +43,10 @@ const hasSkill = (skills: string[], skillName: string): boolean => {
 };
 
 export default function SkillOneEditor({ initialData, onSave, onCancel }: SkillOneEditorProps) {
-  const [selectedSkills, setSelectedSkills] = useState<string[]>(() =>
-    deduplicateSkills(initialData.skills),
-  );
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(() => {
+    const skills = deduplicateSkills(initialData?.skills ?? []);
+    return skills;
+  });
   const [newSkillName, setNewSkillName] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 

@@ -31,7 +31,11 @@ const extractSoftSkill = (item: unknown): string => {
   return "";
 };
 
-const deduplicateSkills = (skills: string[]): string[] => {
+const deduplicateSkills = (skills: string[] | undefined): string[] => {
+  if (!Array.isArray(skills)) {
+    return [];
+  }
+
   const used = new Set<string>();
   const nextSkills: string[] = [];
 
@@ -53,8 +57,15 @@ const deduplicateSkills = (skills: string[]): string[] => {
   return nextSkills;
 };
 
-export const normalizeOtherInfoSixDraft = (draft: OtherInfoSixDraft): OtherInfoSixDraft => {
+export const normalizeOtherInfoSixDraft = (draft: OtherInfoSixDraft | undefined): OtherInfoSixDraft => {
+  if (!draft) {
+    return createEmptyOtherInfoSixDraft();
+  }
   return { softSkills: deduplicateSkills(draft.softSkills) };
+};
+
+export const createEmptyOtherInfoSixDraft = (): OtherInfoSixDraft => {
+  return { softSkills: [] };
 };
 
 export const createOtherInfoSixDraft = (value: unknown): OtherInfoSixDraft => {

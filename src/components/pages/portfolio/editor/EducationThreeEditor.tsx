@@ -29,7 +29,7 @@ export default function EducationThreeEditor({
     draft.gpa,
     draft.qualified,
     draft.description,
-  ].some((value) => value.trim().length > 0);
+  ].some((value) => typeof value === "string" && value.trim().length > 0);
 
   const updateDraftField = (field: keyof EducationThreeDraft, value: string) => {
     setDraft((prevDraft) => ({
@@ -44,10 +44,10 @@ export default function EducationThreeEditor({
     }
 
     onSave({
-      time: draft.time.trim(),
-      gpa: draft.gpa.trim(),
-      qualified: draft.qualified.trim(),
-      description: draft.description.trim(),
+      time: String(draft.time).trim(),
+      gpa: String(draft.gpa).trim(),
+      qualified: String(draft.qualified).trim(),
+      description: String(draft.description).trim(),
     });
     setDraft(createEmptyEducationThreeDraft());
   };

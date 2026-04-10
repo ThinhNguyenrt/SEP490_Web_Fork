@@ -12,8 +12,6 @@ import { realtimeService } from "./services/realtimeService";
 import { useAppSelector } from "./store/hook";
 import { notify } from "./lib/toast";
 import { useUserProfile } from "./hook/useUserProfile";
-import OtherTalentProfilePage from "./components/pages/profile/otherProfile/OtherTalentProfile";
-import OtherCompanyProfilePage from "./components/pages/profile/otherProfile/OtherCompanyProfile";
 
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
 const LoginPage = lazy(() => import("./components/pages/login/Login"));
@@ -108,6 +106,15 @@ const PrivacyCenterPage = lazy(
 const TermsPolicyPage = lazy(
   () => import("./components/pages/TermsPolicyPage"),
 );
+const OtherTalentProfilePage = lazy(
+  () => import("./components/pages/profile/otherProfile/OtherTalentProfile"),
+);
+const OtherCompanyProfilePage = lazy(
+  () => import("./components/pages/profile/otherProfile/OtherCompanyProfile"),
+);
+const PortfolioRanking = lazy(
+  () => import("./components/pages/ranking/PortfolioRanking"),
+);
 
 function App() {
   const { accessToken } = useAppSelector((state) => state.auth);
@@ -129,7 +136,6 @@ function App() {
       console.log("🔔 Received realtime notification event:", event);
 
       if (Number(event.actorId) !== profile?.user?.id) {
-
         let toastMsg = "";
         switch (event.type) {
           case "comment":
@@ -185,8 +191,15 @@ function App() {
             <Route path="/job/:postId" element={<PostDetail />} />
             <Route path="/chat" element={<ChatRoom />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/:userId" element={<OtherTalentProfilePage />} />
-            <Route path="/recruiter-profile/:userId" element={<OtherCompanyProfilePage />} />
+            <Route path="/ranking" element={<PortfolioRanking />} />
+            <Route
+              path="/profile/:userId"
+              element={<OtherTalentProfilePage />}
+            />
+            <Route
+              path="/recruiter-profile/:userId"
+              element={<OtherCompanyProfilePage />}
+            />
             <Route
               path="/application-history"
               element={<ApplicationHistory />}
@@ -203,6 +216,7 @@ function App() {
             <Route path="/interview-schedule" element={<InterviewSchedule />} />
             <Route path="/company-saved" element={<CompanySavePost />} />
             <Route path="/talent-saved" element={<TalentSavePost />} />
+
             <Route
               path="/setup-talent-profile"
               element={<SetupTalentProfile />}

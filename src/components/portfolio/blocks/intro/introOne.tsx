@@ -11,12 +11,12 @@ interface IntroOneProps {
  * Hiển thị thông tin cá nhân cơ bản của người dùng
  */
 const IntroOne: React.FC<IntroOneProps> = ({ data }) => {
-  const { fullName, name, title, studyField, description, avatar, email, phone } = data;
+  const { fullName, name,  studyField, description, avatar, email, phone } = data;
   
   // Use fullName first, then fall back to name, then 'Your Name'
   const displayName = fullName || name || 'Your Name';
   // Use title first, then fall back to studyField
-  const displayTitle = title || studyField;
+  const displayTitle = studyField;
   
   // Resolve avatar URL (handles HTTP URLs, reference IDs, and data URLs)
   const avatarUrl = avatar ? resolveImageUrl(avatar) : undefined;

@@ -427,11 +427,6 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
         avatar: "",
         email: "",
         phone: "",
-        school: "",
-        department: "",
-        studyField: "",
-        experience: "",
-        gpa: "",
       };
 
     case "SKILL":
@@ -2044,6 +2039,7 @@ export default function CreatePortfolio() {
       nextData.fullName = nextDraft.fullName;
       nextData.name = nextDraft.fullName; // Also save as 'name' for backend compatibility
       nextData.title = nextDraft.title;
+      nextData.studyField = nextDraft.studyField;
       nextData.email = nextDraft.email;
       nextData.phone = nextDraft.phone;
       nextData.description = nextDraft.description;

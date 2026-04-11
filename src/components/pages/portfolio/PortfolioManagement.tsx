@@ -18,6 +18,7 @@ import {
 import { PremiumAndTips } from "@/components/common/Premium";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
+import CustomLoading from "@/components/Loading/Loading";
 
 const ProfileCard = ({
   data,
@@ -308,7 +309,6 @@ export default function ProfileManagement() {
 
   const handleDeletePortfolio = async (portfolioId: number) => {
     try {
-      // Show confirmation dialog
       const confirmed = window.confirm(
         "Bạn chắc chắn muốn xóa portfolio này? Hành động này không thể hoàn tác.",
       );
@@ -317,38 +317,28 @@ export default function ProfileManagement() {
         return;
       }
 
-      console.log("🗑️ [handleDeletePortfolio] Starting delete process");
-      console.log("🗑️ [handleDeletePortfolio] portfolioId:", portfolioId);
-      console.log("🗑️ [handleDeletePortfolio] accessToken exists:", !!accessToken);
-      console.log("🗑️ [handleDeletePortfolio] accessToken length:", accessToken?.length || 0);
-
-      // Fallback to localStorage if Redux token is not available (redux-persist timing)
       const tokenToUse = accessToken || localStorage.getItem("access_token");
       
-      console.log("🗑️ [handleDeletePortfolio] Token to use exists:", !!tokenToUse);
-      console.log("🗑️ [handleDeletePortfolio] Token to use length:", tokenToUse?.length || 0);
-
       if (!tokenToUse) {
         notify.error("Vui lòng đăng nhập để xóa portfolio");
         navigate("/login");
         return;
       }
 
-      console.log("🗑️ [handleDeletePortfolio] Calling deletePortfolio service");
+      // Call delete API
       await portfolioService.deletePortfolio(portfolioId, tokenToUse);
 
-      // Remove portfolio from list
-      setPortfolios((prev) =>
-        prev.filter((p) => p.portfolioId !== portfolioId),
-      );
+      // Update state immediately to remove portfolio from UI
+      const updatedPortfolios = portfolios.filter((p) => p.portfolioId !== portfolioId);
+      setPortfolios(updatedPortfolios);
 
       // If deleted portfolio was primary, reset primary
       if (primaryPortfolioId === portfolioId) {
         setPrimaryPortfolioId(null);
       }
 
+      // Show success message
       notify.success("Portfolio đã được xóa thành công!");
-      console.log("✅ Portfolio deleted successfully");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Không thể xóa portfolio";
@@ -391,9 +381,7 @@ export default function ProfileManagement() {
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
+            <CustomLoading />
           ) : portfolios.length > 0 ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {portfolios.map((portfolio, index) => (

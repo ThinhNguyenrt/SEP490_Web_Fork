@@ -1492,7 +1492,13 @@ export const createPortfolioAPI = async (
     const fileMap = collectPortfolioFilesWithFieldNames(reindexedBlocks);
     
     // Replace reference IDs in payload with field names
-    const finalPayload = replaceReferenceIdsWithFieldNames(payload, fileMap);
+    let finalPayload = replaceReferenceIdsWithFieldNames(payload, fileMap);
+    
+    // Convert field names to Key format for backend (avatar → avatarKey, image → imageKey)
+    finalPayload = {
+      ...finalPayload,
+      blocks: convertFieldNamesToKeys(finalPayload.blocks),
+    };
     
     const jsonString = JSON.stringify(finalPayload);
     formData.append("portfolioJson", jsonString);
@@ -1714,7 +1720,13 @@ export const updatePortfolioAPI = async (
     const fileMap = collectPortfolioFilesWithFieldNames(reindexedBlocks);
     
     // Replace reference IDs in payload with field names
-    const finalPayload = replaceReferenceIdsWithFieldNames(payload, fileMap);
+    let finalPayload = replaceReferenceIdsWithFieldNames(payload, fileMap);
+    
+    // Convert field names to Key format for backend (avatar → avatarKey, image → imageKey)
+    finalPayload = {
+      ...finalPayload,
+      blocks: convertFieldNamesToKeys(finalPayload.blocks),
+    };
     
     const jsonString = JSON.stringify(finalPayload);
     formData.append("portfolioJson", jsonString);
@@ -2156,109 +2168,101 @@ export const fetchPortfoliosByEmployeeId = async (
   }
 };
 
-// Store file references temporarily during portfolio creation
-// File will be uploaded when portfolio is created, not separately
+// ============================================================================
+// REFACTORED IMAGE STORE - Uses file names as keys for consistency
+// ============================================================================
+// Store file objects with file.name as key (or a sanitized version for consistency)
 const portfolioImageFiles = new Map<string, File>();
-const fileUploadStatus = new Map<string, { status: 'pending' | 'uploaded' | 'failed', error?: string }>();
-// Store data URLs in sessionStorage for persistence across page navigations
-const PORTFOLIO_IMAGE_STORAGE_KEY = 'portfolio_images';
+// Store preview blob URLs temporarily (cleaned up after unmount)
+const previewBlobUrls = new Map<string, string>();
 
 /**
- * Generate a unique reference ID for image files
- * Format: {type}_{timestamp}_{randomString}
+ * Sanitize file name to be safe for use as a key and FormData field name
  */
-const generateImageReferenceId = (type: 'avatar' | 'image' | 'project' = 'image'): string => {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 10);
-  return `${type}_${timestamp}_${random}`;
+const sanitizeFileName = (fileName: string): string => {
+  // Use the file name as-is, but ensure it's unique if duplicates exist
+  return fileName;
 };
 
 /**
- * Store image file and create data URL for persistence
+ * Store image file - uses file.name as the key for consistency
+ * @returns The key to use in JSON (should be the file.name)
  */
-export const storePortfolioImageFile = (referenceId: string, file: File): string => {
-  console.log("📸 Storing image file reference:", referenceId, file.name);
-  portfolioImageFiles.set(referenceId, file);
-  fileUploadStatus.set(referenceId, { status: 'pending' });
+export const storePortfolioImageFile = (file: File): string => {
+  const fileKey = sanitizeFileName(file.name);
+  console.log("📸 Storing image file:", fileKey, "→ File object");
+  portfolioImageFiles.set(fileKey, file);
   
-  // Also create and store data URL in sessionStorage for persistence across navigations
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    if (event.target?.result && typeof event.target.result === 'string') {
-      try {
-        const storageData = JSON.parse(sessionStorage.getItem(PORTFOLIO_IMAGE_STORAGE_KEY) || '{}');
-        storageData[referenceId] = event.target.result; // Store data URL
-        sessionStorage.setItem(PORTFOLIO_IMAGE_STORAGE_KEY, JSON.stringify(storageData));
-        console.log("📸 Data URL stored in sessionStorage for:", referenceId);
-      } catch (error) {
-        console.warn("⚠️ Could not store data URL in sessionStorage:", error);
-      }
-    }
-  };
-  reader.readAsDataURL(file);
-  
-  return referenceId; // Return reference ID to store in data
-};
-
-export const markFileAsUploaded = (referenceId: string) => {
-  fileUploadStatus.set(referenceId, { status: 'uploaded' });
-  console.log("📸 File marked as uploaded:", referenceId);
-};
-
-export const markFileAsFailed = (referenceId: string, error: string) => {
-  fileUploadStatus.set(referenceId, { status: 'failed', error });
-  console.error("📸 File marked as failed:", referenceId, error);
-};
-
-export const getFileUploadStatus = (referenceId: string) => {
-  return fileUploadStatus.get(referenceId) ?? { status: 'unknown' };
-};
-
-export const getPortfolioImageFiles = (): File[] => {
-  const files = Array.from(portfolioImageFiles.values());
-  console.log("📸 Retrieving", files.length, "stored image files for portfolio creation");
-  return files;
+  // Return the key (file.name) to store in JSON data
+  // This key will be used as both the avatarKey in JSON AND the FormData field name
+  return fileKey;
 };
 
 /**
- * Collect all image files from portfolio blocks with their field names
- * Returns map of referenceId -> {file, fieldName}
+ * Create and store a preview blob URL for an image
+ * IMPORTANT: Call `revokePreviewUrl(fileKey)` after unmount to prevent memory leaks
+ * @returns Blob URL for preview (e.g., blob:http://localhost:5173/xxx)
+ */
+export const createPreviewUrl = (fileKey: string): string | undefined => {
+  const file = portfolioImageFiles.get(fileKey);
+  if (!file) {
+    console.warn("⚠️ File not found for preview:", fileKey);
+    return undefined;
+  }
+  
+  // Create blob URL for preview
+  const blobUrl = URL.createObjectURL(file);
+  previewBlobUrls.set(fileKey, blobUrl);
+  console.log("📸 Created preview blob URL for:", fileKey, blobUrl.substring(0, 50) + "...");
+  return blobUrl;
+};
+
+/**
+ * Revoke a preview blob URL to prevent memory leaks
+ * Call this in useEffect cleanup when component unmounts
+ */
+export const revokePreviewUrl = (fileKey: string): void => {
+  const blobUrl = previewBlobUrls.get(fileKey);
+  if (blobUrl) {
+    URL.revokeObjectURL(blobUrl);
+    previewBlobUrls.delete(fileKey);
+    console.log("📸 Revoked preview blob URL for:", fileKey);
+  }
+};
+
+/**
+ * Collect all image files from blocks with their keys (file names)
+ * Returns map of fileKey -> {file, fieldName}
+ * The fieldName will be used as the FormData field name
  */
 export const collectPortfolioFilesWithFieldNames = (blocks: any[]): Map<string, {file: File, fieldName: string}> => {
   const fileMap = new Map<string, {file: File, fieldName: string}>();
-  const processedReferences = new Set<string>();
-  let fileCounter = 0;
+  const processedFileKeys = new Set<string>();
   
   console.log("📸 Starting file collection from", blocks.length, "blocks");
   
-  // Scan through all blocks to find file references
-  const scanBlockForFileReferences = (obj: any, depth = 0): void => {
+  // Scan through all blocks to find file keys
+  const scanBlockForFiles = (obj: any, depth = 0): void => {
     if (!obj || typeof obj !== 'object' || depth > 10) return;
     
     if (Array.isArray(obj)) {
-      obj.forEach(item => scanBlockForFileReferences(item, depth + 1));
+      obj.forEach(item => scanBlockForFiles(item, depth + 1));
     } else {
       Object.values(obj).forEach(value => {
-        // Check for file reference patterns (avatar_..., image_..., project_...)
+        // Check for file keys (any string that matches a file we've stored)
         if (typeof value === 'string') {
           const trimmed = value.trim();
-          if ((trimmed.startsWith('avatar_') || trimmed.startsWith('image_') || 
-               trimmed.startsWith('project_')) && trimmed.includes('_')) {
-            
-            // Try to get the file from stored files
-            const file = portfolioImageFiles.get(trimmed);
-            if (file && !processedReferences.has(trimmed)) {
-              fileCounter++;
-              const fieldName = generateFieldName(trimmed, fileCounter);
-              console.log("📸 Found file reference:", trimmed, "-> Field name:", fieldName, "File name:", file.name);
-              fileMap.set(trimmed, { file, fieldName });
-              processedReferences.add(trimmed);
-            } else if (!file) {
-              console.warn("⚠️ File reference found but file not in storage:", trimmed);
-            }
+          if (portfolioImageFiles.has(trimmed) && !processedFileKeys.has(trimmed)) {
+            const file = portfolioImageFiles.get(trimmed)!;
+            // Use the file name directly as the field name
+            // This ensures avatarKey in JSON will match the FormData field name
+            const fieldName = trimmed;
+            console.log("📸 Found file:", trimmed, "→ Field name:", fieldName);
+            fileMap.set(trimmed, { file, fieldName });
+            processedFileKeys.add(trimmed);
           }
         } else if (typeof value === 'object') {
-          scanBlockForFileReferences(value, depth + 1);
+          scanBlockForFiles(value, depth + 1);
         }
       });
     }
@@ -2266,38 +2270,23 @@ export const collectPortfolioFilesWithFieldNames = (blocks: any[]): Map<string, 
   
   blocks.forEach(block => {
     if (block.data) {
-      scanBlockForFileReferences(block.data);
+      scanBlockForFiles(block.data);
     }
   });
   
   console.log("📸 Collected total of", fileMap.size, "files from block data");
-  console.log("📸 File mapping:", Array.from(fileMap.entries()).map(([ref, {fieldName}]) => `${ref} -> ${fieldName}`));
+  console.log("📸 File mapping:", Array.from(fileMap.entries()).map(([key, {fieldName}]) => `${key} → ${fieldName}`));
   
   return fileMap;
 };
 
 /**
- * Generate field name for file upload
- * For avatar references, use "avatar{index}"
- * For project/image references, use "project_image_{index}" or "image_{index}"
- */
-const generateFieldName = (referenceId: string, index: number): string => {
-  if (referenceId.startsWith('avatar_')) {
-    return `avatar${index > 1 ? index : ''}`;
-  } else if (referenceId.startsWith('project_')) {
-    return `project_image_${index}`;
-  } else if (referenceId.startsWith('image_')) {
-    return `image_${index}`;
-  }
-  return `file_${index}`;
-};
-
-/**
- * Replace reference IDs in payload with field names
+ * Replace file keys in payload with field names (same as keys now)
+ * This ensures the JSON field values match the FormData field names
  */
 export const replaceReferenceIdsWithFieldNames = (
   payload: any,
-  referenceToFieldMap: Map<string, {file: File, fieldName: string}>
+  fileKeyToFieldMap: Map<string, {file: File, fieldName: string}>
 ): any => {
   const newPayload = JSON.parse(JSON.stringify(payload));
   
@@ -2310,9 +2299,9 @@ export const replaceReferenceIdsWithFieldNames = (
       for (const key in obj) {
         if (typeof obj[key] === 'string') {
           const trimmed = obj[key].trim();
-          if (referenceToFieldMap.has(trimmed)) {
-            const { fieldName } = referenceToFieldMap.get(trimmed)!;
-            console.log("📝 Replacing reference", trimmed, "with field name", fieldName);
+          if (fileKeyToFieldMap.has(trimmed)) {
+            const { fieldName } = fileKeyToFieldMap.get(trimmed)!;
+            console.log("📝 avatarKey/imageKey:", trimmed, "→ will be sent as FormData field:", fieldName);
             obj[key] = fieldName;
           }
         } else if (typeof obj[key] === 'object') {
@@ -2327,41 +2316,33 @@ export const replaceReferenceIdsWithFieldNames = (
 };
 
 /**
- * Collect all image files from portfolio blocks and stored files
- * This ensures files are included even if block editors weren't explicitly saved
+ * Collect all image files from portfolio blocks
  */
 export const collectPortfolioFilesFromBlocks = (blocks: any[]): File[] => {
   const collectedFiles: File[] = [];
-  const processedReferences = new Set<string>();
+  const processedFileKeys = new Set<string>();
   
-  console.log("📸 Starting file collection from", blocks.length, "blocks");
+  console.log("📸 Collecting files from", blocks.length, "blocks");
   
-  // Scan through all blocks to find file references
-  const scanBlockForFileReferences = (obj: any, depth = 0): void => {
+  // Scan through all blocks to find file keys
+  const scanBlockForFiles = (obj: any, depth = 0): void => {
     if (!obj || typeof obj !== 'object' || depth > 10) return;
     
     if (Array.isArray(obj)) {
-      obj.forEach(item => scanBlockForFileReferences(item, depth + 1));
+      obj.forEach(item => scanBlockForFiles(item, depth + 1));
     } else {
       Object.values(obj).forEach(value => {
-        // Check for file reference patterns (avatar_..., image_..., project_...)
+        // Check if this value is a file key we have stored
         if (typeof value === 'string') {
           const trimmed = value.trim();
-          if ((trimmed.startsWith('avatar_') || trimmed.startsWith('image_') || 
-               trimmed.startsWith('project_')) && trimmed.includes('_')) {
-            
-            // Try to get the file from stored files
-            const file = portfolioImageFiles.get(trimmed);
-            if (file && !processedReferences.has(trimmed)) {
-              console.log("📸 Found file reference in block data:", trimmed, "->", file.name);
-              collectedFiles.push(file);
-              processedReferences.add(trimmed);
-            } else if (!file) {
-              console.warn("⚠️ File reference found but file not in storage:", trimmed);
-            }
+          if (portfolioImageFiles.has(trimmed) && !processedFileKeys.has(trimmed)) {
+            const file = portfolioImageFiles.get(trimmed)!;
+            console.log("📸 Found file to collect:", trimmed);
+            collectedFiles.push(file);
+            processedFileKeys.add(trimmed);
           }
         } else if (typeof value === 'object') {
-          scanBlockForFileReferences(value, depth + 1);
+          scanBlockForFiles(value, depth + 1);
         }
       });
     }
@@ -2369,106 +2350,149 @@ export const collectPortfolioFilesFromBlocks = (blocks: any[]): File[] => {
   
   blocks.forEach(block => {
     if (block.data) {
-      scanBlockForFileReferences(block.data);
+      scanBlockForFiles(block.data);
     }
   });
   
-  console.log("📸 Collected total of", collectedFiles.length, "files from block data");
-  console.log("📸 Processed references:", Array.from(processedReferences));
-  
+  console.log("📸 Collected", collectedFiles.length, "files total");
   return collectedFiles;
 };
 
-export const getPortfolioImageFileMap = (): Map<string, string> => {
-  const blobUrlMap = new Map<string, string>();
-  portfolioImageFiles.forEach((file, referenceId) => {
-    const blobUrl = URL.createObjectURL(file);
-    blobUrlMap.set(referenceId, blobUrl);
-    console.log("📸 Created blob URL for reference:", referenceId);
-  });
-  return blobUrlMap;
+/**
+ * Convert image field names from short names to Key format for backend
+ * avatar → avatarKey, image → imageKey, etc.
+ */
+export const convertFieldNamesToKeys = (blocks: any[]): any[] => {
+  const fieldNameMap: Record<string, string> = {
+    avatar: 'avatarKey',
+    image: 'imageKey',
+    coverImage: 'coverImageKey',
+  };
+
+  const converted = blocks.map(block => ({
+    ...block,
+    data: convertObjectFieldNames(block.data, fieldNameMap),
+  }));
+
+  return converted;
 };
 
-export const resolveImageUrl = (imageUrl: string | undefined): string | undefined => {
-  if (!imageUrl) {
+/**
+ * Convert image field names from Key format back to short names
+ * avatarKey → avatar, imageKey → image, etc.
+ */
+export const convertFieldNamesFromKeys = (blocks: any[]): any[] => {
+  const fieldNameMap: Record<string, string> = {
+    avatarKey: 'avatar',
+    imageKey: 'image',
+    coverImageKey: 'coverImage',
+  };
+
+  const converted = blocks.map(block => ({
+    ...block,
+    data: convertObjectFieldNames(block.data, fieldNameMap),
+  }));
+
+  return converted;
+};
+
+/**
+ * Helper function to recursively convert field names in an object
+ */
+const convertObjectFieldNames = (obj: any, fieldNameMap: Record<string, string>): any => {
+  if (!obj || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertObjectFieldNames(item, fieldNameMap));
+  }
+
+  const converted: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // If key is in the map, use the mapped key, otherwise keep original
+    const newKey = fieldNameMap[key] || key;
+    
+    if (value && typeof value === 'object') {
+      converted[newKey] = convertObjectFieldNames(value, fieldNameMap);
+    } else {
+      converted[newKey] = value;
+    }
+  }
+
+  return converted;
+};
+
+/**
+ * Resolve image URL for display
+ * Returns blob URL for local files, HTTP URL for already uploaded images
+ */
+export const resolveImageUrl = (imageIdentifier: string | undefined): string | undefined => {
+  if (!imageIdentifier) {
     return undefined;
   }
   
-  const trimmedUrl = imageUrl.trim();
+  const trimmed = imageIdentifier.trim();
   
-  // If it's already an HTTP/HTTPS URL, return as-is
-  if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
-    console.log("📸 Image is already an HTTP URL, using directly:", trimmedUrl.substring(0, 50) + "...");
-    return trimmedUrl;
+  // If it's already an HTTP/HTTPS URL, return as-is (from backend or CDN)
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    console.log("📸 Image is already an HTTP URL, using directly");
+    return trimmed;
   }
   
-  // If it's a reference ID (image_..., avatar_..., project_...), try to get blob URL from stored files
-  if (trimmedUrl.startsWith("image_") || trimmedUrl.startsWith("avatar_") || trimmedUrl.startsWith("project_")) {
-    // First, try to get from memory map (current session files)
-    const file = portfolioImageFiles.get(trimmedUrl);
-    if (file) {
-      const blobUrl = URL.createObjectURL(file);
-      const uploadStatus = getFileUploadStatus(trimmedUrl);
-      console.log("📸 Created blob URL for reference from memory:", trimmedUrl, 
-        "Status:", uploadStatus.status,
-        "File:", file.name);
-      return blobUrl;
-    }
-    
-    // Second, try to get data URL from sessionStorage (persists across page navigations)
-    try {
-      const storageData = JSON.parse(sessionStorage.getItem(PORTFOLIO_IMAGE_STORAGE_KEY) || '{}');
-      const dataUrl = storageData[trimmedUrl];
-      if (dataUrl && typeof dataUrl === 'string') {
-        console.log("📸 Retrieved data URL from sessionStorage for:", trimmedUrl);
-        return dataUrl;
-      }
-    } catch (error) {
-      console.warn("⚠️ Error retrieving from sessionStorage:", error);
-    }
-    
-    // Reference ID not found in any storage
-    const uploadStatus = getFileUploadStatus(trimmedUrl);
-    console.warn("⚠️ Image reference not found in stored files or sessionStorage (Status: " + uploadStatus.status + "):", trimmedUrl);
-    console.warn("⚠️ Available references:", Array.from(portfolioImageFiles.keys()));
-    
-    // Return undefined instead of the reference ID - this will prevent broken image links
-    return undefined;
+  // If it's a file key (or file name) we have stored locally, create blob URL
+  if (portfolioImageFiles.has(trimmed)) {
+    const file = portfolioImageFiles.get(trimmed)!;
+    const blobUrl = URL.createObjectURL(file);
+    console.log("📸 Created blob URL for stored file:", trimmed);
+    return blobUrl;
   }
   
-  // For any other URL format, return as-is (could be a relative path or other format)
-  console.log("📸 Returning image URL as-is (non-HTTP, non-reference):", trimmedUrl);
-  return trimmedUrl;
+  // For any other format, return as-is (backend should handle URL construction)
+  console.log("📸 Image identifier not in local storage, treating as external URL:", trimmed);
+  return trimmed;
 };
 
 export const clearPortfolioImageFiles = (): void => {
-  console.log("📸 Clearing stored image file references");
+  console.log("📸 Clearing stored image files and preview URLs");
+  // Revoke all pending blob URLs to prevent memory leaks
+  previewBlobUrls.forEach((blobUrl) => {
+    URL.revokeObjectURL(blobUrl);
+  });
+  previewBlobUrls.clear();
   portfolioImageFiles.clear();
 };
 
-// Legacy function - kept for backwards compatibility but changed behavior
-// Now stores file reference instead of uploading
+/**
+ * Get the portfolioImageFiles Map for direct access
+ */
+export const getPortfolioImageFilesMap = (): Map<string, File> => {
+  return portfolioImageFiles;
+};
+
+/**
+ * Upload portfolio image (actually just stores it locally for later)
+ * @param file The image File to store
+ * @returns The file key (file.name) to use in JSON data
+ */
 export const uploadPortfolioImage = async (
   file: File,
+  _type?: 'avatar' | 'image' | 'project', // Optional, kept for backward compatibility
 ): Promise<string> => {
   try {
-    console.log("📸 Processing portfolio image:", file.name, file.size);
-
     if (!file) {
       throw new Error("No file provided");
     }
 
-    // Generate unique reference ID for this file
-    const referenceId = generateImageReferenceId('image');
+    console.log("📸 Processing portfolio image:", file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
+
+    // Store the file and get back the key (file.name)
+    const fileKey = storePortfolioImageFile(file);
     
-    // Store the file for later upload with portfolio creation
-    storePortfolioImageFile(referenceId, file);
+    console.log("✅ Image file stored. Use key:", fileKey);
     
-    console.log("✅ Image file stored with reference:", referenceId);
-    
-    // Return the reference ID (not a URL yet)
-    // Backend will resolve this to actual URL during portfolio creation
-    return referenceId;
+    // Return the key to store in draft data
+    return fileKey;
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -2515,9 +2539,28 @@ export const deletePortfolio = async (
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log("✅ [deletePortfolio] Portfolio deleted successfully:", data);
-    return data;
+    // Handle 204 No Content - no response body to parse
+    if (response.status === 204) {
+      console.log("✅ [deletePortfolio] Portfolio deleted successfully (204 No Content)");
+      return { message: "Portfolio deleted successfully" };
+    }
+
+    // For other successful responses, try to parse JSON body
+    try {
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        const data = await response.json();
+        console.log("✅ [deletePortfolio] Portfolio deleted successfully:", data);
+        return data;
+      } else {
+        // No JSON content, return success message
+        console.log("✅ [deletePortfolio] Portfolio deleted successfully (non-JSON response)");
+        return { message: "Portfolio deleted successfully" };
+      }
+    } catch (parseError) {
+      console.warn("⚠️ [deletePortfolio] Could not parse response body:", parseError);
+      return { message: "Portfolio deleted successfully" };
+    }
   } catch (error) {
     if (
       error instanceof TypeError &&
@@ -2692,14 +2735,14 @@ export const portfolioService = {
   uploadPortfolioImage,
   deletePortfolio,
   storePortfolioImageFile,
-  getPortfolioImageFiles,
+  createPreviewUrl,
+  revokePreviewUrl,
   collectPortfolioFilesFromBlocks,
   collectPortfolioFilesWithFieldNames,
   replaceReferenceIdsWithFieldNames,
   clearPortfolioImageFiles,
-  getPortfolioImageFileMap,
-  markFileAsUploaded,
-  markFileAsFailed,
-  getFileUploadStatus,
+  getPortfolioImageFilesMap,
   resolveImageUrl,
+  convertFieldNamesToKeys,
+  convertFieldNamesFromKeys,
 };

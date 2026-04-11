@@ -6,24 +6,40 @@ import IntroThree from './introThree';
 import IntroFive from './introFive';
 
 interface IntroBlockProps {
-  data: { fullName?: string; title?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  data: { 
+    fullName?: string; 
+    title?: string; 
+    description?: string; 
+    avatar?: string; 
+    avatarKey?: string;
+    email?: string; 
+    phone?: string;
+    [key: string]: any;
+  };
   variant: string;
 }
 
 const IntroBlock: React.FC<IntroBlockProps> = ({ data, variant }) => {
+  // Normalize data: support both 'avatar' and 'avatarKey' fields
+  const normalizedData = {
+    ...data,
+    // If backend returns 'avatarKey', map it to 'avatar' for components
+    avatar: data.avatar || data.avatarKey || undefined,
+  };
+
   switch (variant.toUpperCase()) {
     case 'INTROONE':
-      return <IntroOne data={data} />;
+      return <IntroOne data={normalizedData} />;
     case 'INTROTWO':
-      return <IntroTwo data={data} />;
+      return <IntroTwo data={normalizedData} />;
     case 'INTROTHREE':
-      return <IntroThree data={data} />;
+      return <IntroThree data={normalizedData} />;
     case 'INTROFOUR':
-      return <IntroFour data={data} />;
+      return <IntroFour data={normalizedData} />;
     case 'INTROFIVE':
-      return <IntroFive data={data} />;
+      return <IntroFive data={normalizedData} />;
     default:
-      return <IntroOne data={data} />;
+      return <IntroOne data={normalizedData} />;
   }
 };
 

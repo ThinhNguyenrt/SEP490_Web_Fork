@@ -1,6 +1,6 @@
 export type IntroOneDraft = {
   fullName: string;
-  title: string;
+  studyField: string;
   email: string;
   phone: string;
   description: string;
@@ -35,10 +35,10 @@ export const createIntroOneDraft = (value: unknown): IntroOneDraft => {
 
   return {
     fullName: fullName,
-    title: toText(data.title),
+    studyField: toText(data.studyField),
     email: toText(data.email),
     phone: toText(data.phone),
     description: toText(data.description),
-    avatar: toText(data.avatar),
+    avatar: toText(data.avatar) || "", // Ensure avatar is never null or undefined
   };
 };

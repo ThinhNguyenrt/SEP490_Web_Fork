@@ -78,8 +78,8 @@ export default function IntroOneEditor({ initialData, onSave, onCancel }: IntroO
     console.log("📸 Avatar selected:", file.name);
     
     try {
-      // Generate reference ID and store file
-      const referenceId = await portfolioService.uploadPortfolioImage(file);
+      // Generate reference ID and store file with 'avatar' type
+      const referenceId = await portfolioService.uploadPortfolioImage(file, 'avatar');
       console.log("📸 Avatar file stored with reference:", referenceId);
       
       // Create preview blob URL
@@ -183,11 +183,13 @@ export default function IntroOneEditor({ initialData, onSave, onCancel }: IntroO
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-500">Chức danh / Vị trí</label>
               <input
-                value={draft.title}
-                onChange={(event) => updateDraftField("title", event.target.value)}
+                value={draft.studyField}
+                onChange={(event) => updateDraftField("studyField", event.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-400 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
               />
             </div>
+
+            
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-500">Địa chỉ email</label>

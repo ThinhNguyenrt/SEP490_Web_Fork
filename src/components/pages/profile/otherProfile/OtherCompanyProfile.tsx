@@ -62,7 +62,7 @@ export default function OtherCompanyProfilePage() {
 
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafd]">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-blue-600" size={40} />
       </div>
     );
@@ -75,7 +75,7 @@ export default function OtherCompanyProfilePage() {
     );
 
   return (
-    <div className="min-h-screen bg-[#f8fafd] p-4 lg:p-8 animate-in fade-in duration-500">
+    <div className="min-h-screen p-4 lg:p-8 animate-in fade-in duration-500">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* 1. Back Button */}
         <button

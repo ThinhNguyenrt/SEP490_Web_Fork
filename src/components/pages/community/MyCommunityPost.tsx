@@ -73,7 +73,7 @@ export default function MyCommunityPost() {
     sortOptions.find((opt) => opt.value === sortBy)?.label || "Mới nhất";
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen">
       <div className="max-w-2xl mx-auto py-4 px-4">
         {/* Header Section - Số bài post và Sort */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">

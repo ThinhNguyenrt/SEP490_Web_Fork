@@ -179,7 +179,7 @@ export default function CreateRecruitmentPost() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-6">
+    <div className="min-h-screen px-3 py-4 sm:px-6">
       <form
         onSubmit={handleSubmit}
         className="mx-auto w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"

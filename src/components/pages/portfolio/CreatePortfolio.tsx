@@ -4504,6 +4504,8 @@ export default function CreatePortfolio() {
                         )}
                         onClick={() => {
                           setSelectedBlockId(block.id);
+                          setActiveEditorBlockType(normalizeBlockType(block.type) as ExtendedEditorBlockType);
+                          setActiveEditorBlockVariant(block.variant.toUpperCase());
                           setShowBlockSelector(false);
                         }}
                       >

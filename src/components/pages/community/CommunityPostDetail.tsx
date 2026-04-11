@@ -258,8 +258,8 @@ export default function CommunityPostDetail() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto min-h-screen bg-white border-x border-slate-200 shadow-sm">
-      <div className="py-6 px-4 sm:px-6">
+    <div className=\"max-w-2xl mx-auto min-h-screen bg-white border-x border-slate-200 shadow-sm\">
+      <div className=\"py-6 px-4 sm:px-6\">
         <header className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate(-1)}

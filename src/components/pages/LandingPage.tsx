@@ -308,7 +308,7 @@ const CallToActionSection: React.FC = () => {
 };
 const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen text-slate-900 bg-white">
+    <div className="min-h-screen text-slate-900">
       <main>
         {/* 2. Hero Section */}
         <section className="py-8 px-4 max-w-5xl mx-auto text-center">

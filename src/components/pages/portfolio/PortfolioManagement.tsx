@@ -348,7 +348,7 @@ export default function ProfileManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 transition-colors duration-200 mt-4">
+    <div className="min-h-screen transition-colors duration-200 mt-4">
       <div className="max-w-7xl mx-auto flex min-h-screen flex-col lg:flex-row">
         <main className="w-full lg:w-2/3 px-4 md:px-10 lg:pr-8 text-slate-900">
           <header className="flex items-center justify-between mb-8">

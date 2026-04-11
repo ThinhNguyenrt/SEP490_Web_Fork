@@ -63,7 +63,7 @@ export default function OtherTalentProfilePage() {
   if (!profile || !userId) return <div>Không tìm thấy người dùng</div>;
 
   return (
-    <div className="min-h-screen bg-[#f8fafd] p-4 lg:p-8 animate-in fade-in duration-500">
+    <div className="min-h-screen p-4 lg:p-8 animate-in fade-in duration-500">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* 1. Nút quay lại & 2. Card Profile Header (Giữ nguyên phần UI của bạn) */}
         <button

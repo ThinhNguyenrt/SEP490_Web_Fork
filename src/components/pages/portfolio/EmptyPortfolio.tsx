@@ -5,7 +5,7 @@ import { PremiumAndTips } from "@/components/common/Premium";
 
 export default function EmptyPortfolioPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900  transition-colors duration-200">
+    <div className="min-h-screen text-slate-900  transition-colors duration-200">
       {/* Container chính: Max-width để nội dung không quá tràn sang 2 bên */}
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row min-h-screen gap-8">
         {/* BÊN TRÁI: Main Content (Nội dung trống) */}

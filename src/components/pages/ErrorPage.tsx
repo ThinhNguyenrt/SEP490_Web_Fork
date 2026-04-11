@@ -15,7 +15,7 @@ const ErrorPage = ({
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f8fafd]  flex items-center justify-center p-6 ">
+    <div className="min-h-screen flex items-center justify-center p-6 ">
       
       {/* Container chính */}
       <div className="max-w-2xl w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">

@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("login");
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col">
       {/* Header giữ nguyên ... */}
       <header className="w-full px-6 flex justify-between items-center bg-white  ">
         <div className="flex items-center gap-2">

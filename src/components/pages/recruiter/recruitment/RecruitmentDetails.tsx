@@ -64,7 +64,7 @@ export default function RecruitmentDetails() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-100 px-4 py-6 flex justify-center items-center">
+      <div className="min-h-screen px-4 py-6 flex justify-center items-center">
         <CustomLoading />
       </div>
     );
@@ -72,7 +72,7 @@ export default function RecruitmentDetails() {
 
   if (error || !selectedPost) {
     return (
-      <div className="min-h-screen bg-slate-100 px-4 py-6">
+      <div className="min-h-screen px-4 py-6">
         <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
           <p className="text-lg text-red-600 font-semibold mb-2">Lỗi</p>
           <p className="text-lg text-slate-700">{error || "Không tìm thấy bài đăng tuyển dụng."}</p>
@@ -97,7 +97,7 @@ export default function RecruitmentDetails() {
   const benefits = toBulletItems(selectedPost.benefits || "");
 
   return (
-    <div className="min-h-screen bg-slate-100 px-3 py-4 sm:px-6">
+    <div className="min-h-screen px-3 py-4 sm:px-6">
       <div className="mx-auto w-full max-w-md md:max-w-2xl">
         <div className="relative">
           <img

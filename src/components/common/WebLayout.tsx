@@ -4,7 +4,7 @@ import { ScrollToTop } from "./ScrollToTop";
 
 export function WebLayout() {
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-[#f7f3ee]">
       <Header />
       <main>
         <Outlet />

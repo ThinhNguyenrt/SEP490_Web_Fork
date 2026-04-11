@@ -6,7 +6,7 @@ export default function TalentHome() {
   const [activeTab, setActiveTab] = useState<"recruit" | "explore">("recruit");
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       {/* Tab Menu UI */}
 
       <div className="max-w-2xl mx-auto flex justify-center bg-white">

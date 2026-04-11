@@ -111,7 +111,7 @@ export default function CommunityPost() {
     }
   };
   return (
-    <div className="bg-[#f7f3ee] text-slate-900 min-h-screen transition-colors duration-200">
+    <div className="text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-2xl mx-auto py-2 px-2">
         {/* Create Post Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-2 cursor-pointer">

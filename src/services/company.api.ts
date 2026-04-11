@@ -394,6 +394,93 @@ export const saveCompanyPost = async (
 };
 
 /**
+ * Unsave a company job post
+ * @param postId - The ID of the company post to unsave
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const unsaveCompanyPost = async (
+  postId: number,
+  accessToken?: string
+): Promise<{ message: string }> => {
+  try {
+    console.log("📡 [unsaveCompanyPost] Starting for postId:", postId);
+    console.log("📡 [unsaveCompanyPost] accessToken provided:", !!accessToken);
+
+    if (!accessToken) {
+      console.warn("⚠️ [unsaveCompanyPost] No accessToken provided - API may reject request");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Unsave post timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      console.log("📡 [unsaveCompanyPost] Authorization header added");
+    }
+
+    const fullUrl = `${API_BASE_URL}/company-posts/${postId}/unsave`;
+    console.log("📡 [unsaveCompanyPost] Making request to:", fullUrl);
+    console.log("📡 [unsaveCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
+
+    const response = await fetch(fullUrl, {
+      method: "DELETE",
+      headers: headers,
+      body: JSON.stringify({}),
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [unsaveCompanyPost] Response status:", response.status);
+    console.log("📡 [unsaveCompanyPost] Response statusText:", response.statusText);
+    console.log("📡 [unsaveCompanyPost] Response OK:", response.ok);
+
+    const contentType = response.headers.get("content-type");
+    console.log("📡 [unsaveCompanyPost] Content-Type:", contentType);
+
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📡 [unsaveCompanyPost] Parsed response data:", data);
+      } catch (parseError) {
+        console.error("❌ [unsaveCompanyPost] JSON parse error:", parseError);
+        console.error("❌ [unsaveCompanyPost] Response status:", response.status);
+        throw new Error("Invalid response format from server (JSON parse failed)");
+      }
+    } else {
+      console.error("❌ [unsaveCompanyPost] Non-JSON response, content-type:", contentType);
+      throw new Error("Server returned non-JSON response");
+    }
+
+    // Check response status
+    if (!response.ok) {
+      const errorMessage = (data as Record<string, unknown>)?.message as string || "Failed to unsave post";
+      console.error("❌ [unsaveCompanyPost] API returned error:", response.status, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    console.log("✅ [unsaveCompanyPost] Post unsaved successfully");
+    return data as { message: string };
+  } catch (error) {
+    console.error("❌ [unsaveCompanyPost] Caught error:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error while unsaving post");
+  }
+};
+
+/**
  * Create a new company job post
  * @param postData - Post data containing position, salary, description, etc
  * @param files - Array of media files (images/videos)

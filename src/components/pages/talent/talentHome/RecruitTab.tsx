@@ -78,7 +78,7 @@ export default function RecruitTab() {
     );
 
   return (
-    <div className="flex w-full min-h-screen bg-slate-50 px-4 py-6 gap-6">
+    <div className="flex w-full bg-slate-50 px-4 py-6 gap-6">
       {/* LEFT SIDEBAR - Chiếm khoảng 320px */}
       <aside className="w-[320px] shrink-0 space-y-4">
         {/* Switch Buttons: Công việc / Học bổng */}

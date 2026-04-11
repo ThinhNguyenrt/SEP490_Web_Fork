@@ -160,7 +160,7 @@ export default function ExploreTab() {
   };
 
   return (
-    <div className="flex w-full min-h-screen bg-slate-50">
+    <div className="flex w-full min-h-screen">
       {/* Sidebar Filter - Thay thế fixed bằng sticky để "hài hòa" với Flexbox */}
 
       {/* Sidebar Filter Container */}

@@ -216,7 +216,7 @@ export default function RecruiterHome() {
 
   if (!currentPortfolio) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-gray-600 mb-4">Không tìm thấy portfolio nào</p>
           <Button onClick={handleResetFilter} className="bg-[#0288D1]">
@@ -228,7 +228,7 @@ export default function RecruiterHome() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden">
       <div className="flex gap-0 pt-6 min-h-screen">
         {/* Left Filter Sidebar */}
         <div className="fixed left-3 top-20 z-10 hidden xl:block">

@@ -89,7 +89,7 @@ export default function RecruitmentManagement() {
   }, [user?.companyId, accessToken]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 mt-2">
+    <div className="min-h-screen text-slate-900 transition-colors duration-200 mt-2">
       <div className="flex min-h-screen flex-col lg:flex-row gap-6 px-4 sm:px-6 md:px-8 lg:px-4">
         <main className="flex-1 lg:w-2/3">
           <header className="flex items-center justify-between mb-8">

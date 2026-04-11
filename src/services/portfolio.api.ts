@@ -10,6 +10,7 @@ export type PortfolioResponse = {
   portfolioId: number;
   userId: number;
   blocks: PortfolioBlock[];
+  portfolioName?: string;
 };
 
 export type PortfolioMainBlockItem = {
@@ -1316,9 +1317,10 @@ export const fetchPortfolioByIdAPI = async (
         blocks: Array.isArray(portfolioData.blocks)
           ? portfolioData.blocks
           : [],
+        portfolioName: portfolioData.portfolioName || portfolioData.name,
       };
 
-      console.log("✅ Portfolio fetched successfully:", normalized.portfolioId);
+      console.log("✅ Portfolio fetched successfully:", normalized.portfolioId, "Name:", normalized.portfolioName);
       return normalized;
     }
 

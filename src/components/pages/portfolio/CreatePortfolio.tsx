@@ -676,7 +676,8 @@ export default function CreatePortfolio() {
           setEditorSlotPreset("default");
           setSelectedBlockId(preferredBlock?.id ?? null);
           setShowBlockSelector(false);
-          setPortfolioName(`Portfolio ${portfolioId}`);
+          // Use actual portfolio name from API response, fallback to default name
+          setPortfolioName(detail.portfolioName || `Portfolio ${portfolioId}`);
           return;
         }
 
@@ -2038,7 +2039,6 @@ export default function CreatePortfolio() {
       const nextData = toRecord(current);
       nextData.fullName = nextDraft.fullName;
       nextData.name = nextDraft.fullName; // Also save as 'name' for backend compatibility
-      nextData.title = nextDraft.title;
       nextData.studyField = nextDraft.studyField;
       nextData.email = nextDraft.email;
       nextData.phone = nextDraft.phone;

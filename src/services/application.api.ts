@@ -324,6 +324,19 @@ export const getCompanyApplications = async (
     }
 
     console.log("✅ Company applications fetched successfully:", responseData.items?.length || 0, "items");
+    
+    // Debug: Log detailed structure of first item
+    if (responseData.items && Array.isArray(responseData.items) && responseData.items.length > 0) {
+      console.log("📊 First application item structure:", {
+        applicationId: (responseData.items[0] as Record<string, unknown>).applicationId,
+        status: (responseData.items[0] as Record<string, unknown>).status,
+        appliedAt: (responseData.items[0] as Record<string, unknown>).appliedAt,
+        post: (responseData.items[0] as Record<string, unknown>).post,
+        company: (responseData.items[0] as Record<string, unknown>).company,
+        fullItem: responseData.items[0],
+      });
+    }
+    
     return {
       items: responseData.items as Application[],
       total: typeof responseData.total === 'number' ? responseData.total : 0,
@@ -333,6 +346,155 @@ export const getCompanyApplications = async (
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Failed to get company applications";
     console.error("❌ [getCompanyApplications] Error:", errorMessage);
+    throw err;
+  }
+};
+
+/**
+ * Get single application detail by ID
+ * @param applicationId - ID of the application
+ * @param accessToken - Access token for authentication
+ */
+export const getApplicationDetail = async (
+  applicationId: number,
+  accessToken?: string
+): Promise<Application> => {
+  try {
+    console.log("📡 [getApplicationDetail] Fetching detail for application:", applicationId);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Get application detail timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    const fullUrl = `${API_BASE_URL}/applications/${applicationId}`;
+    console.log("📡 [getApplicationDetail] Making request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [getApplicationDetail] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 [getApplicationDetail] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ [getApplicationDetail] JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    } else {
+      throw new Error("Server returned non-JSON response");
+    }
+
+    if (!response.ok) {
+      const errorMessage = typeof data === "object" && data !== null && "message" in data
+        ? (data as { message: string }).message
+        : `HTTP ${response.status}`;
+      console.error("❌ [getApplicationDetail] API error:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    console.log("✅ [getApplicationDetail] Application detail fetched successfully");
+    return data as Application;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Failed to get application detail";
+    console.error("❌ [getApplicationDetail] Error:", errorMessage);
+    throw err;
+  }
+};
+
+/**
+ * Update application status
+ * @param applicationId - ID of the application to update
+ * @param statusCode - Status code (1=REVIEWING, 2=ACCEPTED, 3=REJECTED)
+ * @param accessToken - Access token for authentication
+ */
+export const updateApplicationStatus = async (
+  applicationId: number,
+  statusCode: number,
+  accessToken?: string
+): Promise<Application> => {
+  try {
+    console.log("📡 [updateApplicationStatus] Starting with applicationId:", applicationId, "statusCode:", statusCode);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Update application status timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      console.log("📡 [updateApplicationStatus] Authorization header added");
+    }
+
+    const fullUrl = `${API_BASE_URL}/applications/${applicationId}/status`;
+    console.log("📡 [updateApplicationStatus] Making request to:", fullUrl);
+    console.log("📡 [updateApplicationStatus] Request body:", { status: statusCode });
+
+    const response = await fetch(fullUrl, {
+      method: "PUT",
+      headers: headers,
+      body: JSON.stringify({ status: statusCode }),
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [updateApplicationStatus] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 [updateApplicationStatus] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ [updateApplicationStatus] JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    } else {
+      throw new Error("Server returned non-JSON response");
+    }
+
+    if (!response.ok) {
+      const errorMessage = typeof data === "object" && data !== null && "message" in data
+        ? (data as { message: string }).message
+        : `HTTP ${response.status}`;
+      console.error("❌ [updateApplicationStatus] API error:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    console.log("✅ [updateApplicationStatus] Status updated successfully");
+    return data as Application;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Failed to update application status";
+    console.error("❌ [updateApplicationStatus] Error:", errorMessage);
     throw err;
   }
 };

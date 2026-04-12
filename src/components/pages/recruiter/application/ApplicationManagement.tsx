@@ -10,10 +10,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles } from "@/services/application.api";
+import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles, updateApplicationStatus, getApplicationDetail } from "@/services/application.api";
 import { useAppSelector } from "@/store/hook";
 import { Application, ApplicationStatus } from "@/types/application";
 import { notify } from "@/lib/toast";
+import { UpdateStatusModal } from "./UpdateStatusModal";
 
 type StatusFilterType = "Tất cả" | "Đơn mới, chờ xử lý" | "Đang xem xét" | "Đã chấp nhận" | "Đã từ chối";
 type TimeFilter = "Tất cả" | "Gần đây" | "6 tháng qua" | "Cũ hơn (>6 tháng)";
@@ -39,20 +40,97 @@ const statusTextToApiStatus: Record<string, ApplicationStatus> = {
   "Đã từ chối": "REJECTED",
 };
 
-const toDate = (dateValue: string) => {
-  if (dateValue.includes('/') && dateValue.split('/').length === 2) {
-    const [month, year] = dateValue.split('/');
-    return new Date(`${year}-${month}-01T00:00:00`);
+const toDate = (dateValue: string | undefined) => {
+  if (!dateValue) return new Date();
+  try {
+    // Handle ISO datetime format: "2026-04-09T20:55:32.9442473"
+    if (dateValue.includes('T')) {
+      return new Date(dateValue);
+    }
+    // Handle MM/YYYY format: "04/2026"
+    if (dateValue.includes('/') && dateValue.split('/').length === 2) {
+      const [month, year] = dateValue.split('/');
+      return new Date(`${year}-${month}-01T00:00:00`);
+    }
+    // Try parsing as-is
+    return new Date(`${dateValue}T00:00:00`);
+  } catch (e) {
+    console.error("Error parsing date:", dateValue, e);
+    return new Date();
   }
-  return new Date(`${dateValue}T00:00:00`);
 };
 
-const formatDate = (dateValue: string) =>
-  toDate(dateValue).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+const formatDate = (dateValue: string | undefined) => {
+  if (!dateValue) return "N/A";
+  try {
+    const date = toDate(dateValue);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch (e) {
+    console.error("Error formatting date:", dateValue, e);
+    return "N/A";
+  }
+};
+
+// Format date for month/year format (e.g., "04/2026" -> "Tháng 4, 2026" or ISO datetime -> "Tháng 4, 2026")
+const formateDateMonthYear = (dateValue: string | undefined) => {
+  if (!dateValue) return "N/A";
+  try {
+    // Handle MM/YYYY format: "04/2026" -> "Tháng 4, 2026"
+    if (dateValue.includes("/") && dateValue.split("/").length === 2) {
+      const [month, year] = dateValue.split("/");
+      const monthNum = parseInt(month, 10);
+      if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return dateValue;
+      const monthNames = [
+        "Tháng 1",
+        "Tháng 2",
+        "Tháng 3",
+        "Tháng 4",
+        "Tháng 5",
+        "Tháng 6",
+        "Tháng 7",
+        "Tháng 8",
+        "Tháng 9",
+        "Tháng 10",
+        "Tháng 11",
+        "Tháng 12",
+      ];
+      return `${monthNames[monthNum - 1]}, ${year}`;
+    }
+    
+    // Handle ISO datetime format: "2026-04-09T20:55:32.9442473"
+    if (dateValue.includes('T')) {
+      const date = toDate(dateValue);
+      if (isNaN(date.getTime())) return dateValue;
+      const month = date.getMonth();
+      const year = date.getFullYear();
+      const monthNames = [
+        "Tháng 1",
+        "Tháng 2",
+        "Tháng 3",
+        "Tháng 4",
+        "Tháng 5",
+        "Tháng 6",
+        "Tháng 7",
+        "Tháng 8",
+        "Tháng 9",
+        "Tháng 10",
+        "Tháng 11",
+        "Tháng 12",
+      ];
+      return `${monthNames[month]}, ${year}`;
+    }
+    
+    return formatDate(dateValue);
+  } catch (e) {
+    console.error("Error formatting date:", dateValue, e);
+    return "N/A";
+  }
+};
 
 const isMatchTimeFilter = (appliedAt: string, timeFilter: TimeFilter) => {
   if (timeFilter === "Tất cả") {
@@ -88,6 +166,10 @@ export default function ApplicationManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+
   // Fetch applications from API
   useEffect(() => {
     const fetchApplications = async () => {
@@ -104,7 +186,23 @@ export default function ApplicationManagement() {
         const response = await getCompanyApplications(currentPage, pageSize, accessToken);
         console.log("✅ Company applications fetched:", response);
 
-        setApplications(response.items || []);
+        // Enrich applications with full details
+        console.log("🔄 Enriching applications with full details...");
+        const enrichedApps = await Promise.all(
+          response.items.map(async (app) => {
+            try {
+              const detailedApp = await getApplicationDetail(app.applicationId, accessToken);
+              console.log(`✅ Enriched application ${app.applicationId}:`, detailedApp);
+              return detailedApp;
+            } catch (err) {
+              console.error(`❌ Failed to enrich application ${app.applicationId}:`, err);
+              // Return original app if detail fetch fails
+              return app;
+            }
+          })
+        );
+
+        setApplications(enrichedApps || []);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Không thể tải quản lý ứng tuyển";
         console.error("❌ Error fetching applications:", errorMessage);
@@ -137,6 +235,28 @@ export default function ApplicationManagement() {
       return true;
     });
   }, [applications, statusFilter, timeFilter]);
+
+  // Handle opening modal for status update
+  const handleOpenStatusModal = (app: Application) => {
+    setSelectedApplication(app);
+    setIsModalOpen(true);
+  };
+
+  // Handle closing modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedApplication(null);
+  };
+
+  // Handle status update completion
+  const handleStatusUpdated = (updatedApplication: Application) => {
+    setApplications((prevApps) =>
+      prevApps.map((app) =>
+        app.applicationId === updatedApplication.applicationId ? updatedApplication : app
+      )
+    );
+    handleCloseModal();
+  };
   
   return (
     <div className="min-h-screen px-4 py-6 md:px-8">
@@ -260,6 +380,16 @@ export default function ApplicationManagement() {
                   </div>
                 ) : (
                   filteredApplications.map((app) => {
+                    console.log("📋 Rendering application:", {
+                      id: app.applicationId,
+                      status: app.status,
+                      appliedAt: app.appliedAt,
+                      position: app?.post?.position,
+                      salary: app?.post?.salary,
+                      address: app?.post?.address,
+                      company: app?.company?.companyName,
+                    });
+
                     const statusInfo = getApplicationStatusInfo(app.status);
                     const statusStyles = getApplicationStatusStyles(app.status);
 
@@ -275,29 +405,28 @@ export default function ApplicationManagement() {
                             </span>
                           </div>
 
-                          <div className="min-w-0 flex-1 space-y-1">
+                          <div className="min-w-0 flex-1 space-y-2">
+                            {/* Header: Position, Status, and Menu */}
                             <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <h3 className="text-sm font-bold text-slate-800">
-                                  Ứng viên
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-bold text-slate-800 line-clamp-1">
+                                  {(app?.post?.position && app.post.position.trim()) ? app.post.position : "Vị trí công việc"}
                                 </h3>
                                 <p className="text-xs font-medium text-slate-500">
-                                  Ứng tuyển: {app.post.position || "Vị trí công việc"}
-                                </p>
-                                <p className="mt-0.5 text-xs font-semibold text-slate-400">
-                                  {formatDate(app.appliedAt)}
+                                  {(app?.company?.companyName && app.company.companyName.trim()) ? app.company.companyName : "Công ty"}
                                 </p>
                               </div>
 
                               <div className="flex shrink-0 flex-col items-end gap-1.5">
                                 <div className="flex items-center gap-2">
                                   <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles}`}
+                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${statusStyles}`}
                                   >
                                     {statusInfo.text}
                                   </span>
                                   <button
                                     type="button"
+                                    onClick={() => handleOpenStatusModal(app)}
                                     className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                                     aria-label="Thêm tùy chọn"
                                   >
@@ -307,6 +436,25 @@ export default function ApplicationManagement() {
                               </div>
                             </div>
 
+                            {/* Job Details: Salary, Location, Date */}
+                            <div className="grid grid-cols-3 gap-2 bg-slate-50 rounded-lg p-3 text-xs">
+                              <div>
+                                <p className="font-semibold text-slate-600 mb-0.5">Lương</p>
+                                <p className="text-slate-700 font-bold">
+                                  {app?.post?.salary && app.post.salary.trim() ? `${parseInt(app.post.salary).toLocaleString("vi-VN")} ₫` : "N/A"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-600 mb-0.5">Địa điểm</p>
+                                <p className="text-slate-700 line-clamp-1">{app?.post?.address && app.post.address.trim() ? app.post.address : "N/A"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-600 mb-0.5">Ngày ứng tuyển</p>
+                                <p className="text-slate-700">{app?.appliedAt ? formateDateMonthYear(app.appliedAt) : "N/A"}</p>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
                             <div className="flex gap-2 pt-1">
                               <Button
                                 type="button"
@@ -393,6 +541,17 @@ export default function ApplicationManagement() {
             </Card>
           </section>
         </div>
+
+        {/* Modal for updating status */}
+        <UpdateStatusModal
+          isOpen={isModalOpen}
+          application={selectedApplication}
+          onClose={handleCloseModal}
+          onStatusUpdated={handleStatusUpdated}
+          onUpdateStatus={async (applicationId, statusCode) => {
+            return await updateApplicationStatus(applicationId, statusCode, accessToken || undefined);
+          }}
+        />
       </div>
     </div>
   );

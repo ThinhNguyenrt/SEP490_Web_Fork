@@ -58,8 +58,9 @@ export default function TalentSavePost() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched saved posts:", data.items);
-        setCommunitySavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
+        console.log("Fetched saved posts:", data.items || data);
+        // Handle both formats: {items: [...]} or direct array
+        setCommunitySavedPosts(data.items || data);
       }
     } catch (error) {
       notify.error("Lỗi khi tải bài viết đã lưu");
@@ -125,7 +126,10 @@ export default function TalentSavePost() {
                 <p>Đang tải...</p>
               </div>
             ) : companySavedPosts.length > 0 ? (
-              <CompanyTab companySavedPosts={companySavedPosts} />
+              <CompanyTab 
+                companySavedPosts={companySavedPosts}
+                onUnsaveComplete={() => fetchCompanySavedPosts()}
+              />
             ) : (
               // TRẠNG THÁI TRỐNG (EMPTY)
               <EmptyState />
@@ -139,7 +143,7 @@ export default function TalentSavePost() {
                 <Loader2 className="h-8 w-8 animate-spin mb-2" />
                 <p>Đang tải...</p>
               </div>
-            ) : companySavedPosts.length > 0 ? (
+            ) : communitySavedPosts.length > 0 ? (
               <div className="space-y-6">
                 {communitySavedPosts.map((post: CommunityPost) => (
                   <CommunityPostCard

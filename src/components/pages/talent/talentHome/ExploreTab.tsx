@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  MessageSquare,
   ArrowUpRight,
   Trophy,
 } from "lucide-react";
@@ -310,16 +309,6 @@ export default function ExploreTab() {
             </button>
 
             <div className="flex items-center gap-12 border-x border-slate-100 px-12">
-              <button
-                onClick={() => setIsCommentModalOpen(true)}
-                className="text-blue-500 hover:scale-125 transition-all cursor-pointer"
-              >
-                <MessageSquare
-                  size={30}
-                  fill="currentColor"
-                  fillOpacity={0.1}
-                />
-              </button>
 
               <button className="hover:scale-125 transition-all cursor-pointer">
                 <img

@@ -9,17 +9,21 @@ import {
 import { useNavigate } from "react-router-dom";
 import { CompanyPost } from "@/types/companyPost";
 import { useState } from "react";
-import { useAppSelector } from "@/store/hook";
+import { useAppSelector, useAppDispatch } from "@/store/hook";
+import { removeSavedPost } from "@/store/features/savedPosts/savedPostsSlice";
 import { notify } from "@/lib/toast";
 
 interface CompanySavedPostsProps {
   companySavedPosts: CompanyPost[];
+  onUnsaveComplete?: () => void;
 }
 
 export const CompanyTab = ({
   companySavedPosts: initialPosts,
+  onUnsaveComplete,
 }: CompanySavedPostsProps) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { accessToken } = useAppSelector((state) => state.auth);
 
   // Quản lý danh sách posts cục bộ để update UI nhanh
@@ -44,13 +48,18 @@ export const CompanyTab = ({
       if (response.ok) {
         // Xóa khỏi UI sau khi API thành công
         setPosts((prev) => prev.filter((post) => post.postId !== postId));
+        // Dispatch Redux action khi bỏ lưu thành công
+        dispatch(removeSavedPost(postId));
         notify.success("Bỏ lưu bài viết thành công");
+        // Gọi callback nếu có
+        onUnsaveComplete?.();
       } else {
         console.error("Lỗi khi bỏ lưu bài viết");
         notify.error("Lỗi khi bỏ lưu bài viết");
       }
     } catch (error) {
       console.error("Lỗi kết nối:", error);
+      notify.error("Lỗi kết nối");
     } finally {
       setDeletingId(null);
     }
@@ -94,12 +103,12 @@ export const CompanyTab = ({
           <button
             onClick={() => handleUnsave(post.postId)}
             disabled={deletingId === post.postId}
-            className="absolute top-4 right-4 z-20 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all cursor-pointer border border-white/20 group/bookmark"
+            className="absolute top-4 right-4 z-20 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all cursor-pointer border border-white/20 group/bookmark disabled:opacity-50"
           >
             {deletingId === post.postId ? (
               <Loader2 className="w-6 h-6 text-white animate-spin" />
             ) : (
-              <Bookmark className="w-6 h-6 text-blue-500 fill-blue-500 group-hover/bookmark:scale-110 transition-transform" />
+              <Bookmark className="w-6 h-6 text-yellow-400 fill-yellow-400 group-hover/bookmark:scale-110 transition-transform" />
             )}
           </button>
 

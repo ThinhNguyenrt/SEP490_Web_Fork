@@ -3,25 +3,23 @@ import { useNavigate } from "react-router-dom";
 
 // Assets & Icons
 import TestImage from "@/assets/testImage/testImage.png";
-import BookmarkIcon from "@/assets/myWeb/bookmark.png";
 import MapIcon from "@/assets/myWeb/map.png";
 import MoneyIcon from "@/assets/myWeb/money.png";
 import SortIcon from "@/assets/myWeb/sort.png";
-import { Search, Briefcase, GraduationCap, Loader2 } from "lucide-react";
+import { Search, Briefcase, GraduationCap, Loader2, Bookmark } from "lucide-react";
 
-import { useAppSelector } from "@/store/hook";
-// import {  useAppDispatch } from "@/store/hook";
-// import {
-//   addSavedPost,
-//   removeSavedPost,
-// } from "@/store/features/savedPosts/savedPostsSlice";
+import { useAppSelector, useAppDispatch } from "@/store/hook";
+import {
+  addSavedPost,
+  initializeSavedPosts,
+} from "@/store/features/savedPosts/savedPostsSlice";
 import { fetchCompanyPosts, saveCompanyPost } from "@/services/company.api";
-import { CompanyPostAPI } from "@/types/companyPost";
-// import { notify } from "@/lib/toast";
+import { CompanyPostAPI, CompanyPost } from "@/types/companyPost";
+import { notify } from "@/lib/toast";
 
 export default function RecruitTab() {
   const navigate = useNavigate();
-//   const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
   // Tab chính trong Recruit: Công việc hoặc Học bổng
   const [recruitSubTab, setRecruitSubTab] = useState<"job" | "scholarship">(
@@ -34,6 +32,7 @@ export default function RecruitTab() {
   const [allPosts, setAllPosts] = useState<CompanyPostAPI[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [savingPostIds, setSavingPostIds] = useState<Set<number>>(new Set());
 
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const savedPostIds = useAppSelector((state) => state.savedPosts.savedPostIds);
@@ -47,6 +46,30 @@ export default function RecruitTab() {
           setAllPosts(response.items);
           setFilteredPosts(response.items);
         }
+
+        // Initialize Redux state với danh sách bài viết đã lưu
+        if (accessToken) {
+          try {
+            const savedResponse = await fetch(
+              `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              },
+            );
+            if (savedResponse.ok) {
+              const savedData = await savedResponse.json();
+              const savedIds = (
+                savedData.items || savedData || []
+              ).map((post: CompanyPost) => post.postId);
+              dispatch(initializeSavedPosts(savedIds));
+              console.log("✅ Initialized saved posts:", savedIds);
+            }
+          } catch (err) {
+            console.error("Lỗi khi fetch danh sách đã lưu:", err);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -54,7 +77,7 @@ export default function RecruitTab() {
       }
     };
     loadData();
-  }, []);
+  }, [accessToken, dispatch]);
 
   const handleApplyFilter = () => {
     setIsLoading(true);
@@ -67,6 +90,27 @@ export default function RecruitTab() {
       setFilteredPosts(results);
       setIsLoading(false);
     }, 300);
+  };
+
+  const handleSave = async (postId: number) => {
+    if (savingPostIds.has(postId)) return; // Chống spam
+
+    setSavingPostIds((prev) => new Set(prev).add(postId));
+    try {
+      await saveCompanyPost(postId, accessToken || undefined);
+      // Dispatch Redux action khi lưu thành công
+      dispatch(addSavedPost(postId));
+      notify.success("Đã lưu bài viết thành công");
+    } catch (error) {
+      console.error("Lỗi khi lưu bài viết:", error);
+      notify.error("Không thể lưu bài viết");
+    } finally {
+      setSavingPostIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }
   };
 
   if (isInitialLoading)
@@ -189,20 +233,21 @@ export default function RecruitTab() {
 
                 {/* Bookmark Button (Top Right) */}
                 <button
-                  onClick={() =>
-                    saveCompanyPost(post.postId, accessToken || undefined)
-                  }
-                  className="absolute top-5 right-5 z-20 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all cursor-pointer border border-white/20 group/bookmark"
+                  onClick={() => handleSave(post.postId)}
+                  disabled={savingPostIds.has(post.postId)}
+                  className="absolute top-5 right-5 z-20 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all cursor-pointer border border-white/20 group/bookmark disabled:opacity-50"
                 >
-                  <img
-                    src={BookmarkIcon}
-                    className={`w-5 h-5 transition-transform group-hover/bookmark:scale-110 ${
-                      savedPostIds.includes(post.postId)
-                        ? "invert-[45%] sepia-[98%] saturate-[1726%] hue-rotate-[200deg]"
-                        : "invert"
-                    }`}
-                    alt="save"
-                  />
+                  {savingPostIds.has(post.postId) ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <Bookmark
+                      className={`w-5 h-5 transition-all group-hover/bookmark:scale-110 ${
+                        savedPostIds.includes(post.postId)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-white"
+                      }`}
+                    />
+                  )}
                 </button>
 
                 {/* Content Container (Bottom) */}

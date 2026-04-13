@@ -8,6 +8,13 @@ export type IntroFiveDraft = {
   title: string;
 };
 
+export type UserInfo = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+};
+
 const toRecord = (value: unknown): Record<string, unknown> => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
@@ -42,11 +49,13 @@ const getIntroFiveSource = (value: unknown): Record<string, unknown> => {
   return toRecord(value);
 };
 
-export const createIntroFiveDraft = (value: unknown): IntroFiveDraft => {
+export const createIntroFiveDraft = (value: unknown, userInfo?: UserInfo): IntroFiveDraft => {
   const source = getIntroFiveSource(value);
 
+  const fullName = toText(source.fullName ?? source.name) || toText(userInfo?.fullName) || toText(userInfo?.name) || "";
+
   return {
-    fullName: toText(source.fullName ?? source.name),
+    fullName: fullName,
     school: toText(source.school ?? source.schoolName),
     department: toText(source.department),
     experience: toText(source.experience),

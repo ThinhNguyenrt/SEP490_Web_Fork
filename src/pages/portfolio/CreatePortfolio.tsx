@@ -170,6 +170,7 @@ import {
   PortfolioResponse,
   portfolioService,
 } from "@/services/portfolio.api";
+import { fetchEmployeeProfile, type EmployeeProfile } from "@/services/profile.api";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
@@ -595,6 +596,19 @@ export default function CreatePortfolio() {
   // Get user authentication data
   const { user, accessToken } = useAppSelector((state) => state.auth);
 
+  // Helper function to extract user info for auto-populating intro fields
+  const getUserInfo = () => {
+    if (!user) {
+      return undefined;
+    }
+    return {
+      fullName: employeeProfile?.name || (user as any).fullName || (user as any).name || undefined,
+      email: user.email,
+      phone: employeeProfile?.phone || (user as any).phone || undefined,
+      name: employeeProfile?.name || (user as any).name || undefined,
+    };
+  };
+
   // Portfolio template display names by index
   const TEMPLATE_DISPLAY_NAMES: Record<number, string> = {
     0: "Hồ sơ xin việc",
@@ -606,6 +620,7 @@ export default function CreatePortfolio() {
 
   const [activeTab, setActiveTab] = useState<EditorTab>(isEditMode ? "component" : "template");
   const [templates, setTemplates] = useState<PortfolioResponse[]>([]);
+  const [employeeProfile, setEmployeeProfile] = useState<EmployeeProfile | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
   const [allowedBlockTypes, setAllowedBlockTypes] = useState<Set<string>>(new Set());
   const [portfolioName, setPortfolioName] = useState("Hồ sơ mới");
@@ -632,6 +647,27 @@ export default function CreatePortfolio() {
     nextTempBlockIdRef.current -= 1;
     return nextId;
   };
+
+  // Fetch employee profile for auto-populating user info
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!user || !accessToken) {
+          return;
+        }
+
+        console.log("📡 Fetching employee profile for user:", user.employeeId);
+        const profile = await fetchEmployeeProfile(accessToken);
+        console.log("✅ Employee profile fetched:", profile);
+        setEmployeeProfile(profile);
+      } catch (error) {
+        console.warn("⚠️ Failed to fetch employee profile:", error);
+        // Don't show error notification, this is optional data
+      }
+    };
+
+    fetchProfile();
+  }, [user, accessToken]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -1128,8 +1164,8 @@ export default function CreatePortfolio() {
       return null;
     }
 
-    return createIntroOneDraft(selectedBlock.data);
-  }, [isEditingIntroOne, selectedBlock]);
+    return createIntroOneDraft(selectedBlock.data, getUserInfo());
+  }, [isEditingIntroOne, selectedBlock, employeeProfile]);
 
   const introOneEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingIntroOne) {
@@ -1144,8 +1180,8 @@ export default function CreatePortfolio() {
       return null;
     }
 
-    return createIntroTwoDraft(selectedBlock.data);
-  }, [isEditingIntroTwo, selectedBlock]);
+    return createIntroTwoDraft(selectedBlock.data, getUserInfo());
+  }, [isEditingIntroTwo, selectedBlock, employeeProfile]);
 
   const introTwoEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingIntroTwo) {
@@ -1160,8 +1196,8 @@ export default function CreatePortfolio() {
       return null;
     }
 
-    return createIntroThreeDraft(selectedBlock.data);
-  }, [isEditingIntroThree, selectedBlock]);
+    return createIntroThreeDraft(selectedBlock.data, getUserInfo());
+  }, [isEditingIntroThree, selectedBlock, employeeProfile]);
 
   const introThreeEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingIntroThree) {
@@ -1176,8 +1212,8 @@ export default function CreatePortfolio() {
       return null;
     }
 
-    return createIntroFourDraft(selectedBlock.data);
-  }, [isEditingIntroFour, selectedBlock]);
+    return createIntroFourDraft(selectedBlock.data, getUserInfo());
+  }, [isEditingIntroFour, selectedBlock, employeeProfile]);
 
   const introFourEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingIntroFour) {
@@ -1192,8 +1228,8 @@ export default function CreatePortfolio() {
       return null;
     }
 
-    return createIntroFiveDraft(selectedBlock.data);
-  }, [isEditingIntroFive, selectedBlock]);
+    return createIntroFiveDraft(selectedBlock.data, getUserInfo());
+  }, [isEditingIntroFive, selectedBlock, employeeProfile]);
 
   const introFiveEditorKey = useMemo(() => {
     if (!selectedBlock || !isEditingIntroFive) {

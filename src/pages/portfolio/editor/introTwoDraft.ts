@@ -9,6 +9,13 @@ export type IntroTwoDraft = {
   avatar: string;
 };
 
+export type UserInfo = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+};
+
 const toRecord = (value: unknown): Record<string, unknown> => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
@@ -29,17 +36,21 @@ const toText = (value: unknown): string => {
   return "";
 };
 
-export const createIntroTwoDraft = (value: unknown): IntroTwoDraft => {
+export const createIntroTwoDraft = (value: unknown, userInfo?: UserInfo): IntroTwoDraft => {
   const data = toRecord(value);
 
+  const fullName = toText(data.fullName ?? data.name) || toText(userInfo?.fullName) || toText(userInfo?.name) || "";
+  const email = toText(data.email) || toText(userInfo?.email) || "";
+  const phoneNumber = toText(data.phoneNumber ?? data.phone) || toText(userInfo?.phone) || "";
+
   return {
-    fullName: toText(data.fullName ?? data.name),
+    fullName: fullName,
     position: toText(data.position ?? data.department ?? data.title),
     yearOfStudy: toText(data.yearOfStudy),
     school: toText(data.school ?? data.schoolName),
     studyField: toText(data.studyField),
-    email: toText(data.email),
-    phoneNumber: toText(data.phoneNumber ?? data.phone),
+    email: email,
+    phoneNumber: phoneNumber,
     avatar: toText(data.avatar),
   };
 };

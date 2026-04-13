@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { ChevronLeft, ChevronRight, Plus, MessageSquare } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -8,7 +9,9 @@ import ShareIcon from "../../../assets/myWeb/share1.png";
 import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.api";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import CommentModal from "./CommentModal";
+import BookmarkModal from "./BookmarkModal";
 import { notify } from "@/lib/toast";
+import { RootState } from "@/store";
 
 // Helper to extract searchable data from portfolio
 interface PortfolioMetadata {
@@ -63,6 +66,9 @@ export default function RecruiterHome() {
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
+  const [commentedPortfolios, setCommentedPortfolios] = useState<Set<number>>(new Set());
+  const [savedPortfolios, setSavedPortfolios] = useState<Set<number>>(new Set());
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
@@ -101,6 +107,9 @@ export default function RecruiterHome() {
       setAllPortfolios(portfolios);
       setPortfolioMetadata(metadata);
       setCurrentIndex(0);
+
+      // Load saved portfolios to check which ones are already saved
+      await loadSavedPortfolios();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to load portfolios";
       console.error("❌ Error loading portfolios:", errorMsg);
@@ -109,6 +118,23 @@ export default function RecruiterHome() {
       setFilteredPortfolios([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Load saved portfolios to restrict duplicate saves
+  const loadSavedPortfolios = async () => {
+    try {
+      const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+      if (!accessToken) return;
+
+      console.log("📡 Loading saved portfolios...");
+      const savedData = await portfolioService.fetchSavedPortfolios(accessToken);
+      const savedIds = new Set(savedData.map((p: any) => p.portfolioId));
+      setSavedPortfolios(savedIds);
+      console.log("✅ Loaded saved portfolio IDs:", savedIds);
+    } catch (error) {
+      console.warn("⚠️ Could not load saved portfolios:", error);
+      // Don't fail if we can't load saved portfolios, just continue
     }
   };
 
@@ -202,9 +228,17 @@ export default function RecruiterHome() {
 
   const handleBookmark = () => {
     if (currentPortfolio) {
-      console.log("Bookmark portfolio:", currentPortfolio.portfolioId);
-      // TODO: Implement bookmark functionality
+      console.log("Opening bookmark modal for portfolio:", currentPortfolio.portfolioId);
+      setIsBookmarkModalOpen(true);
     }
+  };
+
+  const handleCommentSuccess = (portfolioId: number) => {
+    console.log("✅ Comment submitted successfully for portfolio:", portfolioId);
+    // Mark this portfolio as commented
+    setCommentedPortfolios(prev => new Set([...prev, portfolioId]));
+    // Close the comment modal
+    setIsCommentModalOpen(false);
   };
 
   const handleShare = () => {
@@ -447,8 +481,23 @@ export default function RecruiterHome() {
             onClose={() => setIsCommentModalOpen(false)}
             portfolioId={currentPortfolio.portfolioId}
             onSuccess={() => {
-              // Refresh the page or show success message
-              console.log("Comment submitted successfully");
+              handleCommentSuccess(currentPortfolio.portfolioId);
+            }}
+          />
+        )}
+
+        {/* Bookmark Modal */}
+        {currentPortfolio && (
+          <BookmarkModal
+            isOpen={isBookmarkModalOpen}
+            onClose={() => setIsBookmarkModalOpen(false)}
+            portfolioId={currentPortfolio.portfolioId}
+            isAlreadySaved={savedPortfolios.has(currentPortfolio.portfolioId)}
+            isAlreadyCommented={commentedPortfolios.has(currentPortfolio.portfolioId)}
+            onSuccess={() => {
+              // Mark as saved
+              setSavedPortfolios(prev => new Set([...prev, currentPortfolio.portfolioId]));
+              console.log("Portfolio bookmarked successfully");
             }}
           />
         )}

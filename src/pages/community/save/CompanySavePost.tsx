@@ -4,106 +4,209 @@ import {
   LayoutGrid,
   Mail,
   Phone,
-  Edit3,
   ChevronRight,
   FileText,
+  AlertCircle,
+  Loader,
 } from "lucide-react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
 import { useAppSelector } from "@/store/hook";
+import { portfolioService } from "@/services/portfolio.api";
+import { notify } from "@/lib/toast";
 
-// --- Sub-Components ---
+// Type for saved portfolio
+interface SavedPortfolio {
+  portfolioId: number;
+  employeeId: number;
+  portfolioName: string;
+  status: string;
+  interestLevel: "low" | "medium" | "high";
+  followedAt: string;
+  lastPortfolioUpdateAt: string;
+  isUpdatedSinceFollow: boolean;
+  preview: {
+    type: string;
+    variant: string;
+    data: {
+      avatar?: string;
+      name?: string;
+      studyField?: string;
+      description?: string;
+      email?: string;
+      phone?: string;
+    };
+  };
+}
 
 // 1. Component hiển thị Hồ sơ ứng viên quan tâm
 const SavedCandidates = () => {
-  const candidates = [
-    {
-      id: 1,
-      name: "Phạm An Nhiên",
-      role: "Nhà thiết kế UI/UX & Lập trình viên Frontend",
-      desc: "Một nhà thiết kế sản phẩm đầy nhiệt huyết với hơn 5 năm kinh nghiệm. Tôi tập trung vào việc tạo ra những trải nghiệm người dùng trực quan, đẹp mắt và giải quyết các vấn đề phức tạp bằng các giải pháp thiết kế lấy con người làm trung tâm",
-      email: "annhien@gmail.com",
-      phone: "0123456789",
-      priority: "Cao",
-      color: "red",
-      status: "Mới cập nhật",
-    },
-    {
-      id: 2,
-      name: "Phạm An Nhiên",
-      role: "Nhà thiết kế UI/UX & Lập trình viên Frontend",
-      desc: "Một nhà thiết kế sản phẩm đầy nhiệt huyết với hơn 5 năm kinh nghiệm. Tôi tập trung vào việc tạo ra những trải nghiệm người dùng trực quan, đẹp mắt và giải quyết các vấn đề phức tạp bằng các giải pháp thiết kế lấy con người làm trung tâm",
-      email: "annhien@gmail.com",
-      phone: "0123456789",
-      priority: "Thấp",
-      color: "green",
-      status: "",
-    },
-  ];
+  const [candidates, setCandidates] = useState<SavedPortfolio[]>([]);
+  const [filteredCandidates, setFilteredCandidates] = useState<SavedPortfolio[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const { accessToken } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    const fetchSavedPortfolios = async () => {
+      if (!accessToken) {
+        notify.error("Vui lòng đăng nhập để xem danh sách đã lưu");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        console.log("📡 Fetching saved portfolios...");
+        const data = await portfolioService.fetchSavedPortfolios(accessToken);
+        console.log("✅ Saved portfolios:", data);
+        setCandidates(data);
+        setFilteredCandidates(data);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Lỗi khi tải danh sách đã lưu";
+        console.error("❌ Error loading saved portfolios:", errorMsg);
+        notify.error(errorMsg);
+        setCandidates([]);
+        setFilteredCandidates([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSavedPortfolios();
+  }, [accessToken]);
+
+  // Filter by priority
+  useEffect(() => {
+    if (selectedPriority === "all") {
+      setFilteredCandidates(candidates);
+    } else {
+      setFilteredCandidates(
+        candidates.filter((c) => c.interestLevel === selectedPriority)
+      );
+    }
+  }, [selectedPriority, candidates]);
+
+  const getInterestLevelColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case "high":
+        return { border: "border-green-100", color: "text-green-500", bg: "bg-green-50", dot: "bg-green-500" };
+      case "medium":
+        return { border: "border-amber-100", color: "text-amber-500", bg: "bg-amber-50", dot: "bg-amber-400" };
+      case "low":
+        return { border: "border-red-100", color: "text-red-500", bg: "bg-red-50", dot: "bg-red-500" };
+      default:
+        return { border: "border-slate-100", color: "text-slate-500", bg: "bg-slate-50", dot: "bg-slate-400" };
+    }
+  };
+
+  const getInterestLevelLabel = (level: string) => {
+    switch (level.toLowerCase()) {
+      case "high":
+        return "Cao";
+      case "medium":
+        return "Trung bình";
+      case "low":
+        return "Thấp";
+      default:
+        return level;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-6">
+        <div className="flex-1 flex items-center justify-center min-h-96">
+          <div className="flex flex-col items-center gap-3">
+            <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+            <p className="text-slate-600">Đang tải danh sách đã lưu...</p>
+          </div>
+        </div>
+        <aside className="w-64 shrink-0" />
+      </div>
+    );
+  }
+
+  if (candidates.length === 0) {
+    return (
+      <div className="flex gap-6">
+        <div className="flex-1 flex items-center justify-center min-h-96">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertCircle className="w-12 h-12 text-gray-300" />
+            <p className="text-lg font-semibold text-gray-600">Chưa có hồ sơ được lưu</p>
+            <p className="text-sm text-gray-500">Hãy lưu các hồ sơ quan tâm từ trang tìm kiếm ứng viên</p>
+          </div>
+        </div>
+        <aside className="w-64 shrink-0" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-6">
       {/* Danh sách Card */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {candidates.map((can) => (
-          <div
-            key={can.id}
-            className={`bg-white border-2 rounded-2xl p-6 flex flex-col items-center text-center transition-all hover:shadow-md ${can.priority === "Cao" ? "border-red-100" : "border-green-100"}`}
-          >
-            <img
-              src="https://i.pravatar.cc/150?u=9"
-              className="w-20 h-20 rounded-full mb-4 border-2 border-slate-50 shadow-sm"
-              alt="avatar"
-            />
-            <h3 className="text-xl font-bold text-slate-800">{can.name}</h3>
-            <p className="text-[12px] font-bold text-blue-500 uppercase mt-1">
-              {can.role}
-            </p>
-            <p className="text-[13px] text-slate-500 mt-3 leading-relaxed line-clamp-4">
-              {can.desc}
-            </p>
+        {filteredCandidates.map((can) => {
+          const levelInfo = getInterestLevelColor(can.interestLevel);
+          return (
+            <div
+              key={can.portfolioId}
+              className={`bg-white border-2 rounded-2xl p-6 flex flex-col items-center text-center transition-all hover:shadow-md ${levelInfo.border}`}
+            >
+              <img
+                src={can.preview?.data?.avatar || "https://i.pravatar.cc/150?u=default"}
+                className="w-20 h-20 rounded-full mb-4 border-2 border-slate-50 shadow-sm object-cover"
+                alt={can.preview?.data?.name || "avatar"}
+              />
+              <h3 className="text-xl font-bold text-slate-800">
+                {can.preview?.data?.name || can.portfolioName}
+              </h3>
+              <p className="text-[12px] font-bold text-blue-500 uppercase mt-1">
+                {can.preview?.data?.studyField || "Portfolio"}
+              </p>
+              <p className="text-[13px] text-slate-500 mt-3 leading-relaxed line-clamp-4">
+                {can.preview?.data?.description || "Không có mô tả"}
+              </p>
 
-            <div className="flex gap-6 mt-5 text-[12px] font-medium text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <Mail size={14} /> {can.email}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Phone size={14} /> {can.phone}
-              </span>
-            </div>
-
-            <div className="w-full border-t border-slate-100 mt-6 pt-4 flex flex-col gap-3">
-              {/* Dòng 1: Mức độ ưu tiên */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2 h-2 rounded-full ${can.priority === "Cao" ? "bg-red-500" : "bg-green-500"}`}
-                  />
-                  <span
-                    className={`text-[12px] font-bold ${can.priority === "Cao" ? "text-red-500" : "text-green-500"}`}
-                  >
-                    Mức độ ưu tiên: {can.priority}
+              <div className="flex gap-6 mt-5 text-[12px] font-medium text-slate-400">
+                {can.preview?.data?.email && (
+                  <span className="flex items-center gap-1.5">
+                    <Mail size={14} /> {can.preview.data.email}
                   </span>
-                  <button className="text-slate-300 hover:text-blue-500 transition-colors">
-                    <Edit3 size={14} />
-                  </button>
-                </div>
+                )}
+                {can.preview?.data?.phone && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone size={14} /> {can.preview.data.phone}
+                  </span>
+                )}
               </div>
 
-              {/* Dòng 2: Trạng thái cập nhật (Chỉ hiển thị nếu có status) */}
-              {can.status && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                  <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                    {can.status}
-                  </span>
-                  <span className="text-[10px] text-blue-400 font-medium">
-                    Hồ sơ này mới cập nhật
-                  </span>
+              <div className="w-full border-t border-slate-100 mt-6 pt-4 flex flex-col gap-3">
+                {/* Dòng 1: Mức độ quan tâm */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${levelInfo.dot}`} />
+                    <span className={`text-[12px] font-bold ${levelInfo.color}`}>
+                      Mức độ ưu tiên: {getInterestLevelLabel(can.interestLevel)}
+                    </span>
+                  </div>
                 </div>
-              )}
+
+                {/* Dòng 2: Trạng thái cập nhật */}
+                {can.isUpdatedSinceFollow && (
+                  <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      Mới cập nhật
+                    </span>
+                    <span className="text-[10px] text-blue-400 font-medium">
+                      Hồ sơ này mới cập nhật từ lần lưu
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Sidebar Lọc bên phải */}
@@ -113,22 +216,37 @@ const SavedCandidates = () => {
             Lọc theo ưu tiên
           </h2>
           <nav className="space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-600 rounded-xl text-[13px] font-bold transition-all">
-              <LayoutGrid size={16} /> Tất cả hồ sơ
+            <button
+              onClick={() => setSelectedPriority("all")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-bold transition-all ${
+                selectedPriority === "all"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid size={16} /> Tất cả hồ sơ ({candidates.length})
             </button>
             {[
-              { label: "Mức độ ưu tiên: Cao", color: "bg-red-500" },
-              { label: "Mức độ ưu tiên: Trung bình", color: "bg-amber-400" },
-              { label: "Mức độ ưu tiên: Thấp", color: "bg-green-500" },
-            ].map((item) => (
-              <button
-                key={item.label}
-                className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-xl text-[12px] font-semibold transition-all"
-              >
-                <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                {item.label}
-              </button>
-            ))}
+              { value: "high", label: "Mức độ ưu tiên: Cao", color: "bg-green-500" },
+              { value: "medium", label: "Mức độ ưu tiên: Trung bình", color: "bg-amber-400" },
+              { value: "low", label: "Mức độ ưu tiên: Thấp", color: "bg-red-500" },
+            ].map((item) => {
+              const count = candidates.filter((c) => c.interestLevel === item.value).length;
+              return (
+                <button
+                  key={item.value}
+                  onClick={() => setSelectedPriority(item.value)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[12px] font-semibold transition-all ${
+                    selectedPriority === item.value
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                  {item.label} ({count})
+                </button>
+              );
+            })}
           </nav>
         </div>
       </aside>
@@ -173,7 +291,7 @@ const CompanySavePost = () => {
     }
   }, [activeTab]);
   return (
-    <div className="bg-[#f8fafd] min-h-screen ">
+    <div className="text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-[1440px] mx-auto px-8 flex gap-8">
         {/* Sidebar Tabs bên trái (Cố định tỷ lệ như ảnh) */}
         <aside className="w-64 shrink-0">

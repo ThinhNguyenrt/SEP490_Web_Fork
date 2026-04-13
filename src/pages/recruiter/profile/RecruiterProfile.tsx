@@ -128,8 +128,7 @@ export default function RecruiterProfile() {
   };
 
   const handleInterestClick = () => {
-    // Navigate to saved/interested items
-    console.log("Navigate to saved items");
+    navigate("/company-saved");
   };
 
   const handleSupportCenterClick = () => {

@@ -7,11 +7,11 @@ import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { addSavedPost, removeSavedPost } from '@/store/features/savedPosts/savedPostsSlice';
 import { notify } from '@/lib/toast';
 import { ApplicationModal } from './ApplicationModal';
-import ArrowBackIcon from './../../../assets/myWeb/arrowback.png';
-import BookmarkIcon from './../../../assets/myWeb/bookmark.png';
-import ShareIcon from './../../../assets/myWeb/share1.png';
-import Dot from './../../../assets/myWeb/dots 1.png';
-import LightIcon from './../../../assets/myWeb/light.png';
+import ArrowBackIcon from './../../assets/myWeb/arrowback.png';
+import BookmarkIcon from './../../assets/myWeb/bookmark.png';
+import ShareIcon from './../../assets/myWeb/share1.png';
+import Dot from './../../assets/myWeb/dots 1.png';
+import LightIcon from './../../assets/myWeb/light.png';
 export const PostDetail = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();

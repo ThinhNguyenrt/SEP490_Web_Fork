@@ -2720,6 +2720,191 @@ export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10
   }
 };
 
+// Follow/Bookmark portfolio with interest level
+export const followPortfolio = async (
+  payload: {
+    portfolioId: number;
+    interestLevel: "LOW" | "MEDIUM" | "HIGH";
+  },
+  accessToken: string,
+): Promise<any> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [followPortfolio] Following portfolio:", payload.portfolioId, "with interest level:", payload.interestLevel);
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Follow request timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/follows`, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [followPortfolio] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 [followPortfolio] Raw response:", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 [followPortfolio] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Follow portfolio error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log("✅ Portfolio followed successfully");
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
+// Fetch saved/followed portfolios
+export const fetchSavedPortfolios = async (
+  accessToken: string,
+): Promise<any[]> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [fetchSavedPortfolios] Fetching saved portfolios");
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Fetch saved portfolios timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/follows`, {
+      method: "GET",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [fetchSavedPortfolios] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 [fetchSavedPortfolios] Raw response:", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 [fetchSavedPortfolios] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Fetch saved portfolios error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log("✅ Saved portfolios fetched successfully");
+    return Array.isArray(data) ? data : (data?.data || []);
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -2747,4 +2932,6 @@ export const portfolioService = {
   resolveImageUrl,
   convertFieldNamesToKeys,
   convertFieldNamesFromKeys,
+  followPortfolio,
+  fetchSavedPortfolios,
 };

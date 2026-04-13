@@ -77,7 +77,7 @@ export default function TalentSavePost() {
   }, [activeTab]);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-2xl mx-auto py-6 px-4">
         {/* Header Section & Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import {
   createEmptyOtherSevenDraft,
   type OtherSevenDraft,
-} from "@/components/pages/portfolio/editor/otherSevenDraft";
+} from "@/pages/portfolio/editor/otherSevenDraft";
 
 type OtherInfoSevenEditorProps = {
   initialData: OtherSevenDraft;

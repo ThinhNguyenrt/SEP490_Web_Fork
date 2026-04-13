@@ -1,6 +1,6 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { type CertificateOneDraft } from "@/components/pages/portfolio/editor/certificateOneDraft";
+import { type CertificateOneDraft } from "@/pages/portfolio/editor/certificateOneDraft";
 
 type CertificateOneEditorProps = {
   initialData: CertificateOneDraft;

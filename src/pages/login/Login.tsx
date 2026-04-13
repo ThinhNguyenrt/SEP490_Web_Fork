@@ -1,6 +1,6 @@
 import LoginPlaceholder from "/login-page-image-placeholder.png";
 import { useState } from "react";
-import { Card } from "../../ui/card";
+import { Card } from "../../components/ui/card";
 import { cn } from "@/lib/utils";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";

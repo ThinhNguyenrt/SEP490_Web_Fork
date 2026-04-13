@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { type SkillOneDraft } from "@/components/pages/portfolio/editor/skillOneDraft";
+import { type SkillOneDraft } from "@/pages/portfolio/editor/skillOneDraft";
 
 type SkillOneEditorProps = {
   initialData: SkillOneDraft;

@@ -1,6 +1,6 @@
 import { X, Trash2, Edit2 } from "lucide-react";
 import { useState } from "react";
-import { type ExperienceOneDraft } from "@/components/pages/portfolio/editor/experienceOneDraft";
+import { type ExperienceOneDraft } from "@/pages/portfolio/editor/experienceOneDraft";
 
 type ExperienceOneEditorProps = {
   initialData: ExperienceOneDraft;

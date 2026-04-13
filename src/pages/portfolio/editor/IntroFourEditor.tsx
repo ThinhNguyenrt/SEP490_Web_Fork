@@ -9,7 +9,7 @@ import {
 import {
   createEmptyIntroFourDraft,
   type IntroFourDraft,
-} from "@/components/pages/portfolio/editor/introFourDraft";
+} from "@/pages/portfolio/editor/introFourDraft";
 import { portfolioService } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 

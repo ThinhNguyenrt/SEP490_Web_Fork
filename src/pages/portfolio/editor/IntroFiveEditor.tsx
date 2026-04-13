@@ -9,7 +9,7 @@ import {
 import {
   createEmptyIntroFiveDraft,
   type IntroFiveDraft,
-} from "@/components/pages/portfolio/editor/introFiveDraft";
+} from "@/pages/portfolio/editor/introFiveDraft";
 import { portfolioService } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 

@@ -6,7 +6,7 @@ import {
   useMemo,
   useEffect,
 } from "react";
-import { type IntroOneDraft } from "@/components/pages/portfolio/editor/introOneDraft";
+import { type IntroOneDraft } from "@/pages/portfolio/editor/introOneDraft";
 import { portfolioService } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 

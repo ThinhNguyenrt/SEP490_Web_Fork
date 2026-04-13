@@ -5,7 +5,7 @@ import {
   normalizeSkillTwoDraft,
   type SkillTwoCategory,
   type SkillTwoDraft,
-} from "@/components/pages/portfolio/editor/skillTwoDraft";
+} from "@/pages/portfolio/editor/skillTwoDraft";
 
 type SkillTwoEditorProps = {
   initialData: SkillTwoDraft;

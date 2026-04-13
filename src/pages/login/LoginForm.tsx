@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authAPI } from "../../../services/auth.api";
+import { authAPI } from "../../services/auth.api";
 
 import { useAppDispatch, useAppSelector } from "@/store/hook";
 import {

@@ -1,68 +1,72 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { type ActivityOneDraft } from "@/components/pages/portfolio/editor/activityOneDraft";
+import { type AwardOneDraft } from "@/pages/portfolio/editor/awardOneDraft";
 
-type ActivityOneEditorProps = {
-  initialData: ActivityOneDraft;
-  initialList?: ActivityOneDraft[];
-  onSave: (nextDraft: ActivityOneDraft) => void;
-  onSaveList?: (activityList: ActivityOneDraft[]) => void;
+type AwardEditorProps = {
+  initialData: AwardOneDraft;
+  initialList?: AwardOneDraft[];
+  onSave: (nextDraft: AwardOneDraft) => void;
+  onSaveList?: (awardList: AwardOneDraft[]) => void;
   onCancel: () => void;
 };
 
-export default function ActivityOneEditor({
+export default function AwardEditor({
   initialData,
   initialList = [],
   onSave,
   onSaveList,
   onCancel,
-}: ActivityOneEditorProps) {
-  const [draft, setDraft] = useState<ActivityOneDraft>(initialData);
-  const [activityList, setActivityList] = useState<ActivityOneDraft[]>(initialList);
+}: AwardEditorProps) {
+  const [draft, setDraft] = useState<AwardOneDraft>(initialData);
+  const [awardList, setAwardList] = useState<AwardOneDraft[]>(initialList);
 
-  const hasContent = [draft.name, draft.date, draft.description].some(
+  const hasContent = [draft.name, draft.date, draft.organization, draft.description].some(
     (value) => value.trim().length > 0,
   );
 
-  const updateDraftField = (field: keyof ActivityOneDraft, value: string) => {
+  const updateDraftField = (field: keyof AwardOneDraft, value: string) => {
     setDraft((prevDraft) => ({
       ...prevDraft,
       [field]: value,
     }));
   };
 
-  const handleAddActivity = () => {
+  const handleAddAward = () => {
     if (!hasContent) {
       return;
     }
 
-    const newActivity: ActivityOneDraft = {
+    const newAward: AwardOneDraft = {
       name: draft.name.trim(),
       date: draft.date.trim(),
+      organization: draft.organization.trim(),
       description: draft.description.trim(),
     };
 
-    const updatedList = [...activityList, newActivity];
-    setActivityList(updatedList);
-
+    const updatedList = [...awardList, newAward];
+    setAwardList(updatedList);
+    
     // Reset form
     setDraft({
       name: "",
       date: "",
+      organization: "",
       description: "",
     });
 
+    // Call the list save handler if provided
     if (onSaveList) {
       onSaveList(updatedList);
     } else {
-      onSave(newActivity);
+      // Fallback to old behavior
+      onSave(newAward);
     }
   };
 
-  const handleRemoveActivity = (index: number) => {
-    const updatedList = activityList.filter((_, i) => i !== index);
-    setActivityList(updatedList);
-
+  const handleRemoveAward = (index: number) => {
+    const updatedList = awardList.filter((_, i) => i !== index);
+    setAwardList(updatedList);
+    
     if (onSaveList) {
       onSaveList(updatedList);
     }
@@ -72,9 +76,11 @@ export default function ActivityOneEditor({
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
       <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">
         <div>
-          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Thêm hoạt động</h3>
+          <h3 className="text-[30px] font-bold leading-tight text-slate-800">
+            Thêm danh hiệu & giải thưởng
+          </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Hãy điền thêm hoạt động để hiển thị trong hồ sơ của bạn
+            Hãy điền thêm danh hiệu & giải thưởng để hiển thị trong hồ sơ của bạn
           </p>
         </div>
         <button
@@ -87,27 +93,30 @@ export default function ActivityOneEditor({
         </button>
       </div>
 
-      {/* List of existing activities */}
-      {activityList.length > 0 && (
+      {/* List of existing awards */}
+      {awardList.length > 0 && (
         <div className="border-b border-[#d7dfeb] px-3 py-3">
           <h4 className="mb-3 text-sm font-semibold text-slate-700">
-            Danh sách hoạt động ({activityList.length})
+            Danh sách danh hiệu ({awardList.length})
           </h4>
           <div className="space-y-2">
-            {activityList.map((activity, index) => (
+            {awardList.map((award, index) => (
               <div
                 key={index}
                 className="flex items-start justify-between rounded-lg border border-[#d1d5db] bg-white p-3"
               >
                 <div className="flex-1">
-                  <p className="font-semibold text-slate-800">{activity.name}</p>
-                  {activity.date && (
-                    <p className="text-xs text-slate-500">{activity.date}</p>
+                  <p className="font-semibold text-slate-800">{award.name}</p>
+                  {award.date && (
+                    <p className="text-xs text-slate-500">{award.date}</p>
+                  )}
+                  {award.organization && (
+                    <p className="text-xs text-slate-600">{award.organization}</p>
                   )}
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleRemoveActivity(index)}
+                  onClick={() => handleRemoveAward(index)}
                   className="ml-2 rounded-lg p-1.5 text-red-600 transition-colors hover:bg-red-50"
                   title="Xóa"
                 >
@@ -119,13 +128,14 @@ export default function ActivityOneEditor({
         </div>
       )}
 
+      {/* Form to add new award */}
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Tên hoạt động</label>
+          <label className="text-sm font-semibold text-slate-600">Tên danh hiệu & giải thưởng</label>
           <input
             value={draft.name}
             onChange={(event) => updateDraftField("name", event.target.value)}
-            placeholder="Nhập tên hoạt động"
+            placeholder="Nhập tên danh hiệu & giải thưởng"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
@@ -135,7 +145,17 @@ export default function ActivityOneEditor({
           <input
             value={draft.date}
             onChange={(event) => updateDraftField("date", event.target.value)}
-            placeholder="Nhập thời gian tổ chức"
+            placeholder="Nhập thời gian bạn được nhận"
+            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Người cấp</label>
+          <input
+            value={draft.organization}
+            onChange={(event) => updateDraftField("organization", event.target.value)}
+            placeholder="Nhập nơi cấp cho bạn"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
@@ -145,7 +165,7 @@ export default function ActivityOneEditor({
           <textarea
             value={draft.description}
             onChange={(event) => updateDraftField("description", event.target.value)}
-            placeholder="Thêm chút mô tả hoạt động của bạn"
+            placeholder="Thêm chút mô tả danh hiệu & giải thưởng của bạn"
             className="min-h-28 w-full resize-none rounded-xl border border-[#d1d5db] bg-white p-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
@@ -161,12 +181,12 @@ export default function ActivityOneEditor({
         </button>
         <button
           type="button"
-          onClick={handleAddActivity}
+          onClick={handleAddAward}
           disabled={!hasContent}
-          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#4A79E8] px-3 text-sm font-semibold text-white transition-colors hover:bg-[#3d68d0] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus size={18} strokeWidth={2} />
-          Thêm hoạt động mới
+          Thêm danh hiệu mới
         </button>
       </div>
     </div>

@@ -31,27 +31,27 @@ import OtherInfoTwoEditor from "./editor/OtherInfoTwoEditor";
 import OtherInfoSixEditor from "./editor/OtherInfoSixEditor";
 import ResearchOneEditor from "./editor/ResearchOneEditor";
 import ReferenceEditor from "./editor/ReferenceEditor";
-import CertificateOneEditor from "@/components/pages/portfolio/editor/CertificateOneEditor";
-import EducationOneEditor from "@/components/pages/portfolio/editor/EducationOneEditor";
-import EducationTwoEditor from "@/components/pages/portfolio/editor/EducationTwoEditor";
-import EducationThreeEditor from "@/components/pages/portfolio/editor/EducationThreeEditor";
-import ExperienceOneEditor from "@/components/pages/portfolio/editor/ExperienceOneEditor";
-import IntroOneEditor from "@/components/pages/portfolio/editor/IntroOneEditor";
-import IntroFourEditor from "@/components/pages/portfolio/editor/IntroFourEditor";
-import IntroFiveEditor from "@/components/pages/portfolio/editor/IntroFiveEditor";
-import IntroThreeEditor from "@/components/pages/portfolio/editor/IntroThreeEditor";
-import SkillOneEditor from "@/components/pages/portfolio/editor/SkillOneEditor";
-import SkillThreeEditor from "@/components/pages/portfolio/editor/SkillThreeEditor";
-import SkillTwoEditor from "@/components/pages/portfolio/editor/SkillTwoEditor";
-import TeachingOneEditor from "@/components/pages/portfolio/editor/TeachingOneEditor";
-import TypicalCaseOneEditor from "@/components/pages/portfolio/editor/TypicalCaseOneEditor";
+import CertificateOneEditor from "@/pages/portfolio/editor/CertificateOneEditor";
+import EducationOneEditor from "@/pages/portfolio/editor/EducationOneEditor";
+import EducationTwoEditor from "@/pages/portfolio/editor/EducationTwoEditor";
+import EducationThreeEditor from "@/pages/portfolio/editor/EducationThreeEditor";
+import ExperienceOneEditor from "@/pages/portfolio/editor/ExperienceOneEditor";
+import IntroOneEditor from "@/pages/portfolio/editor/IntroOneEditor";
+import IntroFourEditor from "@/pages/portfolio/editor/IntroFourEditor";
+import IntroFiveEditor from "@/pages/portfolio/editor/IntroFiveEditor";
+import IntroThreeEditor from "@/pages/portfolio/editor/IntroThreeEditor";
+import SkillOneEditor from "@/pages/portfolio/editor/SkillOneEditor";
+import SkillThreeEditor from "@/pages/portfolio/editor/SkillThreeEditor";
+import SkillTwoEditor from "@/pages/portfolio/editor/SkillTwoEditor";
+import TeachingOneEditor from "@/pages/portfolio/editor/TeachingOneEditor";
+import TypicalCaseOneEditor from "@/pages/portfolio/editor/TypicalCaseOneEditor";
 import ProjectOneEditor from "./editor/ProjectOneEditor";
 import ProjectTwoEditor from "./editor/ProjectTwoEditor";
 import ProjectThreeEditor from "./editor/ProjectThreeEditor";
 import {
   createCertificateOneDraft,
   type CertificateOneDraft,
-} from "@/components/pages/portfolio/editor/certificateOneDraft";
+} from "@/pages/portfolio/editor/certificateOneDraft";
 import {
   createActivityOneDraft,
   type ActivityOneDraft,
@@ -95,37 +95,37 @@ import {
 import {
   createEducationOneDraft,
   type EducationOneDraft,
-} from "@/components/pages/portfolio/editor/educationOneDraft";
+} from "@/pages/portfolio/editor/educationOneDraft";
 import {
   createEducationTwoDraft,
   type EducationTwoDraft,
-} from "@/components/pages/portfolio/editor/educationTwoDraft";
+} from "@/pages/portfolio/editor/educationTwoDraft";
 import {
   createEducationThreeDraft,
   createEmptyEducationThreeDraft,
   type EducationThreeDraft,
-} from "@/components/pages/portfolio/editor/educationThreeDraft";
+} from "@/pages/portfolio/editor/educationThreeDraft";
 import {
   createExperienceOneDraft,
   splitExperienceOneTimeRange,
   type ExperienceOneDraft,
-} from "@/components/pages/portfolio/editor/experienceOneDraft";
+} from "@/pages/portfolio/editor/experienceOneDraft";
 import {
   createIntroOneDraft,
   type IntroOneDraft,
-} from "@/components/pages/portfolio/editor/introOneDraft";
+} from "@/pages/portfolio/editor/introOneDraft";
 import {
   createIntroFourDraft,
   type IntroFourDraft,
-} from "@/components/pages/portfolio/editor/introFourDraft";
+} from "@/pages/portfolio/editor/introFourDraft";
 import {
   createIntroFiveDraft,
   type IntroFiveDraft,
-} from "@/components/pages/portfolio/editor/introFiveDraft";
+} from "@/pages/portfolio/editor/introFiveDraft";
 import {
   createIntroThreeDraft,
   type IntroThreeDraft,
-} from "@/components/pages/portfolio/editor/introThreeDraft";
+} from "@/pages/portfolio/editor/introThreeDraft";
 import {
   createIntroTwoDraft,
   type IntroTwoDraft,
@@ -133,23 +133,23 @@ import {
 import {
   createSkillOneDraft,
   type SkillOneDraft,
-} from "@/components/pages/portfolio/editor/skillOneDraft";
+} from "@/pages/portfolio/editor/skillOneDraft";
 import {
   createEmptySkillThreeDraft,
   type SkillThreeDraft,
-} from "@/components/pages/portfolio/editor/skillThreeDraft";
+} from "@/pages/portfolio/editor/skillThreeDraft";
 import {
   createSkillTwoDraft,
   type SkillTwoDraft,
-} from "@/components/pages/portfolio/editor/skillTwoDraft";
+} from "@/pages/portfolio/editor/skillTwoDraft";
 import {
   createEmptyTeachingOneDraft,
   type TeachingOneDraft,
-} from "@/components/pages/portfolio/editor/teachingOneDraft";
+} from "@/pages/portfolio/editor/teachingOneDraft";
 import {
   createEmptyTypicalCaseOneDraft,
   type TypicalCaseOneDraft,
-} from "@/components/pages/portfolio/editor/typicalCaseOneDraft";
+} from "@/pages/portfolio/editor/typicalCaseOneDraft";
 import {
   createEmptyProjectThreeDraft,
   createProjectThreeDraft,

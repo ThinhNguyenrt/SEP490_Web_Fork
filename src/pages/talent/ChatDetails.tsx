@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Send, ArrowLeft } from "lucide-react";
-import profileIcon from "../../../assets/myWeb/profile1 1.png";
-import searchIcon from "../../../assets/myWeb/magnifying-glass 1.png";
-import blockIcon from "../../../assets/myWeb/block 1.png";
-import deleteIcon from "../../../assets/myWeb/delete 1.png";
-import coverImage from "../../../assets/testImage/coverImagee.png";
+import profileIcon from "../../assets/myWeb/profile1 1.png";
+import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
+import blockIcon from "../../assets/myWeb/block 1.png";
+import deleteIcon from "../../assets/myWeb/delete 1.png";
+import coverImage from "../../assets/testImage/coverImagee.png";
 
 interface Message {
   id: number;

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, MessageSquare } from "lucide-react";
-import { Button } from "../../../ui/button";
-import { Badge } from "../../../ui/badge";
-import SortIcon from "../../../../assets/myWeb/sort.png";
-import BookmarkIcon from "../../../../assets/myWeb/bookmark.png";
-import ShareIcon from "../../../../assets/myWeb/share1.png";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import SortIcon from "../../../assets/myWeb/sort.png";
+import BookmarkIcon from "../../../assets/myWeb/bookmark.png";
+import ShareIcon from "../../../assets/myWeb/share1.png";
 import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.api";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import CommentModal from "./CommentModal";

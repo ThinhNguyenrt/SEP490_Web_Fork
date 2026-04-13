@@ -14,106 +14,106 @@ import { notify } from "./lib/toast";
 import { useUserProfile } from "./hook/useUserProfile";
 
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
-const LoginPage = lazy(() => import("./components/pages/login/Login"));
-const ProfilePage = lazy(() => import("./components/pages/profile/Profile"));
+const LoginPage = lazy(() => import("./pages/login/Login"));
+const ProfilePage = lazy(() => import("./pages/profile/Profile"));
 const RecruiterProfile = lazy(
-  () => import("./components/pages/recruiter/profile/RecruiterProfile"),
+  () => import("./pages/recruiter/profile/RecruiterProfile"),
 );
 const PortfolioManagement = lazy(
-  () => import("./components/pages/portfolio/PortfolioManagement"),
+  () => import("./pages/portfolio/PortfolioManagement"),
 );
 const EmptyPortfolioPage = lazy(
-  () => import("./components/pages/portfolio/EmptyPortfolio"),
+  () => import("./pages/portfolio/EmptyPortfolio"),
 );
 const CreatePortfolio = lazy(
-  () => import("./components/pages/portfolio/CreatePortfolio"),
+  () => import("./pages/portfolio/CreatePortfolio"),
 );
 const EditPortfolio = lazy(
-  () => import("./components/pages/portfolio/EditPortfolio"),
+  () => import("./pages/portfolio/EditPortfolio"),
 );
-const TalentHome = lazy(() => import("./components/pages/talent/TalentHome"));
+const TalentHome = lazy(() => import("./pages/talent/TalentHome"));
 const RecruiterHome = lazy(
-  () => import("./components/pages/recruiter/home/RecruiterHome"),
+  () => import("./pages/recruiter/home/RecruiterHome"),
 );
 const RecruitmentManagement = lazy(
   () =>
-    import("./components/pages/recruiter/recruitment/RecruitmentManagement"),
+    import("./pages/recruiter/recruitment/RecruitmentManagement"),
 );
 const CreateRecruitmentPost = lazy(
   () =>
-    import("./components/pages/recruiter/recruitment/CreateRecruitmentPost"),
+    import("./pages/recruiter/recruitment/CreateRecruitmentPost"),
 );
 const RecruitmentDetails = lazy(
-  () => import("./components/pages/recruiter/recruitment/RecruitmentDetails"),
+  () => import("./pages/recruiter/recruitment/RecruitmentDetails"),
 );
 const PostDetail = lazy(() =>
-  import("./components/pages/talent/PostDetail").then((module) => ({
+  import("./pages/talent/PostDetail").then((module) => ({
     default: module.PostDetail,
   })),
 );
-const ChatRoom = lazy(() => import("./components/pages/talent/ChatRoom"));
+const ChatRoom = lazy(() => import("./pages/talent/ChatRoom"));
 const ApplicationHistory = lazy(
-  () => import("./components/pages/talent/ApplicationHistory"),
+  () => import("./pages/talent/ApplicationHistory"),
 );
 const ApplicationManagement = lazy(
   () =>
-    import("./components/pages/recruiter/application/ApplicationManagement"),
+    import("./pages/recruiter/application/ApplicationManagement"),
 );
 const CandidateManagement = lazy(
-  () => import("./components/pages/recruiter/recruitment/CandidateManagement"),
+  () => import("./pages/recruiter/recruitment/CandidateManagement"),
 );
 const InterviewSchedule = lazy(
-  () => import("./components/pages/recruiter/recruitment/InterviewSchedule"),
+  () => import("./pages/recruiter/recruitment/InterviewSchedule"),
 );
 const CommunityPost = lazy(
-  () => import("./components/pages/community/CommunityPost"),
+  () => import("./pages/community/CommunityPost"),
 );
 const CommunityPostDetail = lazy(
-  () => import("./components/pages/community/CommunityPostDetail"),
+  () => import("./pages/community/CommunityPostDetail"),
 );
 const PortfolioViewPage = lazy(
   () => import("./components/portfolio/view/PortfolioViewPage"),
 );
 const NotificationsPage = lazy(
-  () => import("./components/pages/notification/NotificationsPage"),
+  () => import("./pages/notification/NotificationsPage"),
 );
 const MyCommunityPost = lazy(
-  () => import("./components/pages/community/MyCommunityPost"),
+  () => import("./pages/community/MyCommunityPost"),
 );
 const MySavePost = lazy(
-  () => import("./components/pages/community/save/TalentSavePost"),
+  () => import("./pages/community/save/TalentSavePost"),
 );
 const CompanySavePost = lazy(
-  () => import("./components/pages/community/save/CompanySavePost"),
+  () => import("./pages/community/save/CompanySavePost"),
 );
 const TalentSavePost = lazy(
-  () => import("./components/pages/community/save/TalentSavePost"),
+  () => import("./pages/community/save/TalentSavePost"),
 );
-const ErrorPage = lazy(() => import("./components/pages/ErrorPage"));
-const LandingPage = lazy(() => import("./components/pages/LandingPage"));
+const ErrorPage = lazy(() => import("./pages/ErrorPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SetupTalentProfile = lazy(
-  () => import("./components/pages/login/SetupTalentProfile"),
+  () => import("./pages/login/SetupTalentProfile"),
 );
 const SetupCompanyProfile = lazy(
-  () => import("./components/pages/login/SetupCompanyProfile"),
+  () => import("./pages/login/SetupCompanyProfile"),
 );
 const SupportCenterPage = lazy(
-  () => import("./components/pages/SupportCenterPage"),
+  () => import("./pages/SupportCenterPage"),
 );
 const PrivacyCenterPage = lazy(
-  () => import("./components/pages/PrivacyCenterPage"),
+  () => import("./pages/PrivacyCenterPage"),
 );
 const TermsPolicyPage = lazy(
-  () => import("./components/pages/TermsPolicyPage"),
+  () => import("./pages/TermsPolicyPage"),
 );
 const OtherTalentProfilePage = lazy(
-  () => import("./components/pages/profile/otherProfile/OtherTalentProfile"),
+  () => import("./pages/profile/otherProfile/OtherTalentProfile"),
 );
 const OtherCompanyProfilePage = lazy(
-  () => import("./components/pages/profile/otherProfile/OtherCompanyProfile"),
+  () => import("./pages/profile/otherProfile/OtherCompanyProfile"),
 );
 const PortfolioRanking = lazy(
-  () => import("./components/pages/ranking/PortfolioRanking"),
+  () => import("./pages/ranking/PortfolioRanking"),
 );
 
 function App() {

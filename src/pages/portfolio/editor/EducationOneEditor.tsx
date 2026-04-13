@@ -1,6 +1,6 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { type EducationOneDraft } from "@/components/pages/portfolio/editor/educationOneDraft";
+import { type EducationOneDraft } from "@/pages/portfolio/editor/educationOneDraft";
 
 type EducationOneEditorProps = {
   initialData: EducationOneDraft;

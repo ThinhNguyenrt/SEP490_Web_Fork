@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
-import { type ProjectOneDraft } from "@/components/pages/portfolio/editor/projectOneDraft";
+import { type ProjectOneDraft } from "@/pages/portfolio/editor/projectOneDraft";
 import { portfolioService } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 

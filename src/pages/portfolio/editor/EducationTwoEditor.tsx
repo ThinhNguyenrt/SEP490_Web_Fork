@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import {
   createEmptyEducationTwoDraft,
   type EducationTwoDraft,
-} from "@/components/pages/portfolio/editor/educationTwoDraft";
+} from "@/pages/portfolio/editor/educationTwoDraft";
 
 type EducationTwoEditorProps = {
   initialData: EducationTwoDraft;

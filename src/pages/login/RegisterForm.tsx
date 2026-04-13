@@ -1,19 +1,17 @@
-import {
-  Lock,
-  Eye,
-  EyeOff,
-  RotateCcw,
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authAPI } from "../../../services/auth.api";
+import { authAPI } from "../../services/auth.api";
 import { notify } from "@/lib/toast";
 
-export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
+type UserRole = "talent" | "recruiter";
+
+export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<UserRole>("talent");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,6 +19,26 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+
+  // Role configuration
+  const roleConfig = {
+    talent: {
+      label: "Người dùng",
+      roleValue: 1,
+      emailLabel: "Email",
+      emailPlaceholder: "example@gmail.com",
+      buttonText: "Đăng ký ứng viên",
+    },
+    recruiter: {
+      label: "Nhà tuyển dụng",
+      roleValue: 2,
+      emailLabel: "Email công ty",
+      emailPlaceholder: "hr@company.com",
+      buttonText: "Đăng ký tuyển dụng",
+    },
+  };
+
+  const currentConfig = roleConfig[role];
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,15 +62,15 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
 
     setLoading(true);
     try {
-      console.log("📝 RecruiterForm - Bắt đầu đăng ký recruiter");
+      console.log(`📝 RegisterForm - Bắt đầu đăng ký ${currentConfig.label}`);
       const response = await authAPI.register({
         email,
         password,
-        role: 2, // 2 = recruiter
+        role: currentConfig.roleValue,
       });
 
       if (response.success) {
-        console.log("✅ RecruiterForm - Đăng ký thành công");
+        console.log(`✅ RegisterForm - Đăng ký ${currentConfig.label} thành công`);
         notify.success("Đăng ký thành công! Vui lòng đăng nhập.");
         // Điều hướng về login page
         navigate("/login", { replace: true });
@@ -60,8 +78,9 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
         setError(response.message || "Đăng ký thất bại!");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Đăng ký thất bại!";
-      console.error("❌ RecruiterForm - Error:", errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : "Đăng ký thất bại!";
+      console.error(`❌ RegisterForm - Error:`, errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -69,19 +88,56 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
   };
 
   return (
-    <form onSubmit={handleRegister} className="space-y-4 animate-in slide-in-from-left-4 duration-500">
+    <form onSubmit={handleRegister} className="space-y-4">
+      {/* Role Selector Sliding Button */}
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email công ty</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="hr@company.com"
-          className="h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
-          required
-        />
+        <Label>Đăng ký với tư cách là</Label>
+        <div className="flex gap-1 bg-slate-200 p-1 rounded-lg w-full h-11">
+          <button
+            type="button"
+            onClick={() => setRole("talent")}
+            className={`flex-1 font-medium rounded transition-all duration-300 ${
+              role === "talent"
+                ? "bg-[#0288D1] text-white shadow-md"
+                : "bg-transparent text-slate-700 hover:text-slate-900"
+            }`}
+          >
+            Người dùng
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("recruiter")}
+            className={`flex-1 font-medium rounded transition-all duration-300 ${
+              role === "recruiter"
+                ? "bg-[#0288D1] text-white shadow-md"
+                : "bg-transparent text-slate-700 hover:text-slate-900"
+            }`}
+          >
+            Nhà tuyển dụng
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="email">{currentConfig.emailLabel}</Label>
+        <div className="relative">
+          {role === "talent" && (
+            <Mail
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+          )}
+          <Input
+            id="email"
+            type="email"
+            placeholder={currentConfig.emailPlaceholder}
+            className={`${role === "talent" ? "pl-10" : ""} h-11 border-none bg-slate-100 focus-visible:ring-1 focus-visible:ring-[#0288D1]`}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -145,22 +201,12 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={onSwitch}
-          className="text-sm font-medium text-[#0288D1] hover:underline"
-        >
-          Đăng ký cho ứng viên?
-        </button>
-      </div>
-
       <Button
         type="submit"
         disabled={loading}
-        className="w-full h-11 font-bold text-white cursor-pointer bg-[#0288D1] hover:bg-[#0277bd] border-none shadow-none disabled:opacity-70"
+        className="w-full h-11 font-bold cursor-pointer text-white bg-[#0288D1] hover:bg-[#0277bd] border-none shadow-none disabled:opacity-70"
       >
-                {loading ? (
+        {loading ? (
           <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
             {/* Container cho Spinner và Text */}
             <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
@@ -174,7 +220,7 @@ export const RecruiterForm = ({ onSwitch }: { onSwitch: () => void }) => {
             </div>
           </div>
         ) : (
-          "Đăng ký tuyển dụng"
+          currentConfig.buttonText
         )}
       </Button>
     </form>

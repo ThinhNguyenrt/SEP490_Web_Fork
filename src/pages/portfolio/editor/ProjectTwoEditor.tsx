@@ -1,37 +1,36 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
-  createEmptyEducationThreeDraft,
-  type EducationThreeDraft,
-} from "@/components/pages/portfolio/editor/educationThreeDraft";
+  createEmptyProjectTwoDraft,
+  type ProjectTwoDraft,
+} from "@/pages/portfolio/editor/projectTwoDraft";
 
-type EducationThreeEditorProps = {
-  initialData: EducationThreeDraft;
-  latestData: EducationThreeDraft;
-  onSave: (nextDraft: EducationThreeDraft) => void;
+type ProjectTwoEditorProps = {
+  initialData: ProjectTwoDraft;
+  onSave: (nextDraft: ProjectTwoDraft) => void;
   onCancel: () => void;
 };
 
-export default function EducationThreeEditor({
+export default function ProjectTwoEditor({
   initialData,
-  latestData,
   onSave,
   onCancel,
-}: EducationThreeEditorProps) {
-  const [draft, setDraft] = useState<EducationThreeDraft>(initialData);
+}: ProjectTwoEditorProps) {
+  const [draft, setDraft] = useState<ProjectTwoDraft>(initialData);
 
   useEffect(() => {
     setDraft(initialData);
   }, [initialData]);
 
   const hasContent = [
-    draft.time,
-    draft.gpa,
-    draft.qualified,
+    draft.name,
+    draft.action,
+    draft.publisher,
     draft.description,
-  ].some((value) => typeof value === "string" && value.trim().length > 0);
+    draft.link,
+  ].some((value) => value.trim().length > 0);
 
-  const updateDraftField = (field: keyof EducationThreeDraft, value: string) => {
+  const updateDraftField = (field: keyof ProjectTwoDraft, value: string) => {
     setDraft((prevDraft) => ({
       ...prevDraft,
       [field]: value,
@@ -44,21 +43,22 @@ export default function EducationThreeEditor({
     }
 
     onSave({
-      time: String(draft.time).trim(),
-      gpa: String(draft.gpa).trim(),
-      qualified: String(draft.qualified).trim(),
-      description: String(draft.description).trim(),
+      name: draft.name.trim(),
+      action: draft.action.trim(),
+      publisher: draft.publisher.trim(),
+      description: draft.description.trim(),
+      link: draft.link.trim(),
     });
-    setDraft(createEmptyEducationThreeDraft());
+    setDraft(createEmptyProjectTwoDraft());
   };
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#d7dfeb] bg-[#EFF6FF]">
       <div className="flex items-start justify-between border-b border-[#d7dfeb] px-4 py-3">
         <div>
-          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Thêm thành tích học tập</h3>
+          <h3 className="text-[30px] font-bold leading-tight text-slate-800">Thêm dự án nghiên cứu</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Hãy điền thêm thành tích học tập để hiển thị trong hồ sơ của bạn
+            Hãy điền thêm dự án nghiên cứu để hiển thị trong hồ sơ của bạn
           </p>
         </div>
         <button
@@ -73,50 +73,54 @@ export default function EducationThreeEditor({
 
       <div className="space-y-3 p-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Thời gian</label>
+          <label className="text-sm font-semibold text-slate-600">Chủ đề</label>
           <input
-            value={draft.time}
-            onChange={(event) => updateDraftField("time", event.target.value)}
-            placeholder="Nhập thời gian bắt đầu và kết thúc, ví dụ: 2021 - 2026"
+            value={draft.name}
+            onChange={(event) => updateDraftField("name", event.target.value)}
+            placeholder="Nhập tên chủ đề"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Điểm GPA</label>
+          <label className="text-sm font-semibold text-slate-600">Hành động</label>
           <input
-            value={draft.gpa}
-            onChange={(event) => updateDraftField("gpa", event.target.value)}
-            placeholder="Nhập điểm GPA"
+            value={draft.action}
+            onChange={(event) => updateDraftField("action", event.target.value)}
+            placeholder="Bạn là tác giả chính hay đồng tác giả"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Xếp loại</label>
+          <label className="text-sm font-semibold text-slate-600">Xuất bản</label>
           <input
-            value={draft.qualified}
-            onChange={(event) => updateDraftField("qualified", event.target.value)}
-            placeholder="Nhập xếp loại"
+            value={draft.publisher}
+            onChange={(event) => updateDraftField("publisher", event.target.value)}
+            placeholder="Bạn xuất bản nghiên cứu ở đâu?"
             className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-600">Giới thiệu</label>
+          <label className="text-sm font-semibold text-slate-600">Mô tả</label>
           <textarea
             value={draft.description}
             onChange={(event) => updateDraftField("description", event.target.value)}
-            placeholder="Thêm chút giới thiệu những gì bạn đã đạt được"
             className="min-h-28 w-full resize-none rounded-xl border border-[#d1d5db] bg-white p-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
           />
         </div>
 
-        {(latestData.time || latestData.gpa || latestData.qualified || latestData.description) && (
-          <div className="rounded-xl border border-[#d7dfeb] bg-white px-3 py-2 text-xs text-slate-500">
-            Mục gần nhất: {latestData.time || "(chưa có thời gian)"}
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-600">Link dẫn chứng</label>
+          <input
+            value={draft.link}
+            onChange={(event) => updateDraftField("link", event.target.value)}
+            placeholder="Thêm link của bạn để thể hiện rõ hơn"
+            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-[#4A79E8]"
+          />
+        </div>
+
       </div>
 
       <div className="flex gap-3 border-t border-[#d7dfeb] bg-[#EFF6FF] px-3 py-4">

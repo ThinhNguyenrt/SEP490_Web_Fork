@@ -7,6 +7,13 @@ export type IntroFourDraft = {
   avatar: string;
 };
 
+export type UserInfo = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+};
+
 const toRecord = (value: unknown): Record<string, unknown> => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
@@ -40,11 +47,13 @@ const getIntroFourSource = (value: unknown): Record<string, unknown> => {
   return toRecord(value);
 };
 
-export const createIntroFourDraft = (value: unknown): IntroFourDraft => {
+export const createIntroFourDraft = (value: unknown, userInfo?: UserInfo): IntroFourDraft => {
   const source = getIntroFourSource(value);
 
+  const fullName = toText(source.fullName ?? source.name) || toText(userInfo?.fullName) || toText(userInfo?.name) || "";
+
   return {
-    fullName: toText(source.fullName ?? source.name),
+    fullName: fullName,
     school: toText(source.school ?? source.schoolName),
     department: toText(source.department),
     studyField: toText(source.studyField ?? source.title),

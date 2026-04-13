@@ -9,19 +9,26 @@ export type PortfolioBlock = {
 export type PortfolioResponse = {
   portfolioId: number;
   userId: number;
+  employeeId?: number;
   blocks: PortfolioBlock[];
   portfolioName?: string;
 };
 
 export type PortfolioMainBlockItem = {
   portfolioId: number;
+  employeeId: number;
   userId: number;
   portfolio: {
     name: string;
     status: number;
   };
-  blocks: PortfolioBlock;
+  portfolioName?: string;
+  status?: string;
+  isMain?: boolean;
+  isPublic?: boolean;
   createdAt?: string;
+  updatedAt?: string;
+  blocks: PortfolioBlock;
 };
 
 // Type for paginated API response
@@ -38,8 +45,12 @@ export type PortfolioAPIResponse = {
   portfolioId: number;
   employeeId: number;
   portfolioName: string;
+  status?: string;
+  isMain?: boolean;
+  isPublic?: boolean;
   category: string | null;
   createdAt: string;
+  updatedAt?: string;
   createdByName: string | null;
   blocks: PortfolioBlock[];
 };
@@ -892,6 +903,7 @@ export const PORTFOLIO_MOCK: PortfolioResponse[] = [
 export const PORTFOLIO_MOCK_Main_Block: PortfolioMainBlockItem = {
   portfolioId: 12,
   userId: 2,
+  employeeId: 2,
   portfolio: {
     name: "Portfolio Frontend Developer",
     status: 1,
@@ -917,6 +929,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   {
     portfolioId: 12,
     userId: 2,
+    employeeId: 2,
     portfolio: {
       name: "Portfolio Frontend Developer",
       status: 1,
@@ -927,6 +940,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   {
     portfolioId: 20,
     userId: 2,
+    employeeId: 2,
     portfolio: {
       name: "Portfolio Mobile Developer",
       status: 0,
@@ -951,6 +965,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   {
     portfolioId: 30,
     userId: 2,
+    employeeId: 2,
     portfolio: {
       name: "Portfolio number three",
       status: 0,
@@ -972,6 +987,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   {
     portfolioId: 40,
     userId: 2,
+    employeeId: 2,
     portfolio: {
       name: "Portfolio number four",
       status: 0,
@@ -992,6 +1008,7 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
   {
     portfolioId: 50,
     userId: 2,
+    employeeId: 2,
     portfolio: {
       name: "Portfolio number five",
       status: 0,
@@ -1097,6 +1114,7 @@ const upsertPortfolioListItem = (
   const listItem: PortfolioMainBlockItem = {
     portfolioId: portfolio.portfolioId,
     userId: portfolio.userId,
+    employeeId: portfolio.employeeId || portfolio.userId,
     portfolio: {
       name: portfolioName,
       status,
@@ -1163,9 +1181,22 @@ const normalizeMainPortfolioItem = (
       (block: PortfolioBlock) => block.type.toUpperCase() === "INTRO",
     ) || item.blocks[0];
 
+    console.log(`📦 [normalizeMainPortfolioItem] Processing portfolio ${item.portfolioId}:`, {
+      isMain: item.isMain,
+      isPublic: item.isPublic,
+      status: item.status,
+    });
+
     return {
       portfolioId: item.portfolioId,
+      employeeId: item.employeeId,
       userId: item.employeeId || item.userId,
+      portfolioName: item.portfolioName,
+      status: item.status,
+      isMain: item.isMain,
+      isPublic: item.isPublic,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
       portfolio: {
         name: item.portfolioName || item.portfolio?.name || "Hồ sơ",
         status: item.category ? 1 : 0,
@@ -2905,6 +2936,60 @@ export const fetchSavedPortfolios = async (
   }
 };
 
+// Toggle main portfolio status
+export const toggleMainPortfolio = async (
+  portfolioId: number,
+  accessToken: string,
+): Promise<PortfolioAPIResponse> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+    
+    const endpoint = `${API_BASE_URL}/portfolio/${portfolioId}/toggle-main`;
+    console.log("📡 [toggleMainPortfolio] Endpoint:", endpoint);
+    console.log("🔐 [toggleMainPortfolio] Token available:", !!accessToken);
+    
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    console.log("📡 [toggleMainPortfolio] Response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.message || `Failed to toggle portfolio main status (${response.status})`;
+      console.error("❌ [toggleMainPortfolio] Failed:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log("✅ [toggleMainPortfolio] Success:", data);
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -2921,6 +3006,7 @@ export const portfolioService = {
   updatePortfolioById,
   uploadPortfolioImage,
   deletePortfolio,
+  toggleMainPortfolio,
   storePortfolioImageFile,
   createPreviewUrl,
   revokePreviewUrl,

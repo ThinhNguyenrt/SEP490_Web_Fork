@@ -192,9 +192,6 @@ export default function ProfileManagement() {
   const [portfolios, setPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [primaryPortfolioId, setPrimaryPortfolioId] = useState<number | null>(
-    null,
-  );
 
   const { accessToken } = useAppSelector((state) => state.auth);
   const user = useAppSelector((state) => state.auth.user);
@@ -262,14 +259,6 @@ export default function ProfileManagement() {
         console.log("📡 [PortfolioManagement] Data length:", data?.length);
         
         setPortfolios(data);
-
-        // Set first portfolio as primary by default
-        if (data.length > 0) {
-          console.log("📡 [PortfolioManagement] Setting primary portfolio:", data[0].portfolioId);
-          setPrimaryPortfolioId(data[0].portfolioId);
-        } else {
-          console.warn("⚠️ [PortfolioManagement] No portfolios returned from API");
-        }
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -299,12 +288,53 @@ export default function ProfileManagement() {
     navigate("/portfolio/create");
   };
 
-  const handleSetPrimary = (portfolioId: number) => {
-    setPrimaryPortfolioId(portfolioId);
-  };
+  const handleToggleMainPortfolio = async (portfolioId: number) => {
+    try {
+      const tokenToUse = accessToken || localStorage.getItem("access_token");
+      
+      if (!tokenToUse) {
+        notify.error("Vui lòng đăng nhập để thay đổi portfolio chính");
+        navigate("/login");
+        return;
+      }
 
-  const handleUnsetPrimary = () => {
-    setPrimaryPortfolioId(null);
+      // Call toggle main API
+      const updatedPortfolioData = await portfolioService.toggleMainPortfolio(
+        portfolioId,
+        tokenToUse,
+      );
+
+      console.log("✅ [handleToggleMainPortfolio] Response data:", updatedPortfolioData);
+      console.log("✅ [handleToggleMainPortfolio] isMain value:", updatedPortfolioData.isMain);
+
+      // Update the portfolio in the list with all fields from response, keep original blocks
+      setPortfolios((prevPortfolios) =>
+        prevPortfolios.map((p) =>
+          p.portfolioId === portfolioId
+            ? {
+                ...p,
+                isMain: updatedPortfolioData.isMain,
+                isPublic: updatedPortfolioData.isPublic,
+                status: updatedPortfolioData.status,
+                updatedAt: updatedPortfolioData.updatedAt,
+                portfolioName: updatedPortfolioData.portfolioName,
+                // Keep the original blocks to avoid losing display data
+              }
+            : p,
+        ),
+      );
+
+      console.log("✅ [handleToggleMainPortfolio] State updated");
+
+      // Show success message
+      const action = updatedPortfolioData.isMain ? "Đặt làm" : "Hủy";
+      notify.success(`${action} bản chính thành công!`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể thay đổi trạng thái portfolio";
+      console.error("❌ Error toggling main portfolio:", errorMessage);
+      notify.error(errorMessage);
+    }
   };
 
   const handleDeletePortfolio = async (portfolioId: number) => {
@@ -331,11 +361,6 @@ export default function ProfileManagement() {
       // Update state immediately to remove portfolio from UI
       const updatedPortfolios = portfolios.filter((p) => p.portfolioId !== portfolioId);
       setPortfolios(updatedPortfolios);
-
-      // If deleted portfolio was primary, reset primary
-      if (primaryPortfolioId === portfolioId) {
-        setPrimaryPortfolioId(null);
-      }
 
       // Show success message
       notify.success("Portfolio đã được xóa thành công!");
@@ -384,19 +409,27 @@ export default function ProfileManagement() {
             <CustomLoading />
           ) : portfolios.length > 0 ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {portfolios.map((portfolio, index) => (
-                <ProfileCard
-                  key={portfolio.portfolioId}
-                  data={portfolio}
-                  onViewDetail={handleViewDetail}
-                  onEdit={handleEdit}
-                  onDelete={handleDeletePortfolio}
-                  isPrimary={primaryPortfolioId === portfolio.portfolioId}
-                  onSetPrimary={handleSetPrimary}
-                  onUnsetPrimary={handleUnsetPrimary}
-                  portfolioCategoryLabel={orderedCategoryLabels[index] ?? "Hồ sơ xin việc"}
-                />
-              ))}
+              {portfolios.map((portfolio, index) => {
+                console.log(`📋 [PortfolioCard] Portfolio #${index}:`, {
+                  portfolioId: portfolio.portfolioId,
+                  isMain: portfolio.isMain,
+                  isPrimaryProp: portfolio.isMain || false,
+                });
+                
+                return (
+                  <ProfileCard
+                    key={portfolio.portfolioId}
+                    data={portfolio}
+                    onViewDetail={handleViewDetail}
+                    onEdit={handleEdit}
+                    onDelete={handleDeletePortfolio}
+                    isPrimary={portfolio.isMain || false}
+                    onSetPrimary={handleToggleMainPortfolio}
+                    onUnsetPrimary={handleToggleMainPortfolio}
+                    portfolioCategoryLabel={orderedCategoryLabels[index] ?? "Hồ sơ xin việc"}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">

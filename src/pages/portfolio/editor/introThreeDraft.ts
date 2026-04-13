@@ -7,6 +7,13 @@ export type IntroThreeDraft = {
   avatar: string;
 };
 
+export type UserInfo = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+};
+
 const toRecord = (value: unknown): Record<string, unknown> => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
@@ -27,11 +34,13 @@ const toText = (value: unknown): string => {
   return "";
 };
 
-export const createIntroThreeDraft = (value: unknown): IntroThreeDraft => {
+export const createIntroThreeDraft = (value: unknown, userInfo?: UserInfo): IntroThreeDraft => {
   const data = toRecord(value);
 
+  const fullName = toText(data.fullName ?? data.name) || toText(userInfo?.fullName) || toText(userInfo?.name) || "";
+
   return {
-    fullName: toText(data.fullName ?? data.name),
+    fullName: fullName,
     school: toText(data.school ?? data.schoolName),
     department: toText(data.department),
     studyField: toText(data.studyField ?? data.title),

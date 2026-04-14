@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, Loader2 } from "lucide-react";
 import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
 import blockIcon from "../../assets/myWeb/block 1.png";
 import deleteIcon from "../../assets/myWeb/delete 1.png";
 import coverImage from "../../assets/testImage/coverImagee.png";
+import { notify } from "@/lib/toast";
 
 interface Message {
   id: number;
@@ -12,7 +13,7 @@ interface Message {
   messageRoomId: number;
   content: string;
   createdAt: string;
-  status: number;
+  status: string | number; // Can be string from API or number from local
 }
 
 interface Conversation {
@@ -30,8 +31,9 @@ interface Conversation {
 interface ChatDetailsProps {
   conversation: Conversation;
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string) => Promise<void>;
   onBack: () => void;
+  currentUserId?: number;
 }
 
 export default function ChatDetails({
@@ -39,13 +41,24 @@ export default function ChatDetails({
   messages,
   onSendMessage,
   onBack,
+  currentUserId,
 }: ChatDetailsProps) {
   const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim()) {
-      onSendMessage(newMessage);
-      setNewMessage("");
+      try {
+        setSending(true);
+        await onSendMessage(newMessage);
+        setNewMessage("");
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Failed to send message";
+        console.error("❌ Error sending message:", errorMsg);
+        notify.error(errorMsg);
+      } finally {
+        setSending(false);
+      }
     }
   };
 
@@ -81,12 +94,12 @@ export default function ChatDetails({
                 <div
                   key={message.id}
                   className={`flex ${
-                    message.userId === 1 ? "justify-end" : "justify-start"
+                    message.userId === currentUserId ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
                     className={`max-w-md px-4 py-2.5 rounded-2xl ${
-                      message.userId === 1
+                      message.userId === currentUserId
                         ? "bg-blue-500 text-white rounded-br-sm"
                         : "bg-white text-gray-900 rounded-bl-sm shadow-sm"
                     }`}
@@ -94,7 +107,7 @@ export default function ChatDetails({
                     <p className="text-sm leading-relaxed">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        message.userId === 1 ? "text-blue-100" : "text-gray-400"
+                        message.userId === currentUserId ? "text-blue-100" : "text-gray-400"
                       }`}
                     >
                       {message.createdAt}
@@ -123,9 +136,10 @@ export default function ChatDetails({
             />
             <button
               onClick={handleSendMessage}
-              className="bg-blue-500 text-white p-2.5 rounded-full hover:bg-blue-600 transition-colors flex items-center justify-center"
+              disabled={sending || !newMessage.trim()}
+              className="bg-blue-500 text-white p-2.5 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             >
-              <Send size={20} />
+              {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
             </button>
           </div>
         </div>

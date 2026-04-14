@@ -142,7 +142,8 @@ export default function OtherCompanyProfilePage() {
                   Nhắn tin
                 </button>
                 <ConnectionButton 
-                  targetUserId={parseInt(userId || "0", 10)} 
+                  targetUserId={parseInt(userId || "0", 10)}
+                  targetUserRole={2}
                 />
               </div>
             </div>

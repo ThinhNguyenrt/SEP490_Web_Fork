@@ -141,7 +141,8 @@ export default function OtherTalentProfilePage() {
                 Nhắn tin
               </button>
               <ConnectionButton 
-                targetUserId={parseInt(userId || "0", 10)} 
+                targetUserId={parseInt(userId || "0", 10)}
+                targetUserRole={1}
               />
             </div>
           </CardContent>

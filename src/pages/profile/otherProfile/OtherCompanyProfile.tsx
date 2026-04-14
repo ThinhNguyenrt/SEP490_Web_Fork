@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { OthersCommunityPost } from "./OthersCommunityPost"; // Tái sử dụng component bài đăng
 import { OthersJobPost } from "./OthersJobPost";
+import ConnectionButton from "@/components/common/ConnectionButton";
 
 interface Company {
   id: number;
@@ -136,9 +137,14 @@ export default function OtherCompanyProfilePage() {
                 </p>
               </div>
 
-              <button className="w-full lg:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
-                Nhắn tin với chúng tôi
-              </button>
+              <div className="flex gap-3 w-full lg:w-auto">
+                <button className="flex-1 lg:flex-none px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
+                  Nhắn tin
+                </button>
+                <ConnectionButton 
+                  targetUserId={parseInt(userId || "0", 10)} 
+                />
+              </div>
             </div>
 
             {/* Hàng 2: Grid chứa Description và Contact Info */}

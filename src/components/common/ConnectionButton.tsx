@@ -8,6 +8,7 @@ import { useAppSelector } from "@/store/hook";
 
 interface ConnectionButtonProps {
   targetUserId: number;
+  targetUserRole: number; // 1 = talent, 2 = recruiter
   portfolioId?: number;
   onConnectionStatusChange?: (connection: Connection | null) => void;
 }
@@ -31,6 +32,7 @@ const normalizeStatus = (status: string | null | undefined): ConnectionStatus | 
  */
 export default function ConnectionButton({
   targetUserId,
+  targetUserRole,
   portfolioId = 0,
   onConnectionStatusChange,
 }: ConnectionButtonProps) {
@@ -41,6 +43,7 @@ export default function ConnectionButton({
   const [error, setError] = useState<string | null>(null);
 
   const currentUserId = user?.id;
+  const currentUserRole = user?.role;
 
   // Check if connection exists on component mount
   useEffect(() => {
@@ -168,6 +171,11 @@ export default function ConnectionButton({
     return null;
   }
 
+  // Don't show button if both are talents
+  if (currentUserRole === 1 && targetUserRole === 1) {
+    return null;
+  }
+
   // Loading state - show spinner
   if (checking) {
     return (
@@ -208,9 +216,23 @@ export default function ConnectionButton({
     );
   }
 
-  // Connection pending - show status
-  // BOTH users see accept/reject buttons when connection is PENDING
+  // Connection pending - show different UI based on who is sender/receiver
+  // If current user is the sender (userIdFrom), only show status message
+  // If current user is the receiver (userIdTo), show accept/reject buttons
   if (connection && normalizeStatus(connection.status as string) === ConnectionStatus.PENDING) {
+    const isSender = connection.userIdFrom === currentUserId;
+
+    if (isSender) {
+      // Sender side: show only status message, no buttons
+      return (
+        <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 border border-amber-300 rounded-2xl">
+          <Loader2 size={16} className="animate-spin text-amber-600" />
+          <span className="text-amber-700 font-black text-sm">Đã gửi yêu cầu kết nối</span>
+        </div>
+      );
+    }
+
+    // Receiver side: show accept/reject buttons
     return (
       <div className="flex gap-2">
         <Button

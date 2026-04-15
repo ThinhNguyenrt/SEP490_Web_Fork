@@ -443,6 +443,51 @@ export const sendMessage = async (
   }
 };
 
+/**
+ * Mark messages in a room as read
+ * @param roomId - ID of the message room
+ * @param accessToken - User's access token
+ * @returns Response with updated count
+ */
+export const markMessageAsRead = async (
+  roomId: number,
+  accessToken: string
+): Promise<{ updated: number }> => {
+  try {
+    console.log(`📖 Marking messages as read in room ${roomId}`);
+    const url = `${API_BASE_URL}/Connection/rooms/${roomId}/mark-read`;
+    console.log("🌐 Request URL:", url);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    console.log("📊 Response Status:", response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ API error response:", errorText);
+      throw new Error(
+        `Failed to mark messages as read: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ Messages marked as read:", data);
+    return data;
+  } catch (error) {
+    const errorMsg =
+      error instanceof Error ? error.message : "Failed to mark messages as read";
+    console.error("❌ Error marking messages as read:", errorMsg);
+    throw error;
+  }
+};
+
 export const connectionService = {
   createConnection,
   getConnections,
@@ -453,4 +498,5 @@ export const connectionService = {
   getRoomSummaries,
   getMessages,
   sendMessage,
+  markMessageAsRead,
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Search, Loader2 } from "lucide-react";
+import { MessageCircle, Search, Loader2, MoreVertical,  CheckCheck } from "lucide-react";
 import ChatDetails from "./ChatDetails";
 import { useAppSelector } from "@/store/hook";
 import { connectionService, ApiMessageResponse } from "@/services/connection.api";
@@ -53,6 +53,8 @@ export default function ChatRoom() {
   const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [markingAsRead, setMarkingAsRead] = useState(false);
   const { user, accessToken } = useAppSelector((state) => state.auth);
 
   // Fetch room summaries on component mount
@@ -206,6 +208,52 @@ export default function ChatRoom() {
     setSelectedConversation(null);
   };
 
+  const handleMarkAsRead = async (conversation: Conversation) => {
+    if (!accessToken) {
+      notify.error("Không có token xác thực");
+      return;
+    }
+
+    try {
+      setMarkingAsRead(true);
+      console.log(`📖 Marking messages as read for room ${conversation.messageRoomId}`);
+      
+      await connectionService.markMessageAsRead(
+        conversation.messageRoomId,
+        accessToken
+      );
+      
+      console.log("✅ Messages marked as read");
+      notify.success("Đã đánh dấu tin nhắn là đã đọc");
+      
+      // Refresh room summaries to update the UI
+      if (user?.id) {
+        const rooms = await connectionService.getRoomSummaries(user.id, accessToken);
+        const conversationList: Conversation[] = rooms.map((room, index) => ({
+          id: index + 1,
+          connectionId: room.roomId,
+          connectionName: room.name,
+          connectionAvatar: room.avatar,
+          lastMessage: room.lastContent || "Không có tin nhắn",
+          lastMessageTime: room.lastAt 
+            ? new Date(room.lastAt).toLocaleString('vi-VN')
+            : "Chưa có",
+          messageRoomId: room.roomId,
+        }));
+
+        setConversations(conversationList);
+      }
+      
+      setOpenMenuId(null);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Không thể đánh dấu tin nhắn";
+      console.error("❌ Error marking as read:", errorMsg);
+      notify.error(errorMsg);
+    } finally {
+      setMarkingAsRead(false);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-80px)] bg-white -mx-4">
       {/* Left Sidebar - Conversations List */}
@@ -238,14 +286,16 @@ export default function ChatRoom() {
             filteredConversations.map((conversation) => (
               <div
                 key={conversation.id}
-                onClick={() => handleSelectConversation(conversation)}
-                className={`px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 ${
+                className={`px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 group relative ${
                   selectedConversation?.id === conversation.id
                     ? "bg-blue-50"
                     : "hover:bg-gray-50"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div 
+                  onClick={() => handleSelectConversation(conversation)}
+                  className="flex items-center gap-3"
+                >
                   <img
                     src={conversation.connectionAvatar}
                     alt={conversation.connectionName}
@@ -259,6 +309,43 @@ export default function ChatRoom() {
                       {conversation.lastMessageTime}
                     </p>
                   </div>
+                </div>
+
+                {/* Three-dot Menu Button */}
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === conversation.id ? null : conversation.id);
+                    }}
+                    className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    <MoreVertical size={18} className="text-gray-600" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {openMenuId === conversation.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setOpenMenuId(null)}
+                      ></div>
+                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-2 overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <button
+                          onClick={() => handleMarkAsRead(conversation)}
+                          disabled={markingAsRead}
+                          className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700"
+                        >
+                          {markingAsRead ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <CheckCheck size={16} />
+                          )}
+                          <span>Đánh dấu là đã đọc</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))

@@ -579,3 +579,240 @@ export const createCompanyPost = async (
     throw new Error("Network error. Please check your internet connection.");
   }
 };
+
+/**
+ * Delete a company job post
+ * @param postId - The ID of the company post to delete
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const deleteCompanyPost = async (
+  postId: number,
+  accessToken?: string
+): Promise<{ message: string }> => {
+  try {
+    console.log("📡 [deleteCompanyPost] Starting for postId:", postId);
+    console.log("📡 [deleteCompanyPost] accessToken provided:", !!accessToken);
+
+    if (!accessToken) {
+      console.warn("⚠️ [deleteCompanyPost] No accessToken provided - API may reject request");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Delete post timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      console.log("📡 [deleteCompanyPost] Authorization header added");
+    }
+
+    const fullUrl = `${API_BASE_URL}/company-posts/${postId}`;
+    console.log("📡 [deleteCompanyPost] Making DELETE request to:", fullUrl);
+    console.log("📡 [deleteCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
+
+    const response = await fetch(fullUrl, {
+      method: "DELETE",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [deleteCompanyPost] Response status:", response.status);
+    console.log("📡 [deleteCompanyPost] Response statusText:", response.statusText);
+    console.log("📡 [deleteCompanyPost] Response OK:", response.ok);
+
+    const contentType = response.headers.get("content-type");
+    console.log("📡 [deleteCompanyPost] Content-Type:", contentType);
+
+    // Check response status first
+    if (!response.ok) {
+      // Try to parse error message if response has JSON body
+      let errorMessage = `Failed to delete post (Status: ${response.status})`;
+      
+      if (contentType?.includes("application/json")) {
+        try {
+          const errorData = await response.json();
+          errorMessage = (errorData as Record<string, unknown>)?.message as string || errorMessage;
+        } catch {
+          // If JSON parse fails, use the default error message
+        }
+      }
+      
+      console.error("❌ [deleteCompanyPost] API returned error:", response.status, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Handle 204 No Content response (successful delete with no body)
+    if (response.status === 204) {
+      console.log("✅ [deleteCompanyPost] Post deleted successfully (204 No Content)");
+      return { message: "Xóa bài đăng thành công" };
+    }
+
+    // For other successful responses (200, 201, etc.), try to parse JSON
+    if (contentType?.includes("application/json")) {
+      try {
+        const data = await response.json();
+        console.log("📡 [deleteCompanyPost] Parsed response data:", data);
+        console.log("✅ [deleteCompanyPost] Post deleted successfully");
+        return data as { message: string };
+      } catch (parseError) {
+        console.error("❌ [deleteCompanyPost] JSON parse error:", parseError);
+        // If parse fails but status is OK, return success message
+        console.log("✅ [deleteCompanyPost] Post deleted successfully (parse error ignored)");
+        return { message: "Xóa bài đăng thành công" };
+      }
+    } else {
+      // Successful response but no JSON content-type
+      console.log("✅ [deleteCompanyPost] Post deleted successfully (no JSON content)");
+      return { message: "Xóa bài đăng thành công" };
+    }
+  } catch (error) {
+    console.error("❌ [deleteCompanyPost] Caught error:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error while deleting post");
+  }
+};
+
+/**
+ * Update an existing company job post
+ * @param postId - The ID of the company post to update
+ * @param postData - Post data containing position, salary, description, etc
+ * @param files - Array of media files (images/videos) - optional, only if updating media
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const updateCompanyPost = async (
+  postId: number,
+  postData: {
+    position: string;
+    address: string;
+    salary: string;
+    employmentType: string;
+    experienceYear?: number;
+    quantity?: number;
+    jobDescription: string;
+    requirementsMandatory: string;
+    requirementsPreferred: string;
+    benefits: string;
+    status: number;
+  },
+  files?: File[],
+  accessToken?: string
+): Promise<{ postId: number; message: string }> => {
+  try {
+    console.log("📡 [updateCompanyPost] Starting with postId:", postId, "data:", postData);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Update post timeout after 60 seconds");
+      controller.abort();
+    }, 60000);
+
+    const headers: Record<string, string> = {};
+
+    // Add authorization header if token is provided
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    let body: FormData | string;
+    const hasFiles = files && files.length > 0;
+
+    if (hasFiles) {
+      // If there are files, use FormData (multipart/form-data)
+      console.log("📡 [updateCompanyPost] Sending with files as FormData");
+      const formData = new FormData();
+      formData.append("postJson", JSON.stringify(postData));
+      files.forEach((file) => {
+        formData.append(`files`, file);
+      });
+      body = formData;
+      // Don't set Content-Type header - let browser set it for multipart/form-data
+    } else {
+      // If no files, send as JSON (application/json)
+      console.log("📡 [updateCompanyPost] Sending without files as JSON");
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(postData);
+    }
+
+    const fullUrl = `${API_BASE_URL}/company-posts/${postId}`;
+    console.log("📡 Making PUT request to:", fullUrl);
+    console.log("📡 Headers:", headers);
+
+    const response = await fetch(fullUrl, {
+      method: "PUT",
+      headers: headers,
+      body: body,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Update post API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    // Check response status first
+    if (!response.ok) {
+      // Try to parse error message if response has JSON body
+      let errorMessage = `Failed to update post (Status: ${response.status})`;
+      
+      if (contentType?.includes("application/json")) {
+        try {
+          const errorData = await response.json();
+          errorMessage = (errorData as Record<string, unknown>)?.message as string || errorMessage;
+        } catch {
+          // If JSON parse fails, use the default error message
+        }
+      }
+      
+      console.error("❌ Update post error:", response.status, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Handle 204 No Content response (successful update with no body)
+    if (response.status === 204) {
+      console.log("✅ Company post updated successfully (204 No Content)");
+      return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+    }
+
+    // For other successful responses (200, 201, etc.), try to parse JSON
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 Response data:", data);
+        console.log("✅ Company post updated successfully:", (data as Record<string, unknown>)?.postId);
+        return data as { postId: number; message: string };
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        // If parse fails but status is OK, return success message
+        console.log("✅ Company post updated successfully (parse error ignored)");
+        return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+      }
+    } else {
+      // Successful response but no JSON content-type
+      console.log("✅ Company post updated successfully (no JSON content)");
+      return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+    }
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error("Cannot connect to server. Please check your internet connection.");
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your internet connection.");
+  }
+};

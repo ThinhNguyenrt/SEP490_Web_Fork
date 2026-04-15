@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, ArrowLeft, Loader2 } from "lucide-react";
+import { Send, ArrowLeft, Loader2, CheckCheck, Check } from "lucide-react";
 import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
 import blockIcon from "../../assets/myWeb/block 1.png";
@@ -90,31 +90,56 @@ export default function ChatDetails({
         <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50">
           {messages.length > 0 ? (
             <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.userId === currentUserId ? "justify-end" : "justify-start"
-                  }`}
-                >
+              {messages.map((message) => {
+                const isOwnMessage = message.userId === currentUserId;
+                const isRead = message.status && String(message.status).toUpperCase() !== "UNREAD";
+                
+                return (
                   <div
-                    className={`max-w-md px-4 py-2.5 rounded-2xl ${
-                      message.userId === currentUserId
-                        ? "bg-blue-500 text-white rounded-br-sm"
-                        : "bg-white text-gray-900 rounded-bl-sm shadow-sm"
-                    }`}
+                    key={message.id}
+                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        message.userId === currentUserId ? "text-blue-100" : "text-gray-400"
-                      }`}
-                    >
-                      {message.createdAt}
-                    </p>
+                    <div className="flex items-end gap-2 max-w-md group">
+                      <div
+                        className={`flex-1 px-4 py-2.5 rounded-2xl ${
+                          isOwnMessage
+                            ? "bg-blue-500 text-white rounded-br-sm"
+                            : "bg-white text-gray-900 rounded-bl-sm shadow-sm"
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p
+                          className={`text-xs mt-1 flex items-center gap-1.5 ${
+                            isOwnMessage ? "text-blue-100" : "text-gray-400"
+                          }`}
+                        >
+                          {message.createdAt}
+                          {isOwnMessage && (
+                            <span className="ml-1">
+                              {isRead ? (
+                                <CheckCheck size={12} className="inline" />
+                              ) : (
+                                <Check size={12} className="inline" />
+                              )}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      {/* Read Status Indicator */}
+                      {isOwnMessage && (
+                        <div title={isRead ? "Đã đọc" : "Chưa đọc"} className="flex-shrink-0">
+                          {isRead ? (
+                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
+                          ) : (
+                            <div className="w-2 h-2 bg-gray-300 rounded-full shadow-sm"></div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-center text-gray-400 mt-8">

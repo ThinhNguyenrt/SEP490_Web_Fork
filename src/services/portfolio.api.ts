@@ -6,6 +6,12 @@ export type PortfolioBlock = {
   data: any;
 };
 
+export type Ranking = {
+  totalScore: number;
+  averageScore: number;
+  rankPosition: number;
+};
+
 export type PortfolioResponse = {
   portfolioId: number;
   userId: number;
@@ -28,6 +34,7 @@ export type PortfolioMainBlockItem = {
   isPublic?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  ranking?: Ranking;
   blocks: PortfolioBlock;
 };
 
@@ -52,6 +59,7 @@ export type PortfolioAPIResponse = {
   createdAt: string;
   updatedAt?: string;
   createdByName: string | null;
+  ranking?: Ranking;
   blocks: PortfolioBlock[];
 };
 
@@ -908,6 +916,11 @@ export const PORTFOLIO_MOCK_Main_Block: PortfolioMainBlockItem = {
     name: "Portfolio Frontend Developer",
     status: 1,
   },
+  ranking: {
+    totalScore: 0,
+    averageScore: 0,
+    rankPosition: 1,
+  },
   blocks: {
     id: 101,
     type: "INTRO",
@@ -934,6 +947,11 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
       name: "Portfolio Frontend Developer",
       status: 1,
     },
+    ranking: {
+      totalScore: 0,
+      averageScore: 0,
+      rankPosition: 1,
+    },
     blocks: PORTFOLIO_MOCK_Main_Block.blocks,
   },
 
@@ -944,6 +962,11 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
     portfolio: {
       name: "Portfolio Mobile Developer",
       status: 0,
+    },
+    ranking: {
+      totalScore: 0,
+      averageScore: 0,
+      rankPosition: 2,
     },
     blocks: {
       id: 201,
@@ -970,6 +993,11 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
       name: "Portfolio number three",
       status: 0,
     },
+    ranking: {
+      totalScore: 0,
+      averageScore: 0,
+      rankPosition: 3,
+    },
     blocks: {
       id: 301,
       type: "INTRO",
@@ -992,6 +1020,11 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
       name: "Portfolio number four",
       status: 0,
     },
+    ranking: {
+      totalScore: 0,
+      averageScore: 0,
+      rankPosition: 4,
+    },
     blocks: {
       id: 20001,
       type: "INTRO",
@@ -1012,6 +1045,11 @@ export const PORTFOLIO_LIST_MOCK: PortfolioMainBlockItem[] = [
     portfolio: {
       name: "Portfolio number five",
       status: 0,
+    },
+    ranking: {
+      totalScore: 0,
+      averageScore: 0,
+      rankPosition: 5,
     },
     blocks: {
       id: 3001,
@@ -2201,6 +2239,138 @@ export const fetchPortfoliosByEmployeeId = async (
   }
 };
 
+// Fetch main portfolio by employee ID from real API
+export const fetchMainPortfolioByEmployeeId = async (
+  employeeId: number,
+  accessToken: string,
+): Promise<PortfolioResponse | undefined> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [fetchMainPortfolioByEmployeeId] Starting...");
+    console.log("📡 Employee ID:", employeeId);
+    console.log("📡 API Base URL:", API_BASE_URL);
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!employeeId) {
+      console.error("❌ No employee ID provided!");
+      throw new Error("Employee ID is required");
+    }
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Portfolio fetch timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    console.log("📋 Request headers prepared");
+
+    const response = await fetch(
+      `${API_BASE_URL}/portfolio/employee/${employeeId}/main`,
+      {
+        method: "GET",
+        headers: headers,
+        signal: controller.signal,
+        credentials: "include",
+      },
+    );
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [fetchMainPortfolioByEmployeeId] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Handle 404 Not Found (no main portfolio)
+    if (response.status === 404) {
+      console.warn("⚠️ No main portfolio found for employee:", employeeId);
+      return undefined;
+    }
+
+    // Try to parse JSON if possible
+    if (contentType?.includes("application/json") && responseText && responseText.trim().length > 0) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 Parsed response data");
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Portfolio fetch error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Handle API response structure
+    if (data) {
+      // If response is wrapped (e.g., { data: {...} })
+      const portfolioData = data.data || data;
+
+      // Normalize API response to PortfolioResponse format
+      const normalized: PortfolioResponse = {
+        portfolioId: portfolioData.portfolioId,
+        userId: portfolioData.employeeId || portfolioData.userId,
+        blocks: Array.isArray(portfolioData.blocks) ? portfolioData.blocks : [],
+        portfolioName: portfolioData.portfolioName || portfolioData.name,
+      };
+
+      console.log(
+        "✅ Main portfolio fetched successfully:",
+        normalized.portfolioId,
+        "Name:",
+        normalized.portfolioName,
+      );
+      return normalized;
+    }
+
+    return undefined;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 // ============================================================================
 // REFACTORED IMAGE STORE - Uses file names as keys for consistency
 // ============================================================================
@@ -2990,6 +3160,59 @@ export const toggleMainPortfolio = async (
   }
 };
 
+export const togglePublicPortfolio = async (
+  portfolioId: number,
+  accessToken: string,
+): Promise<PortfolioAPIResponse> => {
+  try {
+    const API_BASE_URL =
+      import.meta.env.VITE_API_BASE_URL || "/api";
+    
+    const endpoint = `${API_BASE_URL}/portfolio/${portfolioId}/toggle-public`;
+    console.log("📡 [togglePublicPortfolio] Endpoint:", endpoint);
+    console.log("🔐 [togglePublicPortfolio] Token available:", !!accessToken);
+    
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    console.log("📡 [togglePublicPortfolio] Response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.message || `Failed to toggle portfolio public status (${response.status})`;
+      console.error("❌ [togglePublicPortfolio] Failed:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log("✅ [togglePublicPortfolio] Success:", data);
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -2999,6 +3222,7 @@ export const portfolioService = {
   fetchMainPortfoliosManagerByUser,
   fetchMyPortfolios,
   fetchPortfoliosByEmployeeId,
+  fetchMainPortfolioByEmployeeId,
   fetchAllPortfolios,
   createPortfolioAPI,
   updatePortfolioAPI,
@@ -3007,6 +3231,7 @@ export const portfolioService = {
   uploadPortfolioImage,
   deletePortfolio,
   toggleMainPortfolio,
+  togglePublicPortfolio,
   storePortfolioImageFile,
   createPreviewUrl,
   revokePreviewUrl,

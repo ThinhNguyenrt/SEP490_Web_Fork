@@ -28,6 +28,9 @@ const ProfileCard = ({
   isPrimary,
   onSetPrimary,
   onUnsetPrimary,
+  isPublic,
+  onSetPublic,
+  onUnsetPublic,
   portfolioCategoryLabel,
 }: {
   data: PortfolioMainBlockItem;
@@ -37,6 +40,9 @@ const ProfileCard = ({
   isPrimary: boolean;
   onSetPrimary: (portfolioId: number) => void;
   onUnsetPrimary: (portfolioId: number) => void;
+  isPublic: boolean;
+  onSetPublic: (portfolioId: number) => void;
+  onUnsetPublic: (portfolioId: number) => void;
   portfolioCategoryLabel: string;
 }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -106,6 +112,15 @@ const ProfileCard = ({
                   </button>
                 )}
                 <div className="border-t border-slate-100  my-1"></div>
+                <button
+                  onClick={() => {
+                    isPublic ? onUnsetPublic(data.portfolioId) : onSetPublic(data.portfolioId);
+                    setShowMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50  cursor-pointer"
+                >
+                  <Eye size={14} /> {isPublic ? "Hủy" : "Đặt"} công khai
+                </button>
                 <button
                   onClick={() => {
                     onViewDetail(data.portfolioId);
@@ -337,6 +352,55 @@ export default function ProfileManagement() {
     }
   };
 
+  const handleTogglePublicPortfolio = async (portfolioId: number) => {
+    try {
+      const tokenToUse = accessToken || localStorage.getItem("access_token");
+      
+      if (!tokenToUse) {
+        notify.error("Vui lòng đăng nhập để thay đổi chế độ công khai");
+        navigate("/login");
+        return;
+      }
+
+      // Call toggle public API
+      const updatedPortfolioData = await portfolioService.togglePublicPortfolio(
+        portfolioId,
+        tokenToUse,
+      );
+
+      console.log("✅ [handleTogglePublicPortfolio] Response data:", updatedPortfolioData);
+      console.log("✅ [handleTogglePublicPortfolio] isPublic value:", updatedPortfolioData.isPublic);
+
+      // Update the portfolio in the list with all fields from response, keep original blocks
+      setPortfolios((prevPortfolios) =>
+        prevPortfolios.map((p) =>
+          p.portfolioId === portfolioId
+            ? {
+                ...p,
+                isMain: updatedPortfolioData.isMain,
+                isPublic: updatedPortfolioData.isPublic,
+                status: updatedPortfolioData.status,
+                updatedAt: updatedPortfolioData.updatedAt,
+                portfolioName: updatedPortfolioData.portfolioName,
+                // Keep the original blocks to avoid losing display data
+              }
+            : p,
+        ),
+      );
+
+      console.log("✅ [handleTogglePublicPortfolio] State updated");
+
+      // Show success message
+      const action = updatedPortfolioData.isPublic ? "Đặt" : "Hủy";
+      notify.success(`${action} công khai thành công!`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Không thể thay đổi chế độ công khai";
+      console.error("❌ Error toggling public portfolio:", errorMessage);
+      notify.error(errorMessage);
+    }
+  };
+
   const handleDeletePortfolio = async (portfolioId: number) => {
     try {
       const confirmed = window.confirm(
@@ -426,6 +490,9 @@ export default function ProfileManagement() {
                     isPrimary={portfolio.isMain || false}
                     onSetPrimary={handleToggleMainPortfolio}
                     onUnsetPrimary={handleToggleMainPortfolio}
+                    isPublic={portfolio.isPublic || false}
+                    onSetPublic={handleTogglePublicPortfolio}
+                    onUnsetPublic={handleTogglePublicPortfolio}
                     portfolioCategoryLabel={orderedCategoryLabels[index] ?? "Hồ sơ xin việc"}
                   />
                 );

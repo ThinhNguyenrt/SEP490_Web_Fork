@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { ChevronLeft, ChevronRight, Plus, MessageSquare } from "lucide-react";
 import { Button } from "../../../components/ui/button";
@@ -53,6 +53,8 @@ const extractPortfolioMetadata = (portfolio: PortfolioMainBlockItem): PortfolioM
 };
 
 export default function RecruiterHome() {
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filters, setFilters] = useState({
     position: '',
@@ -67,13 +69,28 @@ export default function RecruiterHome() {
   const [skillInput, setSkillInput] = useState("");
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
-  const [commentedPortfolios, setCommentedPortfolios] = useState<Set<number>>(new Set());
   const [savedPortfolios, setSavedPortfolios] = useState<Set<number>>(new Set());
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
+  // Load saved portfolios to restrict duplicate saves
+  const loadSavedPortfolios = useCallback(async (token: string | null) => {
+    try {
+      if (!token) return;
+
+      console.log("📡 Loading saved portfolios...");
+      const savedData = await portfolioService.fetchSavedPortfolios(token);
+      const savedIds = new Set(savedData.map((p: any) => p.portfolioId));
+      setSavedPortfolios(savedIds);
+      console.log("✅ Loaded saved portfolio IDs:", savedIds);
+    } catch (error) {
+      console.warn("⚠️ Could not load saved portfolios:", error);
+      // Don't fail if we can't load saved portfolios, just continue
+    }
+  }, []);
+
   // Load all portfolios (no pagination - load all at once)
-  const loadPortfolios = async () => {
+  const loadPortfolios = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -109,7 +126,7 @@ export default function RecruiterHome() {
       setCurrentIndex(0);
 
       // Load saved portfolios to check which ones are already saved
-      await loadSavedPortfolios();
+      await loadSavedPortfolios(accessToken);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to load portfolios";
       console.error("❌ Error loading portfolios:", errorMsg);
@@ -119,29 +136,12 @@ export default function RecruiterHome() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Load saved portfolios to restrict duplicate saves
-  const loadSavedPortfolios = async () => {
-    try {
-      const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-      if (!accessToken) return;
-
-      console.log("📡 Loading saved portfolios...");
-      const savedData = await portfolioService.fetchSavedPortfolios(accessToken);
-      const savedIds = new Set(savedData.map((p: any) => p.portfolioId));
-      setSavedPortfolios(savedIds);
-      console.log("✅ Loaded saved portfolio IDs:", savedIds);
-    } catch (error) {
-      console.warn("⚠️ Could not load saved portfolios:", error);
-      // Don't fail if we can't load saved portfolios, just continue
-    }
-  };
+  }, [accessToken, loadSavedPortfolios]);
 
   // Load all portfolios on component mount
   useEffect(() => {
     loadPortfolios();
-  }, []);
+  }, [loadPortfolios]);
 
   const handleNext = () => {
     if (currentIndex < filteredPortfolios.length - 1) {
@@ -172,7 +172,7 @@ export default function RecruiterHome() {
     
     try {
       // Use all portfolios that are already loaded
-      let portfoliosToFilter = allPortfolios;
+      const portfoliosToFilter = allPortfolios;
       
       setTimeout(() => {
         let results = portfoliosToFilter;
@@ -233,10 +233,8 @@ export default function RecruiterHome() {
     }
   };
 
-  const handleCommentSuccess = (portfolioId: number) => {
-    console.log("✅ Comment submitted successfully for portfolio:", portfolioId);
-    // Mark this portfolio as commented
-    setCommentedPortfolios(prev => new Set([...prev, portfolioId]));
+  const handleCommentSuccess = () => {
+    console.log("✅ Comment submitted/updated successfully");
     // Close the comment modal
     setIsCommentModalOpen(false);
   };
@@ -481,7 +479,7 @@ export default function RecruiterHome() {
             onClose={() => setIsCommentModalOpen(false)}
             portfolioId={currentPortfolio.portfolioId}
             onSuccess={() => {
-              handleCommentSuccess(currentPortfolio.portfolioId);
+              handleCommentSuccess();
             }}
           />
         )}
@@ -493,7 +491,6 @@ export default function RecruiterHome() {
             onClose={() => setIsBookmarkModalOpen(false)}
             portfolioId={currentPortfolio.portfolioId}
             isAlreadySaved={savedPortfolios.has(currentPortfolio.portfolioId)}
-            isAlreadyCommented={commentedPortfolios.has(currentPortfolio.portfolioId)}
             onSuccess={() => {
               // Mark as saved
               setSavedPortfolios(prev => new Set([...prev, currentPortfolio.portfolioId]));

@@ -11,7 +11,6 @@ interface BookmarkModalProps {
   portfolioId: number;
   onSuccess: () => void;
   isAlreadySaved?: boolean;
-  isAlreadyCommented?: boolean;
 }
 
 type InterestLevel = "LOW" | "MEDIUM" | "HIGH";
@@ -22,14 +21,13 @@ const BookmarkModal = ({
   portfolioId,
   onSuccess,
   isAlreadySaved = false,
-  isAlreadyCommented = false,
 }: BookmarkModalProps) => {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [interestLevel, setInterestLevel] = useState<InterestLevel>("MEDIUM");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if portfolio is restricted (already saved AND commented)
-  const isRestricted = isAlreadySaved && isAlreadyCommented;
+  // Portfolio can only be saved once
+  const isRestricted = isAlreadySaved;
 
   useEffect(() => {
     if (isOpen) {

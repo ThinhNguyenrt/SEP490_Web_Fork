@@ -4,7 +4,6 @@ import { Check, Crown, Star, Zap } from "lucide-react";
 
 const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const isPro = plan.name === "Pro";
-  const isPremium = plan.name === "Premium";
 
   return (
     <div

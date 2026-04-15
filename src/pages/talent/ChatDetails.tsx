@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send, ArrowLeft, Loader2, CheckCheck, Check } from "lucide-react";
 import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
@@ -21,11 +21,24 @@ interface Conversation {
   connectionId: number;
   connectionName: string;
   connectionAvatar: string;
+  connectionCoverImage?: string;
   lastMessage: string;
   lastMessageTime: string;
   description: string;
   connectionRole: string; // Thêm role của người kết nối
   messageRoomId: number; // ID chung cho cả hai bên để đồng bộ tin nhắn
+}
+
+interface UserProfile {
+  id: number;
+  userId: number;
+  email: string;
+  status: string;
+  createAt: string;
+  name: string;
+  phone: string;
+  coverImage: string;
+  avatar: string;
 }
 
 interface ChatDetailsProps {
@@ -45,6 +58,22 @@ export default function ChatDetails({
 }: ChatDetailsProps) {
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [connectionProfile, setConnectionProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // Fetch user profile of connection when conversation changes
+  useEffect(() => {
+    console.log("📋 Full conversation object:", conversation);
+    
+    const fetchConnectionProfile = async () => {
+      // For now, we'll use the testImage as fallback until backend provides full user data with cover image
+      // Once Connection API returns userId, we can fetch the complete profile
+      console.log("ℹ️ connectionId:", conversation.connectionId, "is Connection ID, not userId");
+      console.log("✅ Using default cover image until API provides user profile data");
+    };
+
+    fetchConnectionProfile();
+  }, [conversation.connectionId]);
 
   const handleSendMessage = async () => {
     if (newMessage.trim()) {
@@ -128,12 +157,10 @@ export default function ChatDetails({
                       
                       {/* Read Status Indicator */}
                       {isOwnMessage && (
-                        <div title={isRead ? "Đã đọc" : "Chưa đọc"} className="flex-shrink-0">
-                          {isRead ? (
-                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
-                          ) : (
-                            <div className="w-2 h-2 bg-gray-300 rounded-full shadow-sm"></div>
-                          )}
+                        <div className="flex-shrink-0 text-xs">
+                          <span className={isRead ? "text-black font-medium" : "text-gray-400 font-medium"}>
+                            {isRead ? "Đã đọc" : "Đã gửi"}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -177,7 +204,7 @@ export default function ChatDetails({
           {/* Cover Image with padding */}
           <div className="relative w-full h-[120px] rounded-xl overflow-hidden">
             <img
-              src={coverImage}
+              src={connectionProfile?.coverImage || coverImage}
               alt="Cover"
               className="w-full h-full object-cover"
             />

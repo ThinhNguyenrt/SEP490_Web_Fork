@@ -11,6 +11,8 @@ export interface Application {
   applicationId: number;
   status: ApplicationStatus;
   appliedAt: string;
+  portfolioId?: number;
+  roomId?: number | null;
   post: {
     postId: number;
     position: string;
@@ -21,10 +23,21 @@ export interface Application {
       url: string;
     }>;
   };
-  company: {
+  company?: {
     companyId: number;
     companyName: string;
     logo: string;
+  };
+  candidate?: {
+    userId: number;
+    name: string;
+    avatar?: string;
+  };
+  recruiter?: {
+    userId: number;
+    companyId?: number;
+    name?: string;
+    avatar?: string;
   };
 }
 

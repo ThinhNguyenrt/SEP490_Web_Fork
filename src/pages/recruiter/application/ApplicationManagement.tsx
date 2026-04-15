@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   Banknote,
   Clock,
-  MessageCircle,
   MoreVertical,
   Plus,
 } from "lucide-react";
@@ -186,23 +185,7 @@ export default function ApplicationManagement() {
         const response = await getCompanyApplications(currentPage, pageSize, accessToken);
         console.log("✅ Company applications fetched:", response);
 
-        // Enrich applications with full details
-        console.log("🔄 Enriching applications with full details...");
-        const enrichedApps = await Promise.all(
-          response.items.map(async (app) => {
-            try {
-              const detailedApp = await getApplicationDetail(app.applicationId, accessToken);
-              console.log(`✅ Enriched application ${app.applicationId}:`, detailedApp);
-              return detailedApp;
-            } catch (err) {
-              console.error(`❌ Failed to enrich application ${app.applicationId}:`, err);
-              // Return original app if detail fetch fails
-              return app;
-            }
-          })
-        );
-
-        setApplications(enrichedApps || []);
+        setApplications(response.items || []);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Không thể tải quản lý ứng tuyển";
         console.error("❌ Error fetching applications:", errorMessage);
@@ -400,10 +383,18 @@ export default function ApplicationManagement() {
                       >
                         <div className="flex items-start gap-4">
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-b from-slate-300 to-slate-100">
+                          {app?.candidate?.avatar ? (
+                            <img 
+                              src={app.candidate.avatar} 
+                              alt={app.candidate.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
                             <span className="text-2xl font-medium text-slate-500">
-                              A
+                              {app?.candidate?.name?.charAt(0).toUpperCase() || "A"}
                             </span>
-                          </div>
+                          )}
+                        </div>
 
                           <div className="min-w-0 flex-1 space-y-2">
                             {/* Header: Position, Status, and Menu */}
@@ -413,7 +404,7 @@ export default function ApplicationManagement() {
                                   {(app?.post?.position && app.post.position.trim()) ? app.post.position : "Vị trí công việc"}
                                 </h3>
                                 <p className="text-xs font-medium text-slate-500">
-                                  {(app?.company?.companyName && app.company.companyName.trim()) ? app.company.companyName : "Công ty"}
+                                  {(app?.candidate?.name && app.candidate.name.trim()) ? app.candidate.name : "Ứng viên"}
                                 </p>
                               </div>
 
@@ -460,17 +451,13 @@ export default function ApplicationManagement() {
                                 type="button"
                                 size="sm"
                                 className="h-7 rounded-lg bg-blue-500 px-3 text-xs font-semibold text-white hover:bg-blue-600"
+                                onClick={() => {
+                                  if (app?.candidate?.userId) {
+                                    navigate(`/profile/${app.candidate.userId}`);
+                                  }
+                                }}
                               >
                                 Xem hồ sơ
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-7 rounded-lg border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                              >
-                                <MessageCircle size={12} />
-                                Nhắn tin
                               </Button>
                             </div>
                           </div>

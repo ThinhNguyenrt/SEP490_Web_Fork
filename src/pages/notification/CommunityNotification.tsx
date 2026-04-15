@@ -2,7 +2,7 @@ import { useAppSelector } from "@/store/hook";
 import { UserNotification } from "@/types/notification";
 import { formatTimeAgo } from "@/utils/FormatTime";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 const CommunityNotification = () => {
@@ -117,7 +117,38 @@ const CommunityNotification = () => {
       fetchUnreadCount();
     }
   }, [accessToken]);
+  const observerTarget = useRef(null);
 
+  // Dùng useCallback để hàm không bị khởi tạo lại vô ích
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loading && nextCursor) {
+      fetchNotifications(nextCursor);
+    }
+  }, [hasMore, loading, nextCursor, fetchNotifications]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "100px", // Tải trước khi người dùng cuộn tới hẳn đáy 100px
+      },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [handleLoadMore]);
   return (
     <div className="max-w-2xl mx-auto space-y-3">
       <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-xl border border-blue-100 sticky top-52 z-50 shadow-md">
@@ -178,12 +209,14 @@ const CommunityNotification = () => {
             {/* Content Section */}
             <div className="flex-grow">
               <p className="text-gray-700 text-sm leading-snug">
-                {notif.actor?.name && (
+                {/* {notif.actor?.name && (
                   <span className="font-bold text-gray-900 mr-1">
                     {notif.actor.name}
                   </span>
-                )}
-                {notif.content}
+                )} */}
+                <span className="font-bold text-gray-900 mr-1">
+                  {notif.content}
+                </span>
               </p>
               <span className="text-xs text-gray-500 mt-1 block">
                 {formatTimeAgo(notif.createdAt)}
@@ -198,7 +231,7 @@ const CommunityNotification = () => {
       </div>
 
       {/* Loading & Load More Section */}
-      <div className="py-4 flex justify-center">
+      {/* <div className="py-4 flex justify-center">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center text-gray-500">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
@@ -212,6 +245,24 @@ const CommunityNotification = () => {
             >
               Xem thêm thông báo
             </button>
+          )
+        )}
+      </div> */}
+      <div className="py-4 flex justify-center">
+        {/* Thẻ div này đóng vai trò điểm neo */}
+        <div ref={observerTarget} className="h-1" />
+
+        {loading ? (
+          <div className="py-10 flex flex-col items-center justify-center text-gray-500 w-full">
+            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <p className="text-sm">Đang tải thông báo...</p>
+          </div>
+        ) : (
+          !hasMore &&
+          notifications.length > 0 && (
+            <p className="text-center text-gray-400 py-4 text-xs">
+              Bạn đã xem hết tất cả thông báo.
+            </p>
           )
         )}
       </div>

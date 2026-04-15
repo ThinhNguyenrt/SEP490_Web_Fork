@@ -11,6 +11,7 @@ export const useUserProfile = () => {
     taxIdentification?: string;
     address?: string;
     description?: string;
+    planName?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,6 +46,7 @@ export const useUserProfile = () => {
             displayName: data.fullName || data.name || "N/A",
             avatar: data.avatar,
             coverImage: data.coverImage,
+            planName: "Pro",
           });
         } else if (user?.role === 2) {
           setProfile({
@@ -56,6 +58,7 @@ export const useUserProfile = () => {
             taxIdentification: data.taxIdentification,
             address: data.address,
             description: data.description,
+            planName: "Premium",
           });
         }
       }

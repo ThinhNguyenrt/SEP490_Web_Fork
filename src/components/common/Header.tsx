@@ -1,4 +1,12 @@
-import { Home, Users, MessageSquare, Bell, Library } from "lucide-react";
+import {
+  Home,
+  Users,
+  MessageSquare,
+  Bell,
+  Library,
+  Crown,
+  Zap,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -16,17 +24,38 @@ export function Header() {
 
   // Danh sách các tab điều hướng trung tâm
   const allNavItems = [
-    { icon: Library, label: "Giới thiệu", href: "/", public: true },
-    { icon: Home, label: "Trang chủ", href: homeHref, public: false },
-    { icon: Users, label: "Cộng đồng", href: "/community", public: false },
-    { icon: MessageSquare, label: "Tin nhắn", href: "/chat", public: false },
-    { icon: Bell, label: "Thông báo", href: "/notification", public: false },
+    { icon: Library, label: "Giới thiệu", href: "/", hideOnLogin: true },
+
+    { icon: Home, label: "Trang chủ", href: homeHref, requireAuth: true },
+    {
+      icon: Crown,
+      label: "Gói cước",
+      href: "/subscription",
+      requireAuth: true,
+    },
+    { icon: Users, label: "Cộng đồng", href: "/community", requireAuth: true },
+    {
+      icon: MessageSquare,
+      label: "Tin nhắn",
+      href: "/chat",
+      requireAuth: true,
+    },
+    {
+      icon: Bell,
+      label: "Thông báo",
+      href: "/notification",
+      requireAuth: true,
+    },
   ];
 
-  // Lọc items: Nếu chưa login chỉ hiện các item có public: true
-  const visibleNavItems = allNavItems.filter(
-    (item) => isLoggedIn || item.public,
-  );
+  const visibleNavItems = allNavItems.filter((item) => {
+    if (isLoggedIn) {
+      // Nếu đã login: Ẩn các tab có hideOnLogin, hiện các tab còn lại (alwaysShow hoặc requireAuth)
+      return !item.hideOnLogin;
+    }
+    // Nếu chưa login: Chỉ hiện các tab KHÔNG yêu cầu auth (Giới thiệu & Gói cước)
+    return !item.requireAuth;
+  });
 
   return (
     <header className="h-16 border-b border-slate-100 bg-white px-8 flex items-center justify-between sticky top-0 z-50">
@@ -92,27 +121,57 @@ export function Header() {
             </div>
 
             {/* Bọc Avatar vào một div relative inline-block để định vị tick xanh */}
-            <div className="relative inline-block">
-              <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-4 group-hover:ring-blue-500/10 transition-all object-cover rounded-full">
+            <div className="relative inline-block group">
+              {/* 1. HIỂN THỊ HUY HIỆU GÓI CƯỚC (ĐỘI NGHIÊNG GÓC 45 ĐỘ) */}
+              {isLoggedIn && profile?.planName && (
+                <div
+                  className={cn(
+                    "absolute z-10 transition-all duration-300",
+                    // Tọa độ: Đẩy lên trên (-top-3) và lệch sang phải (-right-1)
+                    "-top-1.5 -right-2",
+                    // Xoay nhẹ icon để tạo cảm giác đội vương miện nghiêng
+                    "rotate-[35deg] group-hover:rotate-[25deg] group-hover:scale-110",
+                  )}
+                >
+                  {profile.planName === "Premium" ? (
+                    <div className="bg-yellow-400 text-white p-0.5 rounded-md shadow-[0_4px_12px_rgba(234,179,8,0.5)] border-[1.5px] border-white">
+                      <Crown size={14} fill="currentColor" strokeWidth={2.5} />
+                    </div>
+                  ) : profile.planName === "Pro" ? (
+                    <div className="bg-blue-600 text-white p-0.5 rounded-md shadow-[0_4px_12px_rgba(37,99,235,0.5)] border-[1.5px] border-white">
+                      <Zap size={14} fill="currentColor" strokeWidth={2.5} />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* 2. AVATAR CHÍNH */}
+              <Avatar
+                className={cn(
+                  "h-10 w-10 border-2 shadow-sm transition-all duration-300 rounded-full overflow-hidden bg-white",
+                  profile?.planName === "Premium"
+                    ? "border-yellow-400 ring-2 ring-yellow-400/10"
+                    : profile?.planName === "Pro"
+                      ? "border-blue-500 ring-2 ring-blue-500/10"
+                      : "border-white",
+                )}
+              >
                 <AvatarImage
                   src={profile?.avatar || "/user_placeholder.png"}
                   alt={profile?.displayName || "User"}
-                  // Đảm bảo ảnh cover hết diện tích hình tròn
                   className="object-cover w-full h-full"
                 />
-                <AvatarFallback className="bg-slate-200 text-slate-600 font-bold text-sm">
-                  {/* Tự động lấy 2 chữ cái đầu của tên */}
-                  {profile?.displayName?.slice(0, 2).toUpperCase() || "US"}
+                <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs uppercase">
+                  {profile?.displayName?.slice(0, 2) || "US"}
                 </AvatarFallback>
               </Avatar>
 
-              {/* Hiển thị tick xanh tuyệt đối: Phải - Dưới nếu role là COMPANY */}
-              {user?.companyId === 2 && (
-                <div className="absolute -bottom-0.5 -right-0.5 transform">
+              {/* 3. TICK XANH CHO DOANH NGHIỆP (VẪN GIỮ Ở GÓC DƯỚI) */}
+              {user?.role === 2 && (
+                <div className="absolute -bottom-0.5 -right-0.5 transform z-20">
                   <img
                     src="/blue-tick-company.png"
                     alt="Verified"
-                    // w-4 h-4 là kích thước cân đối nhất cho Avatar w-10
                     className="w-4 h-4 bg-white rounded-full border border-white shadow-sm"
                   />
                 </div>

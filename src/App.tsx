@@ -115,7 +115,9 @@ const OtherCompanyProfilePage = lazy(
 const PortfolioRanking = lazy(
   () => import("./pages/ranking/PortfolioRanking"),
 );
-
+const SubscriptionPage = lazy(
+  () => import("./pages/subscription/SubscriptionPage"),
+);
 function App() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
@@ -192,6 +194,7 @@ function App() {
             <Route path="/chat" element={<ChatRoom />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ranking" element={<PortfolioRanking />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
             <Route
               path="/profile/:userId"
               element={<OtherTalentProfilePage />}

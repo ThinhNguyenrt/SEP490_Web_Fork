@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImageIcon, Contact, Send, Loader2, Zap, Crown } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import type { CommunityPost } from "@/types/communityPost.ts";
@@ -111,6 +111,29 @@ export default function CommunityPost() {
       setIsDeleting(false);
     }
   };
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Nếu phần tử xuất hiện trong màn hình và không phải đang loading + còn dữ liệu
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 1.0 }, // 1.0 nghĩa là phần tử phải xuất hiện hoàn toàn
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [hasMore, isLoading, handleLoadMore]);
   return (
     <div className="text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-2xl mx-auto py-2 px-2">
@@ -233,7 +256,7 @@ export default function CommunityPost() {
           </button>
         </div> */}
         {/* Nút Xem thêm / Loading */}
-        <div className="mt-10 text-center pb-12">
+        {/* <div className="mt-10 text-center pb-12">
           {hasMore ? (
             <button
               onClick={handleLoadMore}
@@ -250,6 +273,23 @@ export default function CommunityPost() {
               )}
             </button>
           ) : (
+            <p className="text-gray-400 text-sm">
+              Bạn đã xem hết bài viết rồi!!
+            </p>
+          )}
+        </div> */}
+        <div className="mt-10 text-center pb-12">
+          {/* Điểm neo để theo dõi việc cuộn */}
+          <div ref={observerTarget} className="h-1"></div>
+
+          {isLoading && (
+            <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+              <Loader2 className="h-8 w-8 animate-spin mb-2" />
+              <p>Đang tải bài viết...</p>
+            </div>
+          )}
+
+          {!hasMore && (
             <p className="text-gray-400 text-sm">
               Bạn đã xem hết bài viết rồi!!
             </p>

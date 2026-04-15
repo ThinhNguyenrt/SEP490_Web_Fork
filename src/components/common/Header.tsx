@@ -12,15 +12,31 @@ import { cn } from "@/lib/utils";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
 import { useUserProfile } from "@/hook/useUserProfile";
+import { notify } from "@/lib/toast";
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const { profile, isLoggedIn } = useUserProfile();
+
   // Xác định trang home/profile dựa trên role
   const homeHref = user?.role === 2 ? "/recruiter-home" : "/talent-home";
   const profileHref = user?.role === 2 ? "/recruiter-profile" : "/profile";
+
+  // Xử lý click vào logo
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!isLoggedIn) {
+      notify.warning("Vui lòng đăng nhập để vào trang chủ");
+      navigate("/login");
+      return;
+    }
+    
+    // Nếu đã login, chuyển đến trang home
+    navigate(homeHref);
+  };
 
   // Danh sách các tab điều hướng trung tâm
   const allNavItems = [
@@ -61,13 +77,17 @@ export function Header() {
     <header className="h-16 border-b border-slate-100 bg-white px-8 flex items-center justify-between sticky top-0 z-50">
       {/* 1. Logo Section */}
       <div className="flex items-center gap-2 min-w-[150px]">
-        <Link to="/">
+        <button
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 group hover:opacity-80 transition-opacity active:scale-95 cursor-pointer"
+          title={isLoggedIn ? "Về trang chủ" : "Đăng nhập để tiếp tục"}
+        >
           <img
             src="/product-logo.png"
             alt="SkillSnap"
-            className="h-16 w-auto object-contain cursor-pointer"
+            className="h-16 w-auto object-contain"
           />
-        </Link>
+        </button>
       </div>
 
       {/* 2. Navigation Tabs */}

@@ -12,6 +12,7 @@ import { realtimeService } from "./services/realtimeService";
 import { useAppSelector } from "./store/hook";
 import { notify } from "./lib/toast";
 import { useUserProfile } from "./hook/useUserProfile";
+import { useTokenExpirationCheck } from "./hook/useTokenExpirationCheck";
 
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
 const LoginPage = lazy(() => import("./pages/login/Login"));
@@ -43,6 +44,7 @@ const CreateRecruitmentPost = lazy(
   () =>
     import("./pages/recruiter/recruitment/CreateRecruitmentPost"),
 );
+
 const RecruitmentDetails = lazy(
   () => import("./pages/recruiter/recruitment/RecruitmentDetails"),
 );
@@ -118,9 +120,12 @@ const PortfolioRanking = lazy(
 const SubscriptionPage = lazy(
   () => import("./pages/subscription/SubscriptionPage"),
 );
-function App() {
+function AppContent() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
+
+  // Hook để kiểm tra token expiration - INSIDE Router context
+  useTokenExpirationCheck();
 
   useEffect(() => {
     if (!accessToken) {
@@ -178,20 +183,19 @@ function App() {
   }, [accessToken, profile?.user?.id]); // Thêm profile.id để logic check "chính mình" chính xác
 
   return (
-    <BrowserRouter>
+    <Suspense fallback={<LoadingWrapper />}>
       {/* Sử dụng Suspense bao bọc toàn bộ Routes. 
         Khi chuyển trang, LoadingWrapper sẽ hiển thị trong lúc tải file JS của trang đó.
       */}
-      <Suspense fallback={<LoadingWrapper />}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-          <Route element={<WebLayout />}>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="talent-home" element={<TalentHome />} />
-            <Route path="recruiter-home" element={<RecruiterHome />} />
-            <Route path="/job/:postId" element={<PostDetail />} />
-            <Route path="/chat" element={<ChatRoom />} />
+        <Route element={<WebLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="talent-home" element={<TalentHome />} />
+          <Route path="recruiter-home" element={<RecruiterHome />} />
+          <Route path="/job/:postId" element={<PostDetail />} />
+          <Route path="/chat" element={<ChatRoom />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ranking" element={<PortfolioRanking />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
@@ -236,6 +240,7 @@ function App() {
               path="/recruitment-management/create"
               element={<CreateRecruitmentPost />}
             />
+      
             <Route
               path="/recruitment-management/:postId"
               element={<RecruitmentDetails />}
@@ -267,7 +272,17 @@ function App() {
           style={{ top: "85px" }}
           theme="light"
         />
-      </Suspense>
+    </Suspense>
+  );
+}
+
+/**
+ * Main App component - Creates BrowserRouter wrapper
+ */
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

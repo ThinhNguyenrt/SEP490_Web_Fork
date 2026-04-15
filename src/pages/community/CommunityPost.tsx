@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ImageIcon, Contact, Send, Loader2 } from "lucide-react";
+import { ImageIcon, Contact, Send, Loader2, Zap, Crown } from "lucide-react";
 import { CommunityPostCard } from "./CommunityPostCard";
 import type { CommunityPost } from "@/types/communityPost.ts";
 import CreatePostModal from "./CreatePostModal";
@@ -7,6 +7,7 @@ import { useUserProfile } from "@/hook/useUserProfile";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { cn } from "@/lib/utils";
 
 export default function CommunityPost() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -116,19 +117,49 @@ export default function CommunityPost() {
         {/* Create Post Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-2 cursor-pointer">
           <div className="flex space-x-3 mb-4">
-            <div className="relative inline-block">
+            <div className="relative inline-block group">
+              {/* 1. Vương miện/Huy hiệu đội nghiêng */}
+              {profile?.planName && profile.planName !== "Free" && (
+                <div
+                  className={cn(
+                    "absolute z-10 transition-all duration-300",
+                    "-top-1.5 -right-2",
+                    // Xoay nhẹ icon để tạo cảm giác đội vương miện nghiêng
+                    "rotate-[35deg] group-hover:rotate-[25deg] group-hover:scale-110",
+                  )}
+                >
+                  {profile.planName === "Premium" ? (
+                    <div className="bg-yellow-400 text-white p-0.5 rounded-md shadow-[0_4px_12px_rgba(234,179,8,0.5)] border-[1.5px] border-white">
+                      <Crown size={14} fill="currentColor" strokeWidth={2.5} />
+                    </div>
+                  ) : (
+                    <div className="bg-blue-600 text-white p-0.5 rounded-md shadow-[0_4px_12px_rgba(37,99,235,0.5)] border-[1.5px] border-white">
+                      <Zap size={14} fill="currentColor" strokeWidth={2.5} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 2. Avatar */}
               <img
                 alt="User"
-                className="w-12 h-12 rounded-full border border-gray-100 object-cover"
+                className={cn(
+                  "w-12 h-12 rounded-full border-2 object-cover transition-all duration-300",
+                  profile?.planName === "Premium"
+                    ? "border-yellow-400"
+                    : profile?.planName === "Pro"
+                      ? "border-blue-500"
+                      : "border-gray-100",
+                )}
                 src={profile?.avatar || "/default-avatar.png"}
               />
-              {/* 2. Hiển thị tick xanh nếu role là COMPANY */}
-              {user?.companyId === 2 && (
-                <div className="absolute -bottom-0.5 -right-0.5 transform">
+
+              {/* 3. Tick xanh cho doanh nghiệp */}
+              {user?.role === 2 && (
+                <div className="absolute -bottom-0.5 -right-0.5 transform z-20">
                   <img
                     src="/blue-tick-company.png"
                     alt="Verified"
-                    // w-4 h-4 sẽ cân đối hơn với avatar w-10
                     className="w-4 h-4 bg-white rounded-full border border-white shadow-sm"
                   />
                 </div>

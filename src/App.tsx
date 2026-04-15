@@ -117,11 +117,9 @@ const OtherCompanyProfilePage = lazy(
 const PortfolioRanking = lazy(
   () => import("./pages/ranking/PortfolioRanking"),
 );
-
-/**
- * AppContent component - Wrapped inside BrowserRouter
- * This allows hooks like useNavigate() to work properly
- */
+const SubscriptionPage = lazy(
+  () => import("./pages/subscription/SubscriptionPage"),
+);
 function AppContent() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
@@ -200,6 +198,7 @@ function AppContent() {
           <Route path="/chat" element={<ChatRoom />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ranking" element={<PortfolioRanking />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
             <Route
               path="/profile/:userId"
               element={<OtherTalentProfilePage />}

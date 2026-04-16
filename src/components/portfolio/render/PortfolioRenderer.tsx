@@ -1,19 +1,20 @@
 import React from 'react';
 import BlockRenderer from './BlockRenderer';
-import { PortfolioBlock } from '@/services/portfolio.api';
+import { PortfolioBlock, Ranking } from '@/services/portfolio.api';
 
 interface PortfolioRendererProps {
   blocks: PortfolioBlock[];
+  ranking?: Ranking;
 }
 
-const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ blocks }) => {
+const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ blocks, ranking }) => {
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
   return (
     <div className="w-full bg-white rounded-lg shadow-md border border-gray-200 overflow-x-hidden">
       <div className="space-y-0">
         {sortedBlocks.map((block) => (
-          <BlockRenderer key={block.id} block={block} />
+          <BlockRenderer key={block.id} block={block} rank={ranking?.rankPosition} />
         ))}
       </div>
     </div>

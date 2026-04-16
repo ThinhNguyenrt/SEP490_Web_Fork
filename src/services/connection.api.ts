@@ -249,10 +249,14 @@ export const acceptConnection = async (
  */
 export interface RoomSummary {
   roomId: number;
+  userId?: number;  // ID of the other person
+  companyId?: number;  // ID of the other person
+  id?: number;  // Generic ID field if API uses "id" instead
   name: string;
   avatar: string;
   coverImage: string;
   role: string;
+  isVerified?: boolean;  // Whether the user/company is verified
   lastContent: string | null;
   lastAt: string | null;
   unreadCount: number;

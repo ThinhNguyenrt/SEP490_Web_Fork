@@ -9,7 +9,6 @@ import {
 // import { Button } from "@/components/ui/button"; 
 import { Badge } from "@/components/ui/badge";
 import SortIcon from "@/assets/myWeb/sort.png";
-import BookmarkIcon from "@/assets/myWeb/bookmark.png";
 import ShareIcon from "@/assets/myWeb/share1.png";
 import top1Avatar from "@/assets/myWeb/top1avatar.png";
 import {
@@ -36,23 +35,23 @@ const extractPortfolioMetadata = (
   let title = portfolio.portfolio?.name || "";
   let skills: string[] = [];
 
-  blocks.forEach((block: any) => {
+  blocks.forEach((block: Record<string, unknown>) => {
     if (!block) return;
-    const data = block.data || {};
+    const data = block.data as Record<string, unknown> || {};
     if (
       block.type === "intro" ||
       block.type === "name" ||
       block.type === "header"
     ) {
-      title = data.jobTitle || data.position || data.title || title;
+      title = (data.jobTitle as string) || (data.position as string) || (data.title as string) || title;
     }
     if (block.type === "skills") {
       if (Array.isArray(data.skills)) {
-        skills = data.skills.map((s: any) =>
-          (s.name || s).toString().toLowerCase(),
+        skills = (data.skills as Array<Record<string, string> | string>).map((s) =>
+          (typeof s === 'object' && s !== null && 'name' in s ? (s as Record<string, string>).name : s).toString().toLowerCase(),
         );
       } else if (Array.isArray(data)) {
-        skills = data.map((s: any) => (s.name || s).toString().toLowerCase());
+        skills = (data as Array<Record<string, string> | string>).map((s) => (typeof s === 'object' && s !== null && 'name' in s ? (s as Record<string, string>).name : s).toString().toLowerCase());
       }
     }
   });
@@ -97,7 +96,13 @@ export default function ExploreTab() {
         return;
       }
 
-      const portfolios = response.items;
+      // Sort by ranking position (ascending: rank 1, 2, 3... first)
+      const portfolios = response.items.sort((a, b) => {
+        const rankA = a.ranking?.rankPosition ?? Infinity;
+        const rankB = b.ranking?.rankPosition ?? Infinity;
+        return rankA - rankB;
+      });
+
       const metadata = new Map<number, PortfolioMetadata>();
       portfolios.forEach((p) =>
         metadata.set(p.portfolioId, extractPortfolioMetadata(p)),
@@ -107,7 +112,7 @@ export default function ExploreTab() {
       setAllPortfolios(portfolios);
       setPortfolioMetadata(metadata);
       setCurrentIndex(0);
-    } catch (error) {
+    } catch {
       notify.error("Không thể tải danh sách portfolio.");
     } finally {
       setIsLoading(false);
@@ -145,6 +150,14 @@ export default function ExploreTab() {
           );
         });
       }
+      
+      // Sort by ranking position (ascending: rank 1, 2, 3... first)
+      results.sort((a, b) => {
+        const rankA = a.ranking?.rankPosition ?? Infinity;
+        const rankB = b.ranking?.rankPosition ?? Infinity;
+        return rankA - rankB;
+      });
+      
       setFilteredPortfolios(results);
       setCurrentIndex(0);
       setIsLoading(false);
@@ -154,7 +167,15 @@ export default function ExploreTab() {
   const handleResetFilter = () => {
     setFilters({ position: "", skills: "", location: "" });
     setSkillTags([]);
-    setFilteredPortfolios(allPortfolios);
+    
+    // Sort by ranking position when resetting filters
+    const sortedPortfolios = [...allPortfolios].sort((a, b) => {
+      const rankA = a.ranking?.rankPosition ?? Infinity;
+      const rankB = b.ranking?.rankPosition ?? Infinity;
+      return rankA - rankB;
+    });
+    
+    setFilteredPortfolios(sortedPortfolios);
     setCurrentIndex(0);
   };
 
@@ -288,6 +309,7 @@ export default function ExploreTab() {
                         ? currentPortfolio.blocks
                         : [currentPortfolio?.blocks]
                     }
+                    ranking={currentPortfolio?.ranking}
                   />
                 </div>
               )}
@@ -309,17 +331,6 @@ export default function ExploreTab() {
             </button>
 
             <div className="flex items-center gap-12 border-x border-slate-100 px-12">
-
-              <button className="hover:scale-125 transition-all cursor-pointer">
-                <img
-                  src={BookmarkIcon}
-                  className="w-8 h-8"
-                  style={{
-                    filter:
-                      "brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg)",
-                  }}
-                />
-              </button>
 
               <button className="hover:scale-125 transition-all cursor-pointer">
                 <img

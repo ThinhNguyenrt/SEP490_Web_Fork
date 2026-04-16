@@ -4,7 +4,7 @@ import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
 import blockIcon from "../../assets/myWeb/block 1.png";
 import deleteIcon from "../../assets/myWeb/delete 1.png";
-import coverImage from "../../assets/testImage/coverImagee.png";
+import defaultCoverImage from "../../assets/testImage/coverImagee.png";
 import { notify } from "@/lib/toast";
 
 interface Message {
@@ -21,11 +21,13 @@ interface Conversation {
   connectionId: number;
   connectionName: string;
   connectionAvatar: string;
+  connectionCoverImage?: string;
   lastMessage: string;
   lastMessageTime: string;
-  description: string;
-  connectionRole: string; // Thêm role của người kết nối
-  messageRoomId: number; // ID chung cho cả hai bên để đồng bộ tin nhắn
+  description?: string;
+  connectionRole?: string;
+  messageRoomId: number;
+
 }
 
 interface ChatDetailsProps {
@@ -45,6 +47,8 @@ export default function ChatDetails({
 }: ChatDetailsProps) {
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+ 
 
   const handleSendMessage = async () => {
     if (newMessage.trim()) {
@@ -128,12 +132,10 @@ export default function ChatDetails({
                       
                       {/* Read Status Indicator */}
                       {isOwnMessage && (
-                        <div title={isRead ? "Đã đọc" : "Chưa đọc"} className="flex-shrink-0">
-                          {isRead ? (
-                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
-                          ) : (
-                            <div className="w-2 h-2 bg-gray-300 rounded-full shadow-sm"></div>
-                          )}
+                        <div className="flex-shrink-0 text-xs">
+                          <span className={isRead ? "text-black font-medium" : "text-gray-400 font-medium"}>
+                            {isRead ? "Đã đọc" : "Đã gửi"}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -177,7 +179,7 @@ export default function ChatDetails({
           {/* Cover Image with padding */}
           <div className="relative w-full h-[120px] rounded-xl overflow-hidden">
             <img
-              src={coverImage}
+              src={conversation.connectionCoverImage || defaultCoverImage}
               alt="Cover"
               className="w-full h-full object-cover"
             />
@@ -207,7 +209,9 @@ export default function ChatDetails({
           {/* First Group: View Profile & Search */}
           <div className="bg-white rounded-lg overflow-hidden shadow-sm">
             {/* View Profile */}
-            <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+            <button 
+             
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
               <img src={profileIcon} alt="Profile" className="w-5 h-5" />
               <span className="text-sm font-medium text-gray-900">
                 Xem trang cá nhân

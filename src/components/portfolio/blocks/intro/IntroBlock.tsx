@@ -17,9 +17,10 @@ interface IntroBlockProps {
     [key: string]: any;
   };
   variant: string;
+  rank?: number;
 }
 
-const IntroBlock: React.FC<IntroBlockProps> = ({ data, variant }) => {
+const IntroBlock: React.FC<IntroBlockProps> = ({ data, variant, rank }) => {
   // Normalize data: support both 'avatar' and 'avatarKey' fields
   const normalizedData = {
     ...data,
@@ -29,17 +30,17 @@ const IntroBlock: React.FC<IntroBlockProps> = ({ data, variant }) => {
 
   switch (variant.toUpperCase()) {
     case 'INTROONE':
-      return <IntroOne data={normalizedData} />;
+      return <IntroOne data={normalizedData} rank={rank} />;
     case 'INTROTWO':
-      return <IntroTwo data={normalizedData} />;
+      return <IntroTwo data={normalizedData} rank={rank} />;
     case 'INTROTHREE':
-      return <IntroThree data={normalizedData} />;
+      return <IntroThree data={normalizedData} rank={rank} />;
     case 'INTROFOUR':
-      return <IntroFour data={normalizedData} />;
+      return <IntroFour data={normalizedData} rank={rank} />;
     case 'INTROFIVE':
-      return <IntroFive data={normalizedData} />;
+      return <IntroFive data={normalizedData} rank={rank} />;
     default:
-      return <IntroOne data={normalizedData} />;
+      return <IntroOne data={normalizedData} rank={rank} />;
   }
 };
 

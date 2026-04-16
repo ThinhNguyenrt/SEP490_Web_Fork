@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, Phone } from 'lucide-react';
 import { resolveImageUrl } from '@/services/portfolio.api';
+import RankBadge from '../../RankBadge';
 
 interface IntroTwoProps {
   data: { 
@@ -17,13 +18,14 @@ interface IntroTwoProps {
     yearOfStudy?: string;
     school?: string;
   };
+  rank?: number;
 }
 
 /**
  * IntroTwo - Giới thiệu với thiết kế sidebar
  * Hiển thị thông tin cá nhân với avatar ở sidebar bên trái
  */
-const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
+const IntroTwo: React.FC<IntroTwoProps> = ({ data, rank }) => {
   const { fullName, name, position, title, studyField, description, avatar, email, phoneNumber, phone } = data;
   
   // Use fullName first, then fall back to name, then 'Your Name'
@@ -39,15 +41,17 @@ const IntroTwo: React.FC<IntroTwoProps> = ({ data }) => {
       {/* Left Sidebar - Avatar */}
       <div className="ml-8 rounded-md border-gray-300">
         {avatarUrl && (
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            className="w-40 h-48 object-cover"
-            onError={(e) => {
-              console.warn("❌ Failed to load avatar image");
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <RankBadge rank={rank}>
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-40 h-48 object-cover rounded-md"
+              onError={(e) => {
+                console.warn("❌ Failed to load avatar image");
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </RankBadge>
         )}
       </div>
 

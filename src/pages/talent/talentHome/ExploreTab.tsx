@@ -96,17 +96,23 @@ export default function ExploreTab() {
         return;
       }
 
-      // Sort by ranking position (ascending: rank 1, 2, 3... first)
-      const portfolios = response.items.sort((a, b) => {
-        const rankA = a.ranking?.rankPosition ?? Infinity;
-        const rankB = b.ranking?.rankPosition ?? Infinity;
-        return rankA - rankB;
-      });
+      // Backend already sorted by rank with sort=0 (rank_asc)
+      const portfolios = response.items;
 
       const metadata = new Map<number, PortfolioMetadata>();
-      portfolios.forEach((p) =>
-        metadata.set(p.portfolioId, extractPortfolioMetadata(p)),
-      );
+      portfolios.forEach((p, index) => {
+        metadata.set(p.portfolioId, extractPortfolioMetadata(p));
+        console.log(
+          `📊 [ExploreTab] Portfolio #${index + 1}:`,
+          {
+            portfolioId: p.portfolioId,
+            name: p.portfolio?.name,
+            ranking: p.ranking,
+            rankPosition: p.ranking?.rankPosition,
+            hasRankBadge: (p.ranking?.rankPosition ?? 0) >= 1 && (p.ranking?.rankPosition ?? 0) <= 10
+          }
+        );
+      });
 
       setFilteredPortfolios(portfolios);
       setAllPortfolios(portfolios);
@@ -151,12 +157,7 @@ export default function ExploreTab() {
         });
       }
       
-      // Sort by ranking position (ascending: rank 1, 2, 3... first)
-      results.sort((a, b) => {
-        const rankA = a.ranking?.rankPosition ?? Infinity;
-        const rankB = b.ranking?.rankPosition ?? Infinity;
-        return rankA - rankB;
-      });
+      // Backend already sorted by rank with sort=0 (rank_asc), keep original order
       
       setFilteredPortfolios(results);
       setCurrentIndex(0);
@@ -168,12 +169,8 @@ export default function ExploreTab() {
     setFilters({ position: "", skills: "", location: "" });
     setSkillTags([]);
     
-    // Sort by ranking position when resetting filters
-    const sortedPortfolios = [...allPortfolios].sort((a, b) => {
-      const rankA = a.ranking?.rankPosition ?? Infinity;
-      const rankB = b.ranking?.rankPosition ?? Infinity;
-      return rankA - rankB;
-    });
+    // Backend already sorted by rank with sort=0 (rank_asc), keep original order
+    const sortedPortfolios = [...allPortfolios];
     
     setFilteredPortfolios(sortedPortfolios);
     setCurrentIndex(0);

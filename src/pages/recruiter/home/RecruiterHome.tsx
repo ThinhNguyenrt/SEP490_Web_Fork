@@ -112,12 +112,7 @@ export default function RecruiterHome() {
       
       console.log("✅ Loaded", portfolios.length, "portfolios in total");
       
-      // Sort by ranking position (ascending: rank 1, 2, 3... first)
-      portfolios.sort((a, b) => {
-        const rankA = a.ranking?.rankPosition ?? Infinity;
-        const rankB = b.ranking?.rankPosition ?? Infinity;
-        return rankA - rankB;
-      });
+      // Backend already sorted by rank with sort=0 (rank_asc)
       
       // Extract metadata from portfolios
       const metadata = new Map<number, PortfolioMetadata>();
@@ -171,12 +166,8 @@ export default function RecruiterHome() {
     setSkillTags([]);
     setSkillInput("");
     
-    // Sort by ranking position when resetting filters
-    const sortedPortfolios = [...allPortfolios].sort((a, b) => {
-      const rankA = a.ranking?.rankPosition ?? Infinity;
-      const rankB = b.ranking?.rankPosition ?? Infinity;
-      return rankA - rankB;
-    });
+    // Backend already sorted by rank with sort=0 (rank_asc), keep original order
+    const sortedPortfolios = [...allPortfolios];
     
     setFilteredPortfolios(sortedPortfolios);
     setCurrentIndex(0);
@@ -220,12 +211,7 @@ export default function RecruiterHome() {
           console.log("🔍 After skills filter:", results.length, "portfolios");
         }
 
-        // Sort by ranking position (ascending: rank 1, 2, 3... first)
-        results.sort((a, b) => {
-          const rankA = a.ranking?.rankPosition ?? Infinity;
-          const rankB = b.ranking?.rankPosition ?? Infinity;
-          return rankA - rankB;
-        });
+        // Backend already sorted by rank with sort=0 (rank_asc), keep original order
 
         setFilteredPortfolios(results);
         setCurrentIndex(0);

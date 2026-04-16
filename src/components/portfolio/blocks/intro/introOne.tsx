@@ -15,6 +15,9 @@ interface IntroOneProps {
 const IntroOne: React.FC<IntroOneProps> = ({ data, rank }) => {
   const { fullName, name,  studyField, description, avatar, email, phone } = data;
   
+  // Debug logging
+  console.log("📱 [IntroOne] Rendering with rank:", rank);
+  
   // Use fullName first, then fall back to name, then 'Your Name'
   const displayName = fullName || name || 'Your Name';
   // Use title first, then fall back to studyField

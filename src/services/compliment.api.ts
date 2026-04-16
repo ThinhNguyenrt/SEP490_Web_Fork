@@ -1,7 +1,10 @@
 /**
  * Compliment/Review API Service
  * Handles portfolio review and rating operations for recruiters
+ * 
+ * Uses centralized configuration from @/config/apiConfig
  */
+import { API_BASE_URLS, buildApiUrl } from "@/config/apiConfig";
 
 export interface ComplimentRequest {
   portfolioId: number;
@@ -20,29 +23,7 @@ export interface ComplimentResponse {
   updatedAt: string | null;
 }
 
-// Determine API base URL
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  
-  if (envUrl && envUrl.trim() !== "") {
-    console.log("✅ Using env var VITE_API_BASE_URL:", envUrl);
-    return envUrl;
-  }
-  
-  const isLocalhost = typeof window !== "undefined" && 
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  
-  if (isLocalhost) {
-    console.log("📍 Localhost detected, using relative path: /api");
-    return "/api";
-  }
-  
-  const fallbackUrl = "https://api.example.com/api";
-  console.log("🌐 Production environment detected, using full URL:", fallbackUrl);
-  return fallbackUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// API configuration imported from centralized config
 
 /**
  * Submit a compliment/review for a portfolio
@@ -55,7 +36,7 @@ export const submitCompliment = async (compliment: ComplimentRequest, accessToke
       throw new Error(errorMsg);
     }
 
-    const response = await fetch(`${API_BASE_URL}/compliments`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, "/compliments"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -90,7 +71,7 @@ export const getMyCompliment = async (portfolioId: number, accessToken: string):
       throw new Error(errorMsg);
     }
 
-    const response = await fetch(`${API_BASE_URL}/compliments/${portfolioId}`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, `/compliments/${portfolioId}`), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -128,7 +109,7 @@ export const getMyCompliments = async (accessToken: string): Promise<ComplimentR
       throw new Error(errorMsg);
     }
 
-    const response = await fetch(`${API_BASE_URL}/compliments`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, "/compliments"), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -167,7 +148,7 @@ export const getComplimentByPortfolioId = async (portfolioId: number, accessToke
     }
 
     console.log("📡 Fetching compliment for portfolioId:", portfolioId);
-    const url = `${API_BASE_URL}/compliments?portfolioId=${portfolioId}`;
+    const url = buildApiUrl(API_BASE_URLS.gateway, `/compliments?portfolioId=${portfolioId}`);
     console.log("📍 URL:", url);
 
     const response = await fetch(url, {
@@ -229,7 +210,7 @@ export const updateComplimentPut = async (
       throw new Error(errorMsg);
     }
 
-    const response = await fetch(`${API_BASE_URL}/compliments/${id}`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, `/compliments/${id}`), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

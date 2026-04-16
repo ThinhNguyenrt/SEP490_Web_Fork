@@ -1,37 +1,13 @@
 import { CompanyPostsPaginatedResponse, CompanyPostDetail } from '@/types/companyPost';
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from '@/config/apiConfig';
 
 /**
  * Company Posts API Service
  * Handles company job posts and recruitment operations
+ * 
+ * Uses centralized configuration from @/config/apiConfig
+ * Supports both development and production environments
  */
-
-// Determine API base URL - support multiple environments
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_COMPANY_API_BASE_URL;
-  
-  // If environment variable is set, use it
-  if (envUrl && envUrl.trim() !== "") {
-    console.log("✅ Using env var VITE_COMPANY_API_BASE_URL:", envUrl);
-    return envUrl;
-  }
-  
-  // Check if we're on localhost/development
-  const isLocalhost = typeof window !== "undefined" && 
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  
-  if (isLocalhost) {
-    // On localhost, use relative path (proxy can be configured in vite.config.ts)
-    console.log("📍 Localhost detected, using relative path: /api");
-    return "/api";
-  }
-  
-  // On production/deployed environment, use full URL with /api suffix
-  const fallbackUrl = "https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
-  console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
-  return fallbackUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Fetch company job posts with pagination support
@@ -69,8 +45,8 @@ export const fetchCompanyPosts = async (
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    // Fixed URL - API_BASE_URL already includes /api
-    const fullUrl = `${API_BASE_URL}/company-posts?${params.toString()}`;
+    // Use centralized config
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.posts) + `?${params.toString()}`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -173,8 +149,9 @@ export const fetchCompanyPostsByCompanyId = async (
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    // API endpoint: GET /api/company-posts/company/{companyId}
-    const fullUrl = `${API_BASE_URL}/company-posts/company/${companyId}?${params.toString()}`;
+    // API endpoint: GET /api/company-posts/company/{companyId}?limit=...
+    const baseEndpoint = `/company-posts/company/${companyId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, baseEndpoint) + `?${params.toString()}`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -187,27 +164,52 @@ export const fetchCompanyPostsByCompanyId = async (
     clearTimeout(timeoutId);
 
     console.log("📡 Company posts (by company) API response status:", response.status);
+    console.log("📡 Response content-type:", response.headers.get("content-type"));
 
     const contentType = response.headers.get("content-type");
     let data: unknown;
+    let responseText: string = "";
 
-    if (contentType?.includes("application/json")) {
+    // Try to read response body first
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Check response status first
+    if (!response.ok) {
+      console.error("❌ API returned error status:", response.status);
+      // Try to parse error message from response body
+      if (contentType?.includes("application/json") && responseText) {
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(errorData.message || `HTTP ${response.status}`);
+        } catch (e) {
+          if (e instanceof Error) throw e;
+          throw new Error(`HTTP ${response.status}`);
+        }
+      }
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    // Parse successful response
+    if (contentType?.includes("application/json") && responseText) {
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
         console.log("📦 Response data:", data);
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
         throw new Error("Invalid response format from server (JSON parse failed)");
       }
-    } else {
-      console.error("❌ Invalid response content type:", contentType);
+    } else if (responseText && responseText.trim().length > 0) {
+      console.warn("⚠️ Response has body but not JSON, treating as error");
       throw new Error("Server returned non-JSON response");
-    }
-
-    if (!response.ok) {
-      const errorMsg = (data as Record<string, unknown>)?.message || "Failed to fetch company posts";
-      console.error("❌ Fetch error:", errorMsg);
-      throw new Error(String(errorMsg));
+    } else {
+      console.warn("⚠️ Response has empty body");
+      throw new Error("Empty response from server");
     }
 
     // Validate response structure - should have items, nextCursor, hasMore
@@ -264,7 +266,7 @@ export const fetchCompanyPostDetail = async (
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.detail(postId));
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -277,23 +279,52 @@ export const fetchCompanyPostDetail = async (
     clearTimeout(timeoutId);
 
     console.log("📡 Company post detail API response status:", response.status);
+    console.log("📡 Response content-type:", response.headers.get("content-type"));
 
     const contentType = response.headers.get("content-type");
     let data: unknown;
+    let responseText: string = "";
 
-    if (contentType?.includes("application/json")) {
+    // Try to read response body first
+    try {
+      responseText = await response.text();
+      console.log("📦 Raw response (first 500 chars):", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Check response status first
+    if (!response.ok) {
+      console.error("❌ API returned error status:", response.status);
+      // Try to parse error message from response body
+      if (contentType?.includes("application/json") && responseText) {
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(errorData.message || `HTTP ${response.status}`);
+        } catch (e) {
+          if (e instanceof Error) throw e;
+          throw new Error(`HTTP ${response.status}`);
+        }
+      }
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    // Parse successful response
+    if (contentType?.includes("application/json") && responseText) {
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
+        console.log("📦 Company post detail fetched:", data);
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
         throw new Error("Invalid response format from server");
       }
-    } else {
+    } else if (responseText && responseText.trim().length > 0) {
+      console.warn("⚠️ Response has body but not JSON, treating as error");
       throw new Error("Server returned non-JSON response");
-    }
-
-    if (!response.ok) {
-      throw new Error((data as Record<string, unknown>)?.message as string || "Failed to fetch company post detail");
+    } else {
+      console.warn("⚠️ Response has empty body");
+      throw new Error("Empty response from server");
     }
 
     console.log("✅ Company post detail fetched successfully");
@@ -338,7 +369,7 @@ export const saveCompanyPost = async (
       console.log("📡 [saveCompanyPost] Authorization header added");
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}/save`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.save(postId));
     console.log("📡 [saveCompanyPost] Making request to:", fullUrl);
     console.log("📡 [saveCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
 
@@ -425,7 +456,7 @@ export const unsaveCompanyPost = async (
       console.log("📡 [unsaveCompanyPost] Authorization header added");
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}/unsave`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.unsave(postId));
     console.log("📡 [unsaveCompanyPost] Making request to:", fullUrl);
     console.log("📡 [unsaveCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
 
@@ -529,7 +560,7 @@ export const createCompanyPost = async (
       formData.append(`files`, file);
     });
 
-    const fullUrl = `${API_BASE_URL}/company-posts`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.create);
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -612,7 +643,7 @@ export const deleteCompanyPost = async (
       console.log("📡 [deleteCompanyPost] Authorization header added");
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.delete(postId));
     console.log("📡 [deleteCompanyPost] Making DELETE request to:", fullUrl);
     console.log("📡 [deleteCompanyPost] Headers:", { "Content-Type": headers["Content-Type"], hasAuth: !!headers["Authorization"] });
 
@@ -744,9 +775,8 @@ export const updateCompanyPost = async (
       body = JSON.stringify(postData);
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, API_ENDPOINTS.company.update(postId));
     console.log("📡 Making PUT request to:", fullUrl);
-    console.log("📡 Headers:", headers);
 
     const response = await fetch(fullUrl, {
       method: "PUT",
@@ -869,7 +899,7 @@ export const updateCompanyPostFull = async (
       });
     }
 
-    const fullUrl = `${API_BASE_URL}/company-posts/${postId}/full`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.company, `/company-posts/${postId}/full`);
     console.log("📡 Making PUT request to:", fullUrl);
 
     const response = await fetch(fullUrl, {

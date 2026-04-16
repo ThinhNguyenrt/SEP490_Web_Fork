@@ -1,9 +1,7 @@
 import { LoginRequest, LoginResponse, RegisterRequest } from "@/types/auth";
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
 
-// API_BASE_URL được cấu hình từ environment:
-// - Development: /api (sử dụng Vite proxy)
-// - Production: full URL từ VITE_API_BASE_URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+// API_BASE_URL được cấu hình từ config tập trung
 
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -16,7 +14,7 @@ export const authAPI = {
         controller.abort();
       }, 10000); // 30 giây timeout
 
-      const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+      const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, API_ENDPOINTS.auth.login), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +87,7 @@ export const authAPI = {
         controller.abort();
       }, 30000);
 
-      const response = await fetch(`${API_BASE_URL}/Auth/register`, {
+      const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, API_ENDPOINTS.auth.register), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -174,7 +172,7 @@ export const authAPI = {
         Authorization: `Bearer ${accessToken}`,
       };
 
-      const fullUrl = `${API_BASE_URL}/Auth/change-password`;
+      const fullUrl = buildApiUrl(API_BASE_URLS.gateway, "/Auth/change-password");
       console.log("📡 Making request to:", fullUrl);
 
       const response = await fetch(fullUrl, {

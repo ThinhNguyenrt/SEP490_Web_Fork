@@ -1,8 +1,11 @@
 /**
  * User Profile API Service
  * Handles employee/talent profile operations and company profile operations
+ * 
+ * Uses centralized configuration from @/config/apiConfig
  */
 import { Company } from "@/types/company";
+import { API_BASE_URLS, buildApiUrl } from "@/config/apiConfig";
 
 export type { Company };
 
@@ -15,33 +18,7 @@ export interface EmployeeProfile {
   avatar?: string;
 }
 
-// Determine API base URL - use env var if available, otherwise use appropriate URL based on environment
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_USER_PROFILE_API_BASE_URL;
-  
-  // If environment variable is set, use it
-  if (envUrl && envUrl.trim() !== "") {
-    console.log("✅ Using env var VITE_USER_PROFILE_API_BASE_URL:", envUrl);
-    return envUrl;
-  }
-  
-  // Check if we're on localhost/development
-  const isLocalhost = typeof window !== "undefined" && 
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  
-  if (isLocalhost) {
-    // On localhost, use relative path (proxy is configured in vite.config.ts)
-    console.log("📍 Localhost detected, using relative path: /user-profile-api");
-    return "/user-profile-api";
-  }
-  
-  // On production/deployed environment, use full URL with /api prefix
-  const fallbackUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
-  console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
-  return fallbackUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// API configuration imported from centralized config
 
 /**
  * Fetch current employee/talent profile information
@@ -67,7 +44,7 @@ export const fetchEmployeeProfile = async (accessToken: string): Promise<Employe
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const fullUrl = `${API_BASE_URL}/Employee/me`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.userProfile, "/Employee/me");
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -229,7 +206,7 @@ export const updateEmployeeProfile = async (
       console.log("📝 Added cover image file to FormData:", profileData.coverImageFile.name);
     }
 
-    const fullUrl = `${API_BASE_URL}/Employee/${employeeId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.userProfile, `/Employee/${employeeId}`);
     console.log("📡 Making PUT request to:", fullUrl);
 
     const response = await fetch(fullUrl, {

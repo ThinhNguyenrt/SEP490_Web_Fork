@@ -1,3 +1,5 @@
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
+
 export type PortfolioBlock = {
   id: number;
   type: string;
@@ -1304,10 +1306,7 @@ export const fetchPortfolioByIdAPI = async (
   accessToken: string,
 ): Promise<PortfolioResponse | undefined> => {
   try {
-    const API_BASE_URL =
-      import.meta.env.VITE_API_BASE_URL || "/api";
-
-    console.log("📡 Fetching portfolio detail from:", `${API_BASE_URL}/portfolio/${portfolioId}`);
+    console.log("📡 Fetching portfolio detail from:", buildApiUrl(API_BASE_URLS.portfolio, API_ENDPOINTS.portfolio.detail(portfolioId)));
     console.log("🔐 Using accessToken:", !!accessToken);
 
     if (!accessToken) {
@@ -1326,7 +1325,7 @@ export const fetchPortfolioByIdAPI = async (
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const response = await fetch(`${API_BASE_URL}/portfolio/${portfolioId}`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.portfolio, API_ENDPOINTS.portfolio.detail(portfolioId)), {
       method: "GET",
       headers: headers,
       signal: controller.signal,
@@ -1528,12 +1527,8 @@ export const createPortfolioAPI = async (
   let timeoutId: NodeJS.Timeout | null = null;
   
   try {
-    const API_BASE_URL =
-      import.meta.env.VITE_API_BASE_URL || "/api";
-    
-    const endpoint = `${API_BASE_URL}/portfolio`;
+    const endpoint = buildApiUrl(API_BASE_URLS.portfolio, API_ENDPOINTS.portfolio.create);
     console.log("📡 Full API endpoint:", endpoint);
-    console.log("📡 API_BASE_URL:", API_BASE_URL);
     console.log("📦 Payload employeeId:", payload.employeeId);
     console.log("📦 Payload name:", payload.name);
     console.log("📦 Payload blocks count:", payload.blocks.length);
@@ -1992,7 +1987,7 @@ export const fetchMyPortfolios = async (
       bearerTokenLength: accessToken.length,
     });
 
-    const response = await fetch(`${API_BASE_URL}/portfolio/me`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.portfolio, "/portfolio/me"), {
       method: "GET",
       headers: headers,
       signal: controller.signal,

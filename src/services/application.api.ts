@@ -1,29 +1,13 @@
 import { Application, CreateApplicationRequest } from '@/types/application';
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from '@/config/apiConfig';
 
 /**
  * Application Service API
  * Handles job application operations
+ * 
+ * Uses centralized configuration from @/config/apiConfig
+ * Supports both development (localhost with Vite proxy) and production environments
  */
-
-// Determine API base URL for application service
-const getApiBaseUrl = (): string => {
-  // On development (localhost with Vite proxy), use relative path
-  // The proxy in vite.config.ts will handle routing to the application service
-  const isLocalhost = typeof window !== "undefined" && 
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  
-  if (isLocalhost) {
-    console.log("📍 Localhost detected, using relative path: /api (proxied to application-service)");
-    return "/api";
-  }
-  
-  // On production/deployed environment, use full URL
-  const fallbackUrl = "https://application-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
-  console.log("🌐 Production/deployed environment detected, using full URL:", fallbackUrl);
-  return fallbackUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Map application status to Vietnamese text and styling
@@ -104,7 +88,7 @@ export const createApplication = async (
       portfolioId,
     };
 
-    const fullUrl = `${API_BASE_URL}/applications`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.application, API_ENDPOINTS.application.create);
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -187,7 +171,7 @@ export const getMyApplications = async (
     params.append("page", page.toString());
     params.append("pageSize", pageSize.toString());
 
-    const fullUrl = `${API_BASE_URL}/applications/me?${params.toString()}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.application, API_ENDPOINTS.application.myApplications) + `?${params.toString()}`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -281,7 +265,7 @@ export const getCompanyApplications = async (
     params.append("page", page.toString());
     params.append("pageSize", pageSize.toString());
 
-    const fullUrl = `${API_BASE_URL}/applications/company?${params.toString()}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.application, API_ENDPOINTS.application.companyApplications) + `?${params.toString()}`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -376,7 +360,7 @@ export const getApplicationDetail = async (
       headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
-    const fullUrl = `${API_BASE_URL}/applications/${applicationId}`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.application, API_ENDPOINTS.application.detail(applicationId));
     console.log("📡 [getApplicationDetail] Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -451,7 +435,7 @@ export const updateApplicationStatus = async (
       console.log("📡 [updateApplicationStatus] Authorization header added");
     }
 
-    const fullUrl = `${API_BASE_URL}/applications/${applicationId}/status`;
+    const fullUrl = buildApiUrl(API_BASE_URLS.application, API_ENDPOINTS.application.updateStatus(applicationId));
     console.log("📡 [updateApplicationStatus] Making request to:", fullUrl);
     console.log("📡 [updateApplicationStatus] Request body:", { status: statusCode });
 

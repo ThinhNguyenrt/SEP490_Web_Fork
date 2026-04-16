@@ -1,6 +1,8 @@
 /**
  * Connection API Service
  * Handles connection requests between talent and recruiter users
+ * 
+ * Uses centralized configuration from @/config/apiConfig
  */
 import {
   Connection,
@@ -8,25 +10,7 @@ import {
   UpdateConnectionRequest,
   ConnectionStatus,
 } from "@/types/connection";
-
-// Connection service API base URL
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_CONNECTION_API_BASE_URL;
-
-  // If environment variable is set, use it
-  if (envUrl && envUrl.trim() !== "") {
-    console.log("✅ Using env var VITE_CONNECTION_API_BASE_URL:", envUrl);
-    return envUrl;
-  }
-
-  // Default to production connection service URL
-  const fallbackUrl =
-    "https://connection-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api";
-  console.log("🌐 Using default connection service URL:", fallbackUrl);
-  return fallbackUrl;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
 
 /**
  * Create a connection request between two users
@@ -40,7 +24,7 @@ export const createConnection = async (
 ): Promise<Connection> => {
   try {
     console.log("📤 Creating connection with request:", request);
-    const url = `${API_BASE_URL}/Connection`;
+    const url = buildApiUrl(API_BASE_URLS.connection, API_ENDPOINTS.connection.create);
     console.log("🌐 Request URL:", url);
     
     const response = await fetch(url, {
@@ -87,7 +71,7 @@ export const getConnections = async (
   accessToken: string
 ): Promise<Connection[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/Connection`, {
+    const response = await fetch(buildApiUrl(API_BASE_URLS.connection, API_ENDPOINTS.connection.create), {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -178,7 +162,7 @@ export const updateConnectionStatus = async (
     console.log("📤 Sending request:", { connectionId, body: request });
 
     const response = await fetch(
-      `${API_BASE_URL}/Connection/${connectionId}/status`,
+      buildApiUrl(API_BASE_URLS.connection, `/Connection/${connectionId}/status`),
       {
         method: "PUT",
         headers: {
@@ -316,7 +300,7 @@ export const getRoomSummaries = async (
 ): Promise<RoomSummary[]> => {
   try {
     console.log(`📡 Fetching room summaries for user ${userId}`);
-    const url = `${API_BASE_URL}/Connection/rooms/summary/${userId}`;
+    const url = buildApiUrl(API_BASE_URLS.connection, `/Connection/rooms/summary/${userId}`);
     console.log("🌐 Request URL:", url);
 
     const response = await fetch(url, {
@@ -364,7 +348,7 @@ export const getMessages = async (
     console.log(`📡 Fetching messages for room ${roomId}${limit ? ` (limit: ${limit})` : ""}`);
     
     // Build URL with optional limit parameter
-    let url = `${API_BASE_URL}/Connection/rooms/${roomId}/messages/latest`;
+    let url = buildApiUrl(API_BASE_URLS.connection, `/Connection/rooms/${roomId}/messages/latest`);
     if (limit) {
       url += `?limit=${limit}`;
     }
@@ -412,7 +396,7 @@ export const sendMessage = async (
 ): Promise<ApiMessage> => {
   try {
     console.log(`💬 Sending message to room ${roomId}`);
-    const url = `${API_BASE_URL}/Connection/rooms/${roomId}/messages`;
+    const url = buildApiUrl(API_BASE_URLS.connection, `/Connection/rooms/${roomId}/messages`);
     console.log("🌐 Request URL:", url);
 
     const request: SendMessageRequest = { content };
@@ -459,7 +443,7 @@ export const markMessageAsRead = async (
 ): Promise<{ updated: number }> => {
   try {
     console.log(`📖 Marking messages as read in room ${roomId}`);
-    const url = `${API_BASE_URL}/Connection/rooms/${roomId}/mark-read`;
+    const url = buildApiUrl(API_BASE_URLS.connection, `/Connection/rooms/${roomId}/mark-read`);
     console.log("🌐 Request URL:", url);
 
     const response = await fetch(url, {

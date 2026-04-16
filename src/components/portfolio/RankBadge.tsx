@@ -14,6 +14,11 @@ const RankBadge: React.FC<RankBadgeProps> = ({ rank, children, className = '' })
   // Check if rank is valid (1-10)
   const isValidRank = typeof rank === 'number' && rank >= 1 && rank <= 10;
 
+  // Debug logging
+  if (rank !== undefined) {
+    console.log("🏆 [RankBadge] Rank:", rank, "Valid:", isValidRank);
+  }
+
   if (!isValidRank) {
     return <>{children}</>;
   }

@@ -2791,6 +2791,7 @@ export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10
     const params = new URLSearchParams({
       page: page.toString(),
       pageSize: pageSize.toString(),
+      sort: "0", // 0 = rank_asc (ascending - best rank first)
     });
 
     const endpoint = `${API_BASE_URL}/portfolio?${params.toString()}`;

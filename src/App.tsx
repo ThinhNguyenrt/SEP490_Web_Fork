@@ -44,6 +44,10 @@ const CreateRecruitmentPost = lazy(
   () =>
     import("./pages/recruiter/recruitment/CreateRecruitmentPost"),
 );
+const EditRecruitmentPost = lazy(
+  () =>
+    import("./pages/recruiter/recruitment/EditRecruitmentPost"),
+);
 
 const RecruitmentDetails = lazy(
   () => import("./pages/recruiter/recruitment/RecruitmentDetails"),
@@ -239,6 +243,10 @@ function AppContent() {
             <Route
               path="/recruitment-management/create"
               element={<CreateRecruitmentPost />}
+            />
+            <Route
+              path="/recruitment-management/edit/:postId"
+              element={<EditRecruitmentPost />}
             />
       
             <Route

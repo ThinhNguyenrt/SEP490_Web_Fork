@@ -5,6 +5,18 @@ import { Application, ApplicationStatus } from "@/types/application";
 import { getApplicationStatusInfo } from "@/services/application.api";
 import { notify } from "@/lib/toast";
 
+// Map status codes (0, 1, 2, 3) to ApplicationStatus strings
+const STATUS_CODE_TO_STRING: Record<number | string, ApplicationStatus> = {
+  0: "WAITING",
+  1: "REVIEWING",
+  2: "ACCEPTED",
+  3: "REJECTED",
+  "WAITING": "WAITING",
+  "REVIEWING": "REVIEWING",
+  "ACCEPTED": "ACCEPTED",
+  "REJECTED": "REJECTED",
+};
+
 // Helper function to format date
 const toDate = (dateValue: string | undefined) => {
   if (!dateValue) return new Date();
@@ -135,11 +147,19 @@ export function UpdateStatusModal({
     return null;
   }
 
-  // Safely get application data with optional chaining
-  const currentStatus = application?.status as ApplicationStatus;
+  // Convert status code/string to ApplicationStatus string format
+  const normalizedStatus = STATUS_CODE_TO_STRING[application?.status] as ApplicationStatus;
+  const currentStatus = normalizedStatus || "WAITING";
   const validTransitions = VALID_TRANSITIONS[currentStatus] || [];
   const currentStatusInfo = getApplicationStatusInfo(currentStatus);
   const isBlocked = validTransitions.length === 0;
+
+  console.log("🔍 [UpdateStatusModal] Application status:", {
+    raw: application?.status,
+    normalized: currentStatus,
+    validTransitions,
+    isBlocked
+  });
 
   const handleStatusChange = async (statusCode: number) => {
     if (!application || !validTransitions.includes(statusCode)) {

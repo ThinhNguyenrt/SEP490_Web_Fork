@@ -335,7 +335,13 @@ export default function ProfileManagement() {
                 portfolioName: updatedPortfolioData.portfolioName,
                 // Keep the original blocks to avoid losing display data
               }
-            : p,
+            : // When setting a portfolio as main, automatically set all others to non-main (draft)
+            updatedPortfolioData.isMain
+              ? {
+                  ...p,
+                  isMain: false,
+                }
+              : p,
         ),
       );
 

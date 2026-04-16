@@ -816,3 +816,127 @@ export const updateCompanyPost = async (
     throw new Error("Network error. Please check your internet connection.");
   }
 };
+
+/**
+ * Update a company job post using the /full endpoint with complete data
+ * @param postId - The ID of the company post to update
+ * @param postData - The post data to update
+ * @param files - Optional array of files (media) to upload with the post
+ * @param accessToken - Optional access token for authenticated requests
+ */
+export const updateCompanyPostFull = async (
+  postId: number,
+  postData: {
+    position: string;
+    address: string;
+    salary: string;
+    employmentType: string;
+    experienceYear?: number;
+    quantity?: number;
+    jobDescription: string;
+    requirementsMandatory: string;
+    requirementsPreferred: string;
+    benefits: string;
+  },
+  files?: File[],
+  accessToken?: string
+): Promise<{ postId: number; message: string }> => {
+  try {
+    console.log("📡 [updateCompanyPostFull] Starting with postId:", postId, "data:", postData);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Update post (/full) timeout after 60 seconds");
+      controller.abort();
+    }, 60000);
+
+    const headers: Record<string, string> = {};
+
+    // Add authorization header if token is provided
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    // Always use FormData for /full endpoint to support postJson + files
+    const formData = new FormData();
+    formData.append("postJson", JSON.stringify(postData));
+
+    // Add files if provided
+    if (files && files.length > 0) {
+      console.log("📡 [updateCompanyPostFull] Adding", files.length, "files");
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+    }
+
+    const fullUrl = `${API_BASE_URL}/company-posts/${postId}/full`;
+    console.log("📡 Making PUT request to:", fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: "PUT",
+      headers: headers,
+      body: formData,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 Update post (/full) API response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: unknown;
+
+    // Check response status first
+    if (!response.ok) {
+      // Try to parse error message if response has JSON body
+      let errorMessage = `Failed to update post (Status: ${response.status})`;
+      
+      if (contentType?.includes("application/json")) {
+        try {
+          const errorData = await response.json();
+          errorMessage = (errorData as Record<string, unknown>)?.message as string || errorMessage;
+        } catch {
+          // If JSON parse fails, use the default error message
+        }
+      }
+      
+      console.error("❌ Update post (/full) error:", response.status, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Handle 204 No Content response (successful update with no body)
+    if (response.status === 204) {
+      console.log("✅ Company post updated successfully via /full (204 No Content)");
+      return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+    }
+
+    // For other successful responses (200, 201, etc.), try to parse JSON
+    if (contentType?.includes("application/json")) {
+      try {
+        data = await response.json();
+        console.log("📦 Response data:", data);
+        console.log("✅ Company post updated successfully via /full:", (data as Record<string, unknown>)?.postId);
+        return data as { postId: number; message: string };
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        // If parse fails but status is OK, return success message
+        console.log("✅ Company post updated successfully via /full (parse error ignored)");
+        return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+      }
+    } else {
+      // Successful response but no JSON content-type
+      console.log("✅ Company post updated successfully via /full (no JSON content)");
+      return { postId: parseInt(postId.toString()), message: "Cập nhật bài đăng thành công" };
+    }
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error("Cannot connect to server. Please check your internet connection.");
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your internet connection.");
+  }
+};

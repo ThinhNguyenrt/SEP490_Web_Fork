@@ -53,7 +53,7 @@ const PostDetail = lazy(() =>
     default: module.PostDetail,
   })),
 );
-const ChatRoom = lazy(() => import("./pages/talent/ChatRoom"));
+const ChatRoom = lazy(() => import("./pages/chat/ChatRoom"));
 const ApplicationHistory = lazy(
   () => import("./pages/talent/ApplicationHistory"),
 );
@@ -138,8 +138,8 @@ function AppContent() {
     realtimeService.start();
 
     // 2. Định nghĩa hàm xử lý thông báo Realtime
-    const handleGlobalNotification = (e: any) => {
-      const event = e.detail;
+    const handleGlobalNotification = (e: Event) => {
+      const event = (e as CustomEvent).detail;
       console.log("🔔 Received realtime notification event:", event);
 
       if (Number(event.actorId) !== profile?.user?.id) {
@@ -168,14 +168,14 @@ function AppContent() {
 
     // 3. Đăng ký lắng nghe sự kiện từ window
     window.addEventListener(
-      "realtime-notification" as any,
+      "realtime-notification",
       handleGlobalNotification,
     );
 
     // 4. Cleanup function: Xóa listener và stop connection khi logout hoặc unmount
     return () => {
       window.removeEventListener(
-        "realtime-notification" as any,
+        "realtime-notification",
         handleGlobalNotification,
       );
       realtimeService.stop();

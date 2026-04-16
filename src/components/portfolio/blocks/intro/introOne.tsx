@@ -1,16 +1,18 @@
 import React from 'react';
 import { Mail, Phone } from 'lucide-react';
 import { resolveImageUrl } from '@/services/portfolio.api';
+import RankBadge from '../../RankBadge';
 
 interface IntroOneProps {
   data: { fullName?: string; name?: string; title?: string; studyField?: string; description?: string; avatar?: string; email?: string; phone?: string };
+  rank?: number;
 }
 
 /**
  * IntroOne - Giới thiệu cơ bản
  * Hiển thị thông tin cá nhân cơ bản của người dùng
  */
-const IntroOne: React.FC<IntroOneProps> = ({ data }) => {
+const IntroOne: React.FC<IntroOneProps> = ({ data, rank }) => {
   const { fullName, name,  studyField, description, avatar, email, phone } = data;
   
   // Use fullName first, then fall back to name, then 'Your Name'
@@ -25,16 +27,18 @@ const IntroOne: React.FC<IntroOneProps> = ({ data }) => {
     <div className="intro-block bg-white px-6 py-8 text-center border-b border-gray-200 last:border-b-0">
       {/* Avatar */}
       {avatarUrl && (
-        <div className="mb-6">
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            className="w-28 h-28 rounded-full object-cover mx-auto border-4 border-gray-100 shadow-md"
-            onError={(e) => {
-              console.warn("❌ Failed to load avatar image");
-              e.currentTarget.style.display = "none";
-            }}
-          />
+        <div className="mb-6 flex justify-center">
+          <RankBadge rank={rank}>
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-28 h-28 rounded-full object-cover border-4 border-gray-100 shadow-md"
+              onError={(e) => {
+                console.warn("❌ Failed to load avatar image");
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </RankBadge>
         </div>
       )}
 

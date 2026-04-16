@@ -9,7 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles, updateApplicationStatus, getApplicationDetail } from "@/services/application.api";
+import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles, updateApplicationStatus } from "@/services/application.api";
 import { useAppSelector } from "@/store/hook";
 import { Application, ApplicationStatus } from "@/types/application";
 import { notify } from "@/lib/toast";

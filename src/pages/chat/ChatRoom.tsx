@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MessageCircle, Search, Loader2, MoreVertical,  CheckCheck } from "lucide-react";
-import ChatDetails from "./ChatDetails";
+import ChatDetails from "../chat/ChatDetails";
 import { useAppSelector } from "@/store/hook";
 import { connectionService, ApiMessageResponse } from "@/services/connection.api";
 import { notify } from "@/lib/toast";
@@ -19,9 +19,13 @@ interface Conversation {
   connectionId: number;
   connectionName: string;
   connectionAvatar: string;
+  connectionCoverImage?: string;
   lastMessage: string;
   lastMessageTime: string;
   messageRoomId: number;
+  description?: string;
+  connectionRole?: string;
+  isVerified?: boolean;  // Whether the connection is a verified recruiter
 }
 
 // Local Storage helpers
@@ -70,19 +74,27 @@ export default function ChatRoom() {
         console.log("📡 Fetching room summaries for user:", user.id);
         
         const rooms = await connectionService.getRoomSummaries(user.id, accessToken);
+        console.log("🔍 Raw API response:", rooms);
+        console.log("🔍 First room structure:", rooms[0]);
         
         // Convert RoomSummary to Conversation format
         const conversationList: Conversation[] = rooms.map((room, index) => ({
           id: index + 1,
-          connectionId: room.roomId,
+          connectionId: room.userId || room.companyId || room.id || room.roomId,  // Use actual user/company ID
           connectionName: room.name,
           connectionAvatar: room.avatar,
+          connectionCoverImage: room.coverImage,
           lastMessage: room.lastContent || "Không có tin nhắn",
           lastMessageTime: room.lastAt 
             ? new Date(room.lastAt).toLocaleString('vi-VN')
             : "Chưa có",
           messageRoomId: room.roomId,
+          description: "",
+          connectionRole: room.role,
+          isVerified: room.isVerified,
         }));
+        
+        console.log("🔍 Mapped conversations:", conversationList);
 
         setConversations(conversationList);
         console.log("✅ Room summaries loaded:", conversationList);
@@ -231,14 +243,18 @@ export default function ChatRoom() {
         const rooms = await connectionService.getRoomSummaries(user.id, accessToken);
         const conversationList: Conversation[] = rooms.map((room, index) => ({
           id: index + 1,
-          connectionId: room.roomId,
+          connectionId: room.userId || room.companyId || room.id || room.roomId,  // Use actual user/company ID
           connectionName: room.name,
           connectionAvatar: room.avatar,
+          connectionCoverImage: room.coverImage,
           lastMessage: room.lastContent || "Không có tin nhắn",
           lastMessageTime: room.lastAt 
             ? new Date(room.lastAt).toLocaleString('vi-VN')
             : "Chưa có",
           messageRoomId: room.roomId,
+          description: "",
+          connectionRole: room.role,
+          isVerified: room.isVerified,
         }));
 
         setConversations(conversationList);
@@ -366,10 +382,11 @@ export default function ChatRoom() {
               connectionId: selectedConversation.connectionId,
               connectionName: selectedConversation.connectionName,
               connectionAvatar: selectedConversation.connectionAvatar,
+              connectionCoverImage: selectedConversation.connectionCoverImage,
               lastMessage: selectedConversation.lastMessage,
               lastMessageTime: selectedConversation.lastMessageTime,
-              description: "", // No description needed
-              connectionRole: "", // No role filtering
+              description: "",
+              connectionRole: selectedConversation.connectionRole,
               messageRoomId: selectedConversation.messageRoomId,
             }}
             messages={messages}

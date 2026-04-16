@@ -1,5 +1,6 @@
 import React from 'react';
 import { resolveImageUrl } from '@/services/portfolio.api';
+import RankBadge from '../../RankBadge';
 
 interface IntroFiveProps {
   data: {
@@ -12,9 +13,10 @@ interface IntroFiveProps {
     department?: string;
     school?: string;
   };
+  rank?: number;
 }
 
-const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
+const IntroFive: React.FC<IntroFiveProps> = ({ data, rank }) => {
   const {
     fullName,
     name,
@@ -44,15 +46,17 @@ const IntroFive: React.FC<IntroFiveProps> = ({ data }) => {
     <div className="intro-block bg-white px-6 py-8 border-b border-gray-200 last:border-b-0">
       <div className="flex items-start gap-4">
         {avatarUrl && (
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            className="w-[6.2rem] h-[7.8rem] rounded-xl object-cover shrink-0"
-            onError={(e) => {
-              console.warn("❌ Failed to load avatar image");
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <RankBadge rank={rank}>
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-[6.2rem] h-[7.8rem] rounded-xl object-cover shrink-0"
+              onError={(e) => {
+                console.warn("❌ Failed to load avatar image");
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </RankBadge>
         )}
 
         <div className="flex-1 min-w-0">

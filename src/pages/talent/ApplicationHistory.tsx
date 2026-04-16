@@ -179,7 +179,7 @@ export default function ApplicationHistory() {
 
   // Format company logo with fallback
   const getCompanyLogoUrl = (app: Application) => {
-    if (app.company.logo) {
+    if (app.company?.logo) {
       return app.company.logo;
     }
     return null;
@@ -312,12 +312,12 @@ export default function ApplicationHistory() {
                               {getCompanyLogoUrl(app) ? (
                                 <img
                                   src={getCompanyLogoUrl(app)!}
-                                  alt={app.company.companyName}
+                                  alt={app.company?.companyName || "Company"}
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
                                 <span className="text-4xl font-medium text-slate-500">
-                                  {getCompanyInitial(app.company.companyName)}
+                                  {getCompanyInitial(app.company?.companyName || "")}
                                 </span>
                               )}
                             </div>
@@ -329,7 +329,7 @@ export default function ApplicationHistory() {
                                   : "Vị trí công việc"}
                               </h3>
                               <p className="text-sm font-semibold text-slate-700">
-                                {app.company.companyName}
+                                {app.company?.companyName || "Company"}
                               </p>
                               <div className="space-y-1.5 text-sm font-semibold text-slate-500">
                                 {app.post.salary && (
@@ -422,7 +422,7 @@ export default function ApplicationHistory() {
                           : "Vị trí công việc"}
                       </h3>
                       <p className="mt-1 text-[14px] font-medium leading-5 text-slate-500">
-                        {selectedApplication.company.companyName}
+                        {selectedApplication.company?.companyName || "Company"}
                       </p>
                     </div>
 

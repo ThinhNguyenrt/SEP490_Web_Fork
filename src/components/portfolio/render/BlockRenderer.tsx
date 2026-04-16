@@ -16,9 +16,10 @@ import TypicalCaseBlock from '../blocks/typicalcase/TypicalCaseBlock';
 
 interface BlockRendererProps {
   block: PortfolioBlock;
+  rank?: number;
 }
 
-const BlockRenderer: React.FC<BlockRendererProps> = ({ block }) => {
+const BlockRenderer: React.FC<BlockRendererProps> = ({ block, rank }) => {
   const { type, variant, data } = block;
 
   console.log("📦 [BlockRenderer] Rendering block - type:", type, "variant:", variant);
@@ -43,7 +44,7 @@ const BlockRenderer: React.FC<BlockRendererProps> = ({ block }) => {
 
     switch (blockType) {
       case 'intro':
-        return <IntroBlock data={data} variant={blockVariant} />;
+        return <IntroBlock data={data} variant={blockVariant} rank={rank} />;
       case 'skill':
         return <SkillBlock data={data} variant={blockVariant} />;
       case 'education':

@@ -112,6 +112,13 @@ export default function RecruiterHome() {
       
       console.log("✅ Loaded", portfolios.length, "portfolios in total");
       
+      // Sort by ranking position (ascending: rank 1, 2, 3... first)
+      portfolios.sort((a, b) => {
+        const rankA = a.ranking?.rankPosition ?? Infinity;
+        const rankB = b.ranking?.rankPosition ?? Infinity;
+        return rankA - rankB;
+      });
+      
       // Extract metadata from portfolios
       const metadata = new Map<number, PortfolioMetadata>();
       portfolios.forEach(portfolio => {
@@ -163,7 +170,15 @@ export default function RecruiterHome() {
     });
     setSkillTags([]);
     setSkillInput("");
-    setFilteredPortfolios(allPortfolios);
+    
+    // Sort by ranking position when resetting filters
+    const sortedPortfolios = [...allPortfolios].sort((a, b) => {
+      const rankA = a.ranking?.rankPosition ?? Infinity;
+      const rankB = b.ranking?.rankPosition ?? Infinity;
+      return rankA - rankB;
+    });
+    
+    setFilteredPortfolios(sortedPortfolios);
     setCurrentIndex(0);
   };
 
@@ -204,6 +219,13 @@ export default function RecruiterHome() {
           });
           console.log("🔍 After skills filter:", results.length, "portfolios");
         }
+
+        // Sort by ranking position (ascending: rank 1, 2, 3... first)
+        results.sort((a, b) => {
+          const rankA = a.ranking?.rankPosition ?? Infinity;
+          const rankB = b.ranking?.rankPosition ?? Infinity;
+          return rankA - rankB;
+        });
 
         setFilteredPortfolios(results);
         setCurrentIndex(0);
@@ -385,9 +407,9 @@ export default function RecruiterHome() {
                 {/* Portfolio Blocks Content */}
                 <div className="mb-3 p-4 sm:p-5 md:p-6">
                   {currentPortfolio?.blocks && Array.isArray(currentPortfolio.blocks) && currentPortfolio.blocks.length > 0 ? (
-                    <PortfolioRenderer blocks={currentPortfolio.blocks} />
+                    <PortfolioRenderer blocks={currentPortfolio.blocks} ranking={currentPortfolio.ranking} />
                   ) : currentPortfolio?.blocks && !Array.isArray(currentPortfolio.blocks) ? (
-                    <PortfolioRenderer blocks={[currentPortfolio.blocks]} />
+                    <PortfolioRenderer blocks={[currentPortfolio.blocks]} ranking={currentPortfolio.ranking} />
                   ) : (
                     <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
                       <h3 className="text-lg font-bold text-gray-900 mb-2">

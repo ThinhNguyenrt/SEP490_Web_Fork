@@ -31,11 +31,11 @@ export default function PaymentResultPage() {
 
     const checkStatus = async () => {
       try {
-        let endpoint = `${BASE_URL}/api/payments/${paymentId}`;
+        let endpoint = `${BASE_URL}/payments/${paymentId}`;
         
         // 6.1 Fallback: Nếu không có paymentId nhưng có orderCode
         if (!paymentId && orderCode) {
-          endpoint = `${BASE_URL}/api/payments/by-order/${orderCode}`;
+          endpoint = `${BASE_URL}/payments/by-order/${orderCode}`;
         }
 
         const res = await fetch(endpoint, {
@@ -65,7 +65,7 @@ export default function PaymentResultPage() {
     const checkSubscriptionActive = async () => {
       try {
         // 6.2) Poll gói hiện tại để chắc chắn Backend đã xử lý xong Webhook
-        const res = await fetch(`${BASE_URL}/api/subscriptions/current`, {
+        const res = await fetch(`${BASE_URL}/subscriptions/current`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
@@ -122,7 +122,7 @@ export default function PaymentResultPage() {
             <h2 className="text-3xl font-black text-slate-900">Thành công!</h2>
             <p className="text-slate-600 font-medium">{message}</p>
             <button 
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/talent-home")}
               className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
             >
               BẮT ĐẦU TRẢI NGHIỆM

@@ -25,7 +25,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     try {
       // 1. Tạo Subscription
       const subscribeRes = await fetch(
-        `${BASE_URL}/api/subscriptions/subscribe`,
+        `${BASE_URL}/subscriptions/subscribe`,
         {
           method: "POST",
           headers: {
@@ -59,7 +59,12 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       if (!paymentRes.ok) throw new Error("Không thể tạo link thanh toán");
 
       const paymentData = await paymentRes.json();
-
+      if (typeof window.PayOSCheckout === "undefined") {
+        notify.error(
+          "Thư viện thanh toán chưa sẵn sàng. Vui lòng thử lại sau giây lát!",
+        );
+        return;
+      }
       // 3. MỞ POPUP THANH TOÁN (THAY VÌ REDIRECT)
       if (paymentData.paymentUrl) {
         const payosConfig = {
@@ -79,7 +84,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
           },
         };
 
-        const { open } = PayOSCheckout.usePayOS(payosConfig);
+        const { open } = (window as any).PayOSCheckout.usePayOS(payosConfig);
         open(); // Mở popup PayOS
       }
     } catch (error: any) {

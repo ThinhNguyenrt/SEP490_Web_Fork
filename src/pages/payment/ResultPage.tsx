@@ -1,75 +1,80 @@
-"use client";
-
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom"; // Hoặc 'next/navigation' nếu dùng Next.js
-import { Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Loader2, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function PaymentResultPage() {
-  const searchParams = useSearchParams()[0];
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const paymentId = searchParams.get("paymentId"); // GUID từ bước 4
   const { accessToken } = useAppSelector((state) => state.auth);
 
+  // Lấy ID từ nhiều nguồn (URL params hoặc LocalStorage)
+  const paymentId = searchParams.get("paymentId") || localStorage.getItem("pending_payment_id");
+  const orderCode = searchParams.get("orderCode") || localStorage.getItem("pending_order_code");
+
   const [status, setStatus] = useState<"polling" | "success" | "failed" | "timeout">("polling");
-  const [message, setMessage] = useState("Đang xác thực giao dịch...");
+  const [message, setMessage] = useState("Đang xác thực giao dịch từ hệ thống...");
   
-  // Dùng Ref để theo dõi số lần retry mà không bị trigger re-render
   const retryCount = useRef(0);
-  const maxRetries = 30; // 30 lần * 3 giây = 90 giây (Theo bước 7.1)
+  const maxRetries = 30; 
 
   useEffect(() => {
-    if (!paymentId || !accessToken) {
+    // Nếu không có cả 2 thì mới báo lỗi
+    if ((!paymentId && !orderCode) || !accessToken) {
       setStatus("failed");
-      setMessage("Không tìm thấy thông tin thanh toán.");
+      setMessage("Không tìm thấy thông tin giao dịch để đối soát.");
       return;
     }
 
-    const pollPaymentStatus = async () => {
+    const checkStatus = async () => {
       try {
-        // 6.1) Kiểm tra trạng thái Payment
-        const res = await fetch(`${BASE_URL}/api/payments/${paymentId}`, {
+        let endpoint = `${BASE_URL}/api/payments/${paymentId}`;
+        
+        // 6.1 Fallback: Nếu không có paymentId nhưng có orderCode
+        if (!paymentId && orderCode) {
+          endpoint = `${BASE_URL}/api/payments/by-order/${orderCode}`;
+        }
+
+        const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        if (!res.ok) throw new Error("Lỗi kết nối API");
+        if (!res.ok) throw new Error("Cổng thanh toán chưa phản hồi");
 
         const data = await res.json();
 
         if (data.status === "Succeeded") {
-          // 6.2) Nếu Payment xong, kiểm tra Subscription đã active chưa
+          // Xóa vết sau khi thành công
+          localStorage.removeItem("pending_payment_id");
+          localStorage.removeItem("pending_order_code");
           checkSubscriptionActive();
         } else if (["Failed", "Cancelled", "Expired"].includes(data.status)) {
           setStatus("failed");
-          setMessage(`Giao dịch đã bị ${data.status.toLowerCase()}.`);
+          setMessage(`Giao dịch không thành công (Trạng thái: ${data.status})`);
         } else {
-          // Tiếp tục polling nếu vẫn Pending/Processing
           handleRetry();
         }
       } catch (error) {
-        console.error("Polling error:", error);
         handleRetry();
       }
     };
 
     const checkSubscriptionActive = async () => {
       try {
+        // 6.2) Poll gói hiện tại để chắc chắn Backend đã xử lý xong Webhook
         const res = await fetch(`${BASE_URL}/api/subscriptions/current`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (res.status === 200) {
           setStatus("success");
-          setMessage("Thanh toán thành công! Gói dịch vụ đã được kích hoạt.");
+          setMessage("Tuyệt vời! Gói dịch vụ của bạn đã được kích hoạt.");
           notify.success("Nâng cấp thành công!");
-          // Tự động chuyển hướng về dashboard sau 3s
-          setTimeout(() => navigate("/profile"), 3000);
         } else {
-          // Nếu payment success nhưng sub chưa active (do webhook chậm)
-          setMessage("Thanh toán khớp, đang kích hoạt gói...");
+          setMessage("Thanh toán xong, đang đợi hệ thống kích hoạt quyền lợi...");
           handleRetry();
         }
       } catch (error) {
@@ -80,70 +85,78 @@ export default function PaymentResultPage() {
     const handleRetry = () => {
       if (retryCount.current < maxRetries) {
         retryCount.current += 1;
-        setTimeout(pollPaymentStatus, 3000); // Polling mỗi 3 giây
+        setTimeout(checkStatus, 3000);
       } else {
         setStatus("timeout");
-        setMessage("Hệ thống đang đồng bộ. Vui lòng kiểm tra lại sau ít phút.");
+        setMessage("Thanh toán có thể đã thành công nhưng hệ thống cần thêm thời gian để đồng bộ.");
       }
     };
 
-    pollPaymentStatus();
-  }, [paymentId, accessToken, navigate]);
+    checkStatus();
+  }, [paymentId, orderCode, accessToken]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-xl max-w-md w-full border border-slate-100">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] p-4 text-center">
+      <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-md w-full border border-slate-50">
         {status === "polling" && (
-          <>
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto mb-6" />
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Đang kiểm tra</h2>
-            <p className="text-slate-500 font-medium">{message}</p>
-            <p className="text-[10px] text-slate-400 mt-4 uppercase tracking-widest font-bold">
-              Vui lòng không đóng trình duyệt
-            </p>
-          </>
+          <div className="space-y-6">
+            <div className="relative w-20 h-20 mx-auto">
+              <Loader2 className="h-20 w-20 animate-spin text-blue-600" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 text-blue-200" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900">Đang kiểm tra...</h2>
+            <p className="text-slate-500 leading-relaxed">{message}</p>
+            <div className="pt-4 border-t border-dashed border-slate-200">
+               <p className="text-[11px] text-slate-400 uppercase font-black tracking-tighter">
+                 Đừng đóng trang này cho đến khi có kết quả
+               </p>
+            </div>
+          </div>
         )}
 
         {status === "success" && (
-          <>
-            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-6" />
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Thành công!</h2>
-            <p className="text-slate-500 font-medium mb-6">{message}</p>
+          <div className="space-y-6">
+            <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto" />
+            <h2 className="text-3xl font-black text-slate-900">Thành công!</h2>
+            <p className="text-slate-600 font-medium">{message}</p>
             <button 
               onClick={() => navigate("/dashboard")}
-              className="w-full py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
             >
-              Về trang chủ
+              BẮT ĐẦU TRẢI NGHIỆM
             </button>
-          </>
+          </div>
         )}
 
         {(status === "failed" || status === "timeout") && (
-          <>
+          <div className="space-y-6">
             {status === "failed" ? (
-              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
+              <XCircle className="h-20 w-20 text-red-500 mx-auto" />
             ) : (
-              <Clock className="h-16 w-16 text-yellow-500 mx-auto mb-6" />
+              <Clock className="h-20 w-20 text-yellow-500 mx-auto" />
             )}
-            <h2 className="text-2xl font-black text-slate-900 mb-2">
-              {status === "failed" ? "Thất bại" : "Đang xử lý"}
+            <h2 className="text-2xl font-black text-slate-900">
+              {status === "failed" ? "Giao dịch thất bại" : "Đang xử lý chậm"}
             </h2>
-            <p className="text-slate-500 font-medium mb-6">{message}</p>
-            <div className="space-y-3">
+            <p className="text-slate-500 font-medium">{message}</p>
+            
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all"
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-black transition-all"
               >
-                Thử kiểm tra lại
+                KIỂM TRA LẠI NGAY
               </button>
               <button 
-                onClick={() => navigate("/subscription")}
-                className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                onClick={() => navigate("/support")}
+                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
               >
-                Quay lại gói dịch vụ
+                LIÊN HỆ HỖ TRỢ
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

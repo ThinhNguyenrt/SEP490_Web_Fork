@@ -4,8 +4,6 @@ import { useAppSelector } from "@/store/hook";
 import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Dùng để điều hướng sau khi checkout thành công
-import { usePayOS, PayOSConfig } from "payos-checkout";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -13,14 +11,15 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isPro = plan.name === "Pro";
   const { accessToken } = useAppSelector((state) => state.auth);
-  const navigate = useNavigate();
 
   const handlePayment = async () => {
+    // 1. Kiểm tra gói Free
     if (plan.price === 0) {
       notify.info("Gói miễn phí đã được kích hoạt mặc định");
       return;
     }
 
+    // 2. Kiểm tra Đăng nhập
     if (!accessToken) {
       notify.error("Vui lòng đăng nhập để thực hiện thanh toán");
       return;
@@ -59,42 +58,38 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         }),
       });
 
-      if (!paymentRes.ok) throw new Error("Không thể tạo liên kết thanh toán");
+      if (!paymentRes.ok) {
+        throw new Error("Không thể tạo liên kết thanh toán");
+      }
 
       const paymentData = await paymentRes.json();
 
-      // KIỂM TRA THƯ VIỆN PAYOS
-      if (typeof PayOSCheckout === "undefined") {
-        throw new Error(
-          "Thư viện PayOS chưa được tải. Vui lòng refresh trang.",
-        );
+      // BƯỚC 5: MỞ THANH TOÁN Ở TAB MỚI
+      if (paymentData.paymentUrl) {
+        localStorage.setItem("pending_payment_id", paymentData.paymentId);
+        localStorage.setItem("pending_order_code", paymentData.orderCode);
+        notify.success("Đang chuyển hướng sang trang thanh toán...");
+
+        // Mở tab mới
+        const paymentWindow = window.open(paymentData.paymentUrl, "_blank");
+
+        // Kiểm tra nếu trình duyệt chặn popup
+        if (
+          !paymentWindow ||
+          paymentWindow.closed ||
+          typeof paymentWindow.closed === "undefined"
+        ) {
+          // Nếu bị chặn popup, chuyển hướng ngay tại tab hiện tại để đảm bảo user vẫn thanh toán được
+          window.location.href = paymentData.paymentUrl;
+        }
+      } else {
+        throw new Error("Dữ liệu thanh toán từ máy chủ không hợp lệ");
       }
-
-      // CẤU HÌNH NHÚNG (EMBEDDED)
-      const payOSConfig: PayOSConfig = {
-        RETURN_URL: import.meta.env.VITE_RETURN_URL, // URL xử lý kết quả ở FE
-        ELEMENT_ID: "payos-checkout-iframe",
-        CHECKOUT_URL: paymentData.paymentUrl,
-        embedded: true,
-        onSuccess: (_event: any) => {
-          notify.success("Thanh toán hoàn tất!");
-          navigate(`/payment/result?paymentId=${paymentData.paymentId}`);
-        },
-        onExit: (_event: any) => {
-          setIsLoading(false);
-        },
-        onCancel: (_event: any) => {
-          notify.info("Bạn đã hủy thanh toán");
-          setIsLoading(false);
-        },
-      };
-
-      // KÍCH HOẠT POPUP
-      const { open } = usePayOS(payOSConfig);
-      open();
     } catch (error: any) {
       console.error("Payment Error:", error);
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
+    } finally {
+      // Tắt trạng thái loading để user có thể tương tác lại nếu quay lại tab cũ
       setIsLoading(false);
     }
   };
@@ -188,32 +183,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
           );
         })}
       </div>
-      {isLoading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="relative w-full max-w-[500px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
-            {/* Thanh tiêu đề/Nút đóng tạm thời nếu muốn */}
-            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-              <span className="font-bold text-slate-700">
-                Thanh toán an toàn qua PayOS
-              </span>
-              <button
-                onClick={() => setIsLoading(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
 
-            {/* Div thực sự chứa Iframe */}
-            <div
-              id="payos-checkout-iframe"
-              className="w-full min-h-[600px] overflow-auto"
-            >
-              {/* PayOS SDK sẽ render vào đây */}
-            </div>
-          </div>
-        </div>
-      )}
       {/* Action Button */}
       <button
         onClick={handlePayment}

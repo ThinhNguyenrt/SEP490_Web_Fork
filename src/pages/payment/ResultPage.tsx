@@ -46,7 +46,7 @@ export default function PaymentResultPage() {
 
         const data = await res.json();
 
-        if (data.status === "Succeeded") {
+        if (res.ok) {
           // Xóa vết sau khi thành công
           localStorage.removeItem("pending_payment_id");
           localStorage.removeItem("pending_order_code");
@@ -65,7 +65,7 @@ export default function PaymentResultPage() {
     const checkSubscriptionActive = async () => {
       try {
         // 6.2) Poll gói hiện tại để chắc chắn Backend đã xử lý xong Webhook
-        const res = await fetch(`${BASE_URL}/subscriptions/current`, {
+        const res = await fetch(`${BASE_URL}/Subscriptions/current`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
@@ -149,12 +149,12 @@ export default function PaymentResultPage() {
               >
                 KIỂM TRA LẠI NGAY
               </button>
-              <button 
+              {/* <button 
                 onClick={() => navigate("/support")}
                 className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
               >
                 LIÊN HỆ HỖ TRỢ
-              </button>
+              </button> */}
             </div>
           </div>
         )}

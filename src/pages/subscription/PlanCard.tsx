@@ -44,7 +44,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       const subscription = await subscribeRes.json();
 
       // 2. Tạo Payment Link
-      const paymentRes = await fetch(`${BASE_URL}/api/payments/create`, {
+      const paymentRes = await fetch(`${BASE_URL}/payments/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

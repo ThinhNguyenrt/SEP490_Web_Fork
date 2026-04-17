@@ -5,6 +5,7 @@ import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Dùng để điều hướng sau khi checkout thành công
+import { usePayOS, PayOSConfig } from "payos-checkout";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -70,10 +71,11 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       }
 
       // CẤU HÌNH NHÚNG (EMBEDDED)
-      const payosConfig = {
+      const payOSConfig: PayOSConfig = {
         RETURN_URL: import.meta.env.VITE_RETURN_URL, // URL xử lý kết quả ở FE
         ELEMENT_ID: "payos-checkout-iframe",
         CHECKOUT_URL: paymentData.paymentUrl,
+        embedded: true,
         onSuccess: (_event: any) => {
           notify.success("Thanh toán hoàn tất!");
           navigate(`/payment/result?paymentId=${paymentData.paymentId}`);
@@ -88,7 +90,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       };
 
       // KÍCH HOẠT POPUP
-      const { open } = PayOSCheckout.usePayOS(payosConfig);
+      const { open } = usePayOS(payOSConfig);
       open();
     } catch (error: any) {
       console.error("Payment Error:", error);
@@ -186,17 +188,32 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
           );
         })}
       </div>
-      <div
-        id="payos-checkout-iframe"
-        className={cn(
-          "overflow-hidden transition-all duration-500 rounded-xl mb-4",
-          isLoading
-            ? "max-h-[500px] border border-slate-200 shadow-inner"
-            : "max-h-0",
-        )}
-      >
-        {/* PayOS SDK sẽ tự render iframe vào đây */}
-      </div>
+      {isLoading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-[500px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
+            {/* Thanh tiêu đề/Nút đóng tạm thời nếu muốn */}
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+              <span className="font-bold text-slate-700">
+                Thanh toán an toàn qua PayOS
+              </span>
+              <button
+                onClick={() => setIsLoading(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+
+            {/* Div thực sự chứa Iframe */}
+            <div
+              id="payos-checkout-iframe"
+              className="w-full min-h-[600px] overflow-auto"
+            >
+              {/* PayOS SDK sẽ render vào đây */}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Action Button */}
       <button
         onClick={handlePayment}

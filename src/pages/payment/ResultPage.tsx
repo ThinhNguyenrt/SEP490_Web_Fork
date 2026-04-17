@@ -35,7 +35,7 @@ export default function PaymentResultPage() {
         
         // 6.1 Fallback: Nếu không có paymentId nhưng có orderCode
         if (!paymentId && orderCode) {
-          endpoint = `${BASE_URL}/api/payments/by-order/${orderCode}`;
+          endpoint = `${BASE_URL}/payments/by-order/${orderCode}`;
         }
 
         const res = await fetch(endpoint, {
@@ -65,7 +65,7 @@ export default function PaymentResultPage() {
     const checkSubscriptionActive = async () => {
       try {
         // 6.2) Poll gói hiện tại để chắc chắn Backend đã xử lý xong Webhook
-        const res = await fetch(`${BASE_URL}/api/subscriptions/current`, {
+        const res = await fetch(`${BASE_URL}/subscriptions/current`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 

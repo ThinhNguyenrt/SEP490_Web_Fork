@@ -4,6 +4,7 @@ import { useAppSelector } from "@/store/hook";
 import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Dùng để điều hướng sau khi checkout thành công
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -11,6 +12,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isPro = plan.name === "Pro";
   const { accessToken } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
 
   const handlePayment = async () => {
     if (plan.price === 0) {
@@ -26,7 +28,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     setIsLoading(true);
 
     try {
-      // 1. Tạo Subscription (Trạng thái Pending)
+      // BƯỚC 3: Tạo Subscription Pending
       const subscribeRes = await fetch(`${BASE_URL}/subscriptions/subscribe`, {
         method: "POST",
         headers: {
@@ -43,7 +45,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       const subscription = await subscribeRes.json();
 
-      // 2. Tạo Payment Link từ PayOS thông qua Backend
+      // BƯỚC 4: Tạo Payment Link
       const paymentRes = await fetch(`${BASE_URL}/payments/create`, {
         method: "POST",
         headers: {
@@ -56,28 +58,40 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         }),
       });
 
-      if (!paymentRes.ok) {
-        throw new Error("Không thể tạo liên kết thanh toán");
-      }
+      if (!paymentRes.ok) throw new Error("Không thể tạo liên kết thanh toán");
 
       const paymentData = await paymentRes.json();
 
-      // 3. CHUYỂN HƯỚNG SANG TAB MỚI HOẶC TRANG MỚI
-      if (paymentData.paymentUrl) {
-        // Cách A: Mở tab mới (Người dùng vẫn giữ được trang hiện tại)
-        window.open(paymentData.paymentUrl, "_blank");
-        
-        // Cách B: Chuyển hướng ngay tại trang hiện tại (Khuyên dùng cho Mobile)
-        // window.location.href = paymentData.paymentUrl;
-        
-        notify.success("Đang chuyển hướng sang trang thanh toán...");
-      } else {
-        throw new Error("Dữ liệu thanh toán không hợp lệ");
+      // KIỂM TRA THƯ VIỆN PAYOS
+      if (typeof PayOSCheckout === "undefined") {
+        throw new Error("Thư viện PayOS chưa được tải. Vui lòng refresh trang.");
       }
+
+      // CẤU HÌNH NHÚNG (EMBEDDED)
+      const payosConfig = {
+        RETURN_URL: import.meta.env.VITE_RETURN_URL, // URL xử lý kết quả ở FE
+        ELEMENT_ID: "config-id", // Thường dùng cho iframe nhúng cố định, popup thì không quan trọng
+        CHECKOUT_URL: paymentData.paymentUrl,
+        onSuccess: (_event: any) => {
+          notify.success("Thanh toán hoàn tất!");
+          navigate(`/payment/result?paymentId=${paymentData.paymentId}`);
+        },
+        onExit: (_event: any) => {
+          setIsLoading(false);
+        },
+        onCancel: (_event: any) => {
+          notify.info("Bạn đã hủy thanh toán");
+          setIsLoading(false);
+        },
+      };
+
+      // KÍCH HOẠT POPUP
+      const { open } = PayOSCheckout.usePayOS(payosConfig);
+      open();
+
     } catch (error: any) {
       console.error("Payment Error:", error);
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -86,10 +100,8 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     <div
       className={cn(
         "relative p-4 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full",
-        isPro
-          ? "border-blue-500 shadow-2xl scale-105 z-10"
-          : "border-slate-100 shadow-sm",
-        isLoading && "opacity-70 pointer-events-none",
+        isPro ? "border-blue-500 shadow-2xl scale-105 z-10" : "border-slate-100 shadow-sm",
+        isLoading && "opacity-70 pointer-events-none"
       )}
     >
       {/* Badge phổ biến */}
@@ -101,12 +113,10 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       {/* Header & Price */}
       <div className="text-center mb-8">
-        <div
-          className={cn(
-            "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
-            plan.name === "Free" ? "bg-slate-100 text-slate-400" : isPro ? "bg-blue-50 text-blue-600" : "bg-yellow-50 text-yellow-600",
-          )}
-        >
+        <div className={cn(
+          "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
+          plan.name === "Free" ? "bg-slate-100 text-slate-400" : isPro ? "bg-blue-50 text-blue-600" : "bg-yellow-50 text-yellow-600"
+        )}>
           {plan.name === "Free" ? <Star size={32} /> : isPro ? <Zap size={32} /> : <Crown size={32} />}
         </div>
         <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{plan.name}</h3>
@@ -143,7 +153,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         className={cn(
           "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all active:scale-95 cursor-pointer shadow-lg flex items-center justify-center",
           isPro ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25" : "bg-slate-900 hover:bg-black text-white",
-          isLoading && "bg-slate-400 shadow-none cursor-wait",
+          isLoading && "bg-slate-400 shadow-none cursor-wait"
         )}
       >
         {isLoading ? (

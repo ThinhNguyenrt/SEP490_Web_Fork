@@ -66,7 +66,7 @@ export default function PaymentResultPage() {
           setMessage("Thanh toán thành công! Gói dịch vụ đã được kích hoạt.");
           notify.success("Nâng cấp thành công!");
           // Tự động chuyển hướng về dashboard sau 3s
-          setTimeout(() => navigate("/dashboard"), 3000);
+          setTimeout(() => navigate("/profile"), 3000);
         } else {
           // Nếu payment success nhưng sub chưa active (do webhook chậm)
           setMessage("Thanh toán khớp, đang kích hoạt gói...");
@@ -137,7 +137,7 @@ export default function PaymentResultPage() {
                 Thử kiểm tra lại
               </button>
               <button 
-                onClick={() => navigate("/pricing")}
+                onClick={() => navigate("/subscription")}
                 className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
               >
                 Quay lại gói dịch vụ

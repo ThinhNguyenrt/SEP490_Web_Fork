@@ -64,13 +64,15 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       // KIỂM TRA THƯ VIỆN PAYOS
       if (typeof PayOSCheckout === "undefined") {
-        throw new Error("Thư viện PayOS chưa được tải. Vui lòng refresh trang.");
+        throw new Error(
+          "Thư viện PayOS chưa được tải. Vui lòng refresh trang.",
+        );
       }
 
       // CẤU HÌNH NHÚNG (EMBEDDED)
       const payosConfig = {
         RETURN_URL: import.meta.env.VITE_RETURN_URL, // URL xử lý kết quả ở FE
-        // ELEMENT_ID: "config-id", 
+        ELEMENT_ID: "payos-checkout-iframe",
         CHECKOUT_URL: paymentData.paymentUrl,
         onSuccess: (_event: any) => {
           notify.success("Thanh toán hoàn tất!");
@@ -88,7 +90,6 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       // KÍCH HOẠT POPUP
       const { open } = PayOSCheckout.usePayOS(payosConfig);
       open();
-
     } catch (error: any) {
       console.error("Payment Error:", error);
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
@@ -100,8 +101,10 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     <div
       className={cn(
         "relative p-4 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full",
-        isPro ? "border-blue-500 shadow-2xl scale-105 z-10" : "border-slate-100 shadow-sm",
-        isLoading && "opacity-70 pointer-events-none"
+        isPro
+          ? "border-blue-500 shadow-2xl scale-105 z-10"
+          : "border-slate-100 shadow-sm",
+        isLoading && "opacity-70 pointer-events-none",
       )}
     >
       {/* Badge phổ biến */}
@@ -113,18 +116,36 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       {/* Header & Price */}
       <div className="text-center mb-8">
-        <div className={cn(
-          "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
-          plan.name === "Free" ? "bg-slate-100 text-slate-400" : isPro ? "bg-blue-50 text-blue-600" : "bg-yellow-50 text-yellow-600"
-        )}>
-          {plan.name === "Free" ? <Star size={32} /> : isPro ? <Zap size={32} /> : <Crown size={32} />}
+        <div
+          className={cn(
+            "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
+            plan.name === "Free"
+              ? "bg-slate-100 text-slate-400"
+              : isPro
+                ? "bg-blue-50 text-blue-600"
+                : "bg-yellow-50 text-yellow-600",
+          )}
+        >
+          {plan.name === "Free" ? (
+            <Star size={32} />
+          ) : isPro ? (
+            <Zap size={32} />
+          ) : (
+            <Crown size={32} />
+          )}
         </div>
-        <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{plan.name}</h3>
-        <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest">{plan.description}</p>
+        <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">
+          {plan.name}
+        </h3>
+        <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest">
+          {plan.description}
+        </p>
       </div>
 
       <div className="flex items-baseline justify-center gap-1 mb-10 text-center">
-        <span className="text-5xl font-black text-slate-900">${plan.price}</span>
+        <span className="text-5xl font-black text-slate-900">
+          ${plan.price}
+        </span>
         <span className="text-slate-400 font-bold text-sm">/tháng</span>
       </div>
 
@@ -134,26 +155,58 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
           const isNotAvailable = feature.value === "false";
           return (
             <div key={feature.featureKey} className="flex items-start gap-3">
-              <div className={cn("shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5", isNotAvailable ? "bg-slate-50 text-slate-300" : "bg-blue-50 text-blue-500")}>
+              <div
+                className={cn(
+                  "shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
+                  isNotAvailable
+                    ? "bg-slate-50 text-slate-300"
+                    : "bg-blue-50 text-blue-500",
+                )}
+              >
                 <Check size={12} strokeWidth={4} />
               </div>
               <div className="flex flex-col">
-                <span className={cn("text-sm font-bold transition-colors", isNotAvailable ? "text-slate-300 line-through" : "text-slate-700")}>{feature.featureName}</span>
-                {!isNotAvailable && <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">{feature.value === "-1" ? "Vô hạn" : feature.value}</span>}
+                <span
+                  className={cn(
+                    "text-sm font-bold transition-colors",
+                    isNotAvailable
+                      ? "text-slate-300 line-through"
+                      : "text-slate-700",
+                  )}
+                >
+                  {feature.featureName}
+                </span>
+                {!isNotAvailable && (
+                  <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">
+                    {feature.value === "-1" ? "Vô hạn" : feature.value}
+                  </span>
+                )}
               </div>
             </div>
           );
         })}
       </div>
-
+      <div
+        id="payos-checkout-iframe"
+        className={cn(
+          "overflow-hidden transition-all duration-500 rounded-xl mb-4",
+          isLoading
+            ? "max-h-[500px] border border-slate-200 shadow-inner"
+            : "max-h-0",
+        )}
+      >
+        {/* PayOS SDK sẽ tự render iframe vào đây */}
+      </div>
       {/* Action Button */}
       <button
         onClick={handlePayment}
         disabled={isLoading}
         className={cn(
           "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all active:scale-95 cursor-pointer shadow-lg flex items-center justify-center",
-          isPro ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25" : "bg-slate-900 hover:bg-black text-white",
-          isLoading && "bg-slate-400 shadow-none cursor-wait"
+          isPro
+            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25"
+            : "bg-slate-900 hover:bg-black text-white",
+          isLoading && "bg-slate-400 shadow-none cursor-wait",
         )}
       >
         {isLoading ? (

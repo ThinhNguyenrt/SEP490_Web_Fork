@@ -16,7 +16,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     >
       {/* Badge cho gói phổ biến */}
       {isPro && (
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/40">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/40">
           Phổ biến nhất
         </div>
       )}

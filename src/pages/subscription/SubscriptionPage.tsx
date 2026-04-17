@@ -8,23 +8,22 @@ const SubscriptionPage = () => {
   // Type safe cho state plans
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const res = await fetch(
-          `https://subscription-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Plans`,
-        );
-        if (res.ok) {
-          const data: SubscriptionPlan[] = await res.json();
-          setPlans(data);
-        }
-      } catch (error) {
-        notify.error("Không thể tải danh sách gói cước");
-      } finally {
-        setLoading(false);
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch(
+        `https://subscription-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Plans`,
+      );
+      if (res.ok) {
+        const data: SubscriptionPlan[] = await res.json();
+        setPlans(data);
       }
-    };
+    } catch (error) {
+      notify.error("Không thể tải danh sách gói cước");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchPlans();
   }, []);
 

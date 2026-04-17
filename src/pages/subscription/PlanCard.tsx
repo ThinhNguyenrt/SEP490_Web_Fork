@@ -70,7 +70,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       // CẤU HÌNH NHÚNG (EMBEDDED)
       const payosConfig = {
         RETURN_URL: import.meta.env.VITE_RETURN_URL, // URL xử lý kết quả ở FE
-        ELEMENT_ID: "config-id", // Thường dùng cho iframe nhúng cố định, popup thì không quan trọng
+        // ELEMENT_ID: "config-id", 
         CHECKOUT_URL: paymentData.paymentUrl,
         onSuccess: (_event: any) => {
           notify.success("Thanh toán hoàn tất!");

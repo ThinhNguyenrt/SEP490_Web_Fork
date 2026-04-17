@@ -13,7 +13,10 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const { accessToken } = useAppSelector((state) => state.auth);
 
   const handlePayment = async () => {
-    if (plan.price === 0) return;
+    if (plan.price === 0) {
+      notify.info("Gói miễn phí đã được kích hoạt mặc định");
+      return;
+    }
 
     if (!accessToken) {
       notify.error("Vui lòng đăng nhập để thực hiện thanh toán");
@@ -23,18 +26,15 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     setIsLoading(true);
 
     try {
-      // 1. Tạo Subscription
-      const subscribeRes = await fetch(
-        `${BASE_URL}/subscriptions/subscribe`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ planId: plan.id, autoRenew: true }),
+      // 1. Tạo Subscription (Trạng thái Pending)
+      const subscribeRes = await fetch(`${BASE_URL}/subscriptions/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
-      );
+        body: JSON.stringify({ planId: plan.id, autoRenew: true }),
+      });
 
       if (!subscribeRes.ok) {
         const errorData = await subscribeRes.json();
@@ -43,7 +43,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       const subscription = await subscribeRes.json();
 
-      // 2. Tạo Payment Link
+      // 2. Tạo Payment Link từ PayOS thông qua Backend
       const paymentRes = await fetch(`${BASE_URL}/payments/create`, {
         method: "POST",
         headers: {
@@ -56,44 +56,32 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         }),
       });
 
-      if (!paymentRes.ok) throw new Error("Không thể tạo link thanh toán");
+      if (!paymentRes.ok) {
+        throw new Error("Không thể tạo liên kết thanh toán");
+      }
 
       const paymentData = await paymentRes.json();
-      if (typeof window.PayOSCheckout === "undefined") {
-        notify.error(
-          "Thư viện thanh toán chưa sẵn sàng. Vui lòng thử lại sau giây lát!",
-        );
-        return;
-      }
-      // 3. MỞ POPUP THANH TOÁN (THAY VÌ REDIRECT)
-      if (paymentData.paymentUrl) {
-        const payosConfig = {
-          RETURN_URL: import.meta.env.VITE_RETURN_URL,
-          ELEMENT_ID: "config-id", // Thường không cần nếu dùng popup mặc định
-          CHECKOUT_URL: paymentData.paymentUrl,
-          onSuccess: (_event: any) => {
-            // Lưu ý: window.location.href cũng nên dùng biến động nếu bạn muốn chuyển về trang kết quả
-            window.location.href = `${window.location.origin}/payment/result?paymentId=${paymentData.paymentId}`;
-          },
-          onExit: (_event: any) => {
-            notify.info("Bạn đã đóng cửa sổ thanh toán");
-          },
-          onCancel: (_event: any) => {
-            // Hoặc dùng biến môi trường VITE_CANCEL_URL
-            window.location.href = `${window.location.origin}/payment/cancel?paymentId=${paymentData.paymentId}`;
-          },
-        };
 
-        const { open } = (window as any).PayOSCheckout.usePayOS(payosConfig);
-        open(); // Mở popup PayOS
+      // 3. CHUYỂN HƯỚNG SANG TAB MỚI HOẶC TRANG MỚI
+      if (paymentData.paymentUrl) {
+        // Cách A: Mở tab mới (Người dùng vẫn giữ được trang hiện tại)
+        window.open(paymentData.paymentUrl, "_blank");
+        
+        // Cách B: Chuyển hướng ngay tại trang hiện tại (Khuyên dùng cho Mobile)
+        // window.location.href = paymentData.paymentUrl;
+        
+        notify.success("Đang chuyển hướng sang trang thanh toán...");
+      } else {
+        throw new Error("Dữ liệu thanh toán không hợp lệ");
       }
     } catch (error: any) {
       console.error("Payment Error:", error);
-      notify.error(error.message || "Đã xảy ra lỗi");
+      notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
     <div
       className={cn(
@@ -101,99 +89,60 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         isPro
           ? "border-blue-500 shadow-2xl scale-105 z-10"
           : "border-slate-100 shadow-sm",
-        isLoading && "opacity-70 pointer-events-none", // Hiệu ứng khi đang xử lý
+        isLoading && "opacity-70 pointer-events-none",
       )}
     >
-      {/* Badge cho gói phổ biến */}
+      {/* Badge phổ biến */}
       {isPro && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/40">
           Phổ biến nhất
         </div>
       )}
 
-      {/* Header của gói */}
+      {/* Header & Price */}
       <div className="text-center mb-8">
         <div
           className={cn(
             "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
-            plan.name === "Free"
-              ? "bg-slate-100 text-slate-400"
-              : isPro
-                ? "bg-blue-50 text-blue-600"
-                : "bg-yellow-50 text-yellow-600",
+            plan.name === "Free" ? "bg-slate-100 text-slate-400" : isPro ? "bg-blue-50 text-blue-600" : "bg-yellow-50 text-yellow-600",
           )}
         >
-          {plan.name === "Free" ? (
-            <Star size={32} />
-          ) : isPro ? (
-            <Zap size={32} />
-          ) : (
-            <Crown size={32} />
-          )}
+          {plan.name === "Free" ? <Star size={32} /> : isPro ? <Zap size={32} /> : <Crown size={32} />}
         </div>
-        <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">
-          {plan.name}
-        </h3>
-        <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest">
-          {plan.description}
-        </p>
+        <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{plan.name}</h3>
+        <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest">{plan.description}</p>
       </div>
 
-      {/* Giá tiền */}
       <div className="flex items-baseline justify-center gap-1 mb-10 text-center">
-        <span className="text-5xl font-black text-slate-900">
-          ${plan.price}
-        </span>
+        <span className="text-5xl font-black text-slate-900">${plan.price}</span>
         <span className="text-slate-400 font-bold text-sm">/tháng</span>
       </div>
 
-      {/* Danh sách tính năng */}
-      <div className="flex-1 space-y-1 mb-10 ">
+      {/* Features List */}
+      <div className="flex-1 space-y-1 mb-10">
         {plan.features.map((feature) => {
           const isNotAvailable = feature.value === "false";
           return (
-            <div key={feature.featureKey} className="flex items-start gap-3 ">
-              <div
-                className={cn(
-                  "shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
-                  isNotAvailable
-                    ? "bg-slate-50 text-slate-300"
-                    : "bg-blue-50 text-blue-500",
-                )}
-              >
+            <div key={feature.featureKey} className="flex items-start gap-3">
+              <div className={cn("shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5", isNotAvailable ? "bg-slate-50 text-slate-300" : "bg-blue-50 text-blue-500")}>
                 <Check size={12} strokeWidth={4} />
               </div>
               <div className="flex flex-col">
-                <span
-                  className={cn(
-                    "text-sm font-bold transition-colors",
-                    isNotAvailable
-                      ? "text-slate-300 line-through"
-                      : "text-slate-700",
-                  )}
-                >
-                  {feature.featureName}
-                </span>
-                {!isNotAvailable && (
-                  <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">
-                    {feature.value === "-1" ? "Vô hạn" : feature.value}
-                  </span>
-                )}
+                <span className={cn("text-sm font-bold transition-colors", isNotAvailable ? "text-slate-300 line-through" : "text-slate-700")}>{feature.featureName}</span>
+                {!isNotAvailable && <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">{feature.value === "-1" ? "Vô hạn" : feature.value}</span>}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Nút hành động */}
+      {/* Action Button */}
       <button
         onClick={handlePayment}
         disabled={isLoading}
         className={cn(
           "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all active:scale-95 cursor-pointer shadow-lg flex items-center justify-center",
-          isPro
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25"
-            : "bg-slate-900 hover:bg-black text-white",
+          isPro ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25" : "bg-slate-900 hover:bg-black text-white",
           isLoading && "bg-slate-400 shadow-none cursor-wait",
         )}
       >
@@ -211,4 +160,5 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     </div>
   );
 };
+
 export default PlanCard;

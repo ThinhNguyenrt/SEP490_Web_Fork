@@ -5,8 +5,7 @@ import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
 
-const BASE_URL =
-  "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -64,18 +63,19 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       // 3. MỞ POPUP THANH TOÁN (THAY VÌ REDIRECT)
       if (paymentData.paymentUrl) {
         const payosConfig = {
-          RETURN_URL: "https://sep-490-web-fork.vercel.app/payment/result",
+          RETURN_URL: import.meta.env.VITE_RETURN_URL,
           ELEMENT_ID: "config-id", // Thường không cần nếu dùng popup mặc định
           CHECKOUT_URL: paymentData.paymentUrl,
           onSuccess: (_event: any) => {
-            // Chuyển hướng sang trang kết quả của bạn kèm paymentId để polling
-            window.location.href = `/payment/result?paymentId=${paymentData.paymentId}`;
+            // Lưu ý: window.location.href cũng nên dùng biến động nếu bạn muốn chuyển về trang kết quả
+            window.location.href = `${window.location.origin}/payment/result?paymentId=${paymentData.paymentId}`;
           },
           onExit: (_event: any) => {
             notify.info("Bạn đã đóng cửa sổ thanh toán");
           },
           onCancel: (_event: any) => {
-            window.location.href = `/payment/cancel?paymentId=${paymentData.paymentId}`;
+            // Hoặc dùng biến môi trường VITE_CANCEL_URL
+            window.location.href = `${window.location.origin}/payment/cancel?paymentId=${paymentData.paymentId}`;
           },
         };
 

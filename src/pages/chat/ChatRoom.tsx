@@ -3,6 +3,7 @@ import { MessageCircle, Search, Loader2, MoreVertical,  CheckCheck } from "lucid
 import ChatDetails from "../chat/ChatDetails";
 import { useAppSelector } from "@/store/hook";
 import { connectionService, ApiMessageResponse } from "@/services/connection.api";
+import { realtimeService, MessageDto, MessagesReadDto, RoomUpdatedDto } from "@/services/realtimeService";
 import { notify } from "@/lib/toast";
 
 interface Message {
@@ -60,6 +61,128 @@ export default function ChatRoom() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const { user, accessToken } = useAppSelector((state) => state.auth);
+
+  // Initialize realtime connections when accessToken changes
+  useEffect(() => {
+    if (!accessToken) return;
+
+    try {
+      realtimeService.initConnection(accessToken);
+      realtimeService.start();
+      console.log("✅ Realtime service initialized");
+    } catch (err) {
+      console.error("❌ Failed to initialize realtime service:", err);
+    }
+  }, [accessToken]);
+
+  // Set up event listeners whenever selectedConversation changes
+  useEffect(() => {
+    // Listen for real-time message events
+    const handleNewMessage = (event: CustomEvent<MessageDto>) => {
+      console.log("📨 New message from SignalR:", event.detail);
+      const newMessage: Message = {
+        id: event.detail.id,
+        userId: event.detail.userId,
+        messageRoomId: event.detail.messageRoomId,
+        content: event.detail.content,
+        createdAt: new Date(event.detail.createdAt).toLocaleTimeString("vi-VN"),
+        status: event.detail.status,
+      };
+
+      // Add to current messages if in the right room
+      if (selectedConversation?.messageRoomId === event.detail.messageRoomId) {
+        setMessages((prev) => [...prev, newMessage]);
+        // Save to localStorage
+        saveMessagesToStorage(event.detail.messageRoomId, [
+          ...messages,
+          newMessage,
+        ]);
+      }
+    };
+
+    // Listen for read status changes
+    const handleMessagesRead = (event: CustomEvent<MessagesReadDto>) => {
+      console.log("✓ Messages read status updated:", event.detail);
+      // Update messages in the current room with read status
+      if (selectedConversation?.messageRoomId === event.detail.roomId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            event.detail.messageIds.includes(msg.id)
+              ? { ...msg, status: "READ" }
+              : msg
+          )
+        );
+      }
+    };
+
+    // Listen for room updates (sidebar updates)
+    const handleRoomUpdated = (event: CustomEvent<RoomUpdatedDto>) => {
+      console.log("🔄 Room updated:", event.detail);
+      // Update conversations list with new message info
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.messageRoomId === event.detail.roomId
+            ? {
+                ...conv,
+                lastMessage: event.detail.lastContent,
+                lastMessageTime: new Date(event.detail.lastAt).toLocaleString(
+                  "vi-VN"
+                ),
+              }
+            : conv
+        )
+      );
+    };
+
+    window.addEventListener(
+      "realtime-message",
+      handleNewMessage as EventListener
+    );
+    window.addEventListener(
+      "realtime-messages-read",
+      handleMessagesRead as EventListener
+    );
+    window.addEventListener(
+      "realtime-room-updated",
+      handleRoomUpdated as EventListener
+    );
+
+    // Cleanup listeners
+    return () => {
+      window.removeEventListener(
+        "realtime-message",
+        handleNewMessage as EventListener
+      );
+      window.removeEventListener(
+        "realtime-messages-read",
+        handleMessagesRead as EventListener
+      );
+      window.removeEventListener(
+        "realtime-room-updated",
+        handleRoomUpdated as EventListener
+      );
+    };
+  }, [selectedConversation, messages]);
+
+  // Join/leave room when selecting/unselecting conversation
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const joinRoom = async () => {
+      try {
+        await realtimeService.joinRoom(selectedConversation.messageRoomId);
+      } catch (err) {
+        console.error("❌ Failed to join room:", err);
+      }
+    };
+
+    joinRoom();
+
+    return () => {
+      // Leave room when deselecting
+      realtimeService.leaveRoom(selectedConversation.messageRoomId);
+    };
+  }, [selectedConversation]);
 
   // Fetch room summaries on component mount
   useEffect(() => {
@@ -178,33 +301,15 @@ export default function ChatRoom() {
   const handleSendMessage = async (content: string) => {
     if (content.trim() && selectedConversation && accessToken && user?.id) {
       try {
-        console.log("📤 Sending message to API...");
+        console.log("📤 Sending message via SignalR...");
         
-        // Call API to send message
-        const apiMessage = await connectionService.sendMessage(
+        // Use SignalR to send message (NOT REST API)
+        await realtimeService.sendMessage(
           selectedConversation.messageRoomId,
-          content,
-          accessToken
+          content
         );
 
-        console.log("✅ Message sent successfully:", apiMessage);
-
-        // Convert API response to local Message format
-        const message: Message = {
-          id: apiMessage.id,
-          userId: apiMessage.userId,
-          messageRoomId: apiMessage.messageRoomId,
-          content: apiMessage.content,
-          createdAt: new Date(apiMessage.createdAt).toLocaleTimeString('vi-VN'),
-          status: apiMessage.status,
-        };
-
-        const updatedMessages = [...messages, message];
-        setMessages(updatedMessages);
-
-        // Save to localStorage for persistence
-        saveMessagesToStorage(selectedConversation.messageRoomId, updatedMessages);
-        
+        console.log("✅ Message sent via SignalR");
         notify.success("Tin nhắn đã được gửi");
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Không thể gửi tin nhắn";

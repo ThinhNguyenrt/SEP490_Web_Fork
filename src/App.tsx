@@ -26,27 +26,20 @@ const PortfolioManagement = lazy(
 const EmptyPortfolioPage = lazy(
   () => import("./pages/portfolio/EmptyPortfolio"),
 );
-const CreatePortfolio = lazy(
-  () => import("./pages/portfolio/CreatePortfolio"),
-);
-const EditPortfolio = lazy(
-  () => import("./pages/portfolio/EditPortfolio"),
-);
+const CreatePortfolio = lazy(() => import("./pages/portfolio/CreatePortfolio"));
+const EditPortfolio = lazy(() => import("./pages/portfolio/EditPortfolio"));
 const TalentHome = lazy(() => import("./pages/talent/TalentHome"));
 const RecruiterHome = lazy(
   () => import("./pages/recruiter/home/RecruiterHome"),
 );
 const RecruitmentManagement = lazy(
-  () =>
-    import("./pages/recruiter/recruitment/RecruitmentManagement"),
+  () => import("./pages/recruiter/recruitment/RecruitmentManagement"),
 );
 const CreateRecruitmentPost = lazy(
-  () =>
-    import("./pages/recruiter/recruitment/CreateRecruitmentPost"),
+  () => import("./pages/recruiter/recruitment/CreateRecruitmentPost"),
 );
 const EditRecruitmentPost = lazy(
-  () =>
-    import("./pages/recruiter/recruitment/EditRecruitmentPost"),
+  () => import("./pages/recruiter/recruitment/EditRecruitmentPost"),
 );
 
 const RecruitmentDetails = lazy(
@@ -62,8 +55,7 @@ const ApplicationHistory = lazy(
   () => import("./pages/talent/ApplicationHistory"),
 );
 const ApplicationManagement = lazy(
-  () =>
-    import("./pages/recruiter/application/ApplicationManagement"),
+  () => import("./pages/recruiter/application/ApplicationManagement"),
 );
 const CandidateManagement = lazy(
   () => import("./pages/recruiter/recruitment/CandidateManagement"),
@@ -71,9 +63,7 @@ const CandidateManagement = lazy(
 const InterviewSchedule = lazy(
   () => import("./pages/recruiter/recruitment/InterviewSchedule"),
 );
-const CommunityPost = lazy(
-  () => import("./pages/community/CommunityPost"),
-);
+const CommunityPost = lazy(() => import("./pages/community/CommunityPost"));
 const CommunityPostDetail = lazy(
   () => import("./pages/community/CommunityPostDetail"),
 );
@@ -83,12 +73,8 @@ const PortfolioViewPage = lazy(
 const NotificationsPage = lazy(
   () => import("./pages/notification/NotificationsPage"),
 );
-const MyCommunityPost = lazy(
-  () => import("./pages/community/MyCommunityPost"),
-);
-const MySavePost = lazy(
-  () => import("./pages/community/save/TalentSavePost"),
-);
+const MyCommunityPost = lazy(() => import("./pages/community/MyCommunityPost"));
+const MySavePost = lazy(() => import("./pages/community/save/TalentSavePost"));
 const CompanySavePost = lazy(
   () => import("./pages/community/save/CompanySavePost"),
 );
@@ -103,27 +89,20 @@ const SetupTalentProfile = lazy(
 const SetupCompanyProfile = lazy(
   () => import("./pages/login/SetupCompanyProfile"),
 );
-const SupportCenterPage = lazy(
-  () => import("./pages/SupportCenterPage"),
-);
-const PrivacyCenterPage = lazy(
-  () => import("./pages/PrivacyCenterPage"),
-);
-const TermsPolicyPage = lazy(
-  () => import("./pages/TermsPolicyPage"),
-);
+const SupportCenterPage = lazy(() => import("./pages/SupportCenterPage"));
+const PrivacyCenterPage = lazy(() => import("./pages/PrivacyCenterPage"));
+const TermsPolicyPage = lazy(() => import("./pages/TermsPolicyPage"));
 const OtherTalentProfilePage = lazy(
   () => import("./pages/profile/otherProfile/OtherTalentProfile"),
 );
 const OtherCompanyProfilePage = lazy(
   () => import("./pages/profile/otherProfile/OtherCompanyProfile"),
 );
-const PortfolioRanking = lazy(
-  () => import("./pages/ranking/PortfolioRanking"),
-);
+const PortfolioRanking = lazy(() => import("./pages/ranking/PortfolioRanking"));
 const SubscriptionPage = lazy(
   () => import("./pages/subscription/SubscriptionPage"),
 );
+const PaymentResultPage = lazy(() => import("./pages/payment/ResultPage"));
 function AppContent() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
@@ -171,10 +150,7 @@ function AppContent() {
     };
 
     // 3. Đăng ký lắng nghe sự kiện từ window
-    window.addEventListener(
-      "realtime-notification",
-      handleGlobalNotification,
-    );
+    window.addEventListener("realtime-notification", handleGlobalNotification);
 
     // 4. Cleanup function: Xóa listener và stop connection khi logout hoặc unmount
     return () => {
@@ -199,87 +175,83 @@ function AppContent() {
           <Route path="talent-home" element={<TalentHome />} />
           <Route path="recruiter-home" element={<RecruiterHome />} />
           <Route path="/job/:postId" element={<PostDetail />} />
+          <Route path="/payment/result" element={<PaymentResultPage />} />
+          <Route path="/payment/cancel" element={<PaymentResultPage />} />
           <Route path="/chat" element={<ChatRoom />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/ranking" element={<PortfolioRanking />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
-            <Route
-              path="/profile/:userId"
-              element={<OtherTalentProfilePage />}
-            />
-            <Route
-              path="/recruiter-profile/:userId"
-              element={<OtherCompanyProfilePage />}
-            />
-            <Route
-              path="/application-history"
-              element={<ApplicationHistory />}
-            />
-            <Route
-              path="/application-management"
-              element={<ApplicationManagement />}
-            />
-            <Route path="/recruiter-profile" element={<RecruiterProfile />} />
-            <Route
-              path="/candicate-management"
-              element={<CandidateManagement />}
-            />
-            <Route path="/interview-schedule" element={<InterviewSchedule />} />
-            <Route path="/company-saved" element={<CompanySavePost />} />
-            <Route path="/talent-saved" element={<TalentSavePost />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/ranking" element={<PortfolioRanking />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/profile/:userId" element={<OtherTalentProfilePage />} />
+          <Route
+            path="/recruiter-profile/:userId"
+            element={<OtherCompanyProfilePage />}
+          />
+          <Route path="/application-history" element={<ApplicationHistory />} />
+          <Route
+            path="/application-management"
+            element={<ApplicationManagement />}
+          />
+          <Route path="/recruiter-profile" element={<RecruiterProfile />} />
+          <Route
+            path="/candicate-management"
+            element={<CandidateManagement />}
+          />
+          <Route path="/interview-schedule" element={<InterviewSchedule />} />
+          <Route path="/company-saved" element={<CompanySavePost />} />
+          <Route path="/talent-saved" element={<TalentSavePost />} />
 
-            <Route
-              path="/setup-talent-profile"
-              element={<SetupTalentProfile />}
-            />
-            <Route
-              path="/setup-company-profile"
-              element={<SetupCompanyProfile />}
-            />
-            <Route
-              path="/recruitment-management"
-              element={<RecruitmentManagement />}
-            />
-            <Route
-              path="/recruitment-management/create"
-              element={<CreateRecruitmentPost />}
-            />
-            <Route
-              path="/recruitment-management/edit/:postId"
-              element={<EditRecruitmentPost />}
-            />
-      
-            <Route
-              path="/recruitment-management/:postId"
-              element={<RecruitmentDetails />}
-            />
-            <Route
-              path="/portfolioManagement"
-              element={<PortfolioManagement />}
-            />
-            <Route path="/portfolio/create" element={<CreatePortfolio />} />
-            <Route path="/portfolio/:id/edit" element={<EditPortfolio />} />
-            <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
-            <Route path="/community" element={<CommunityPost />} />
-            <Route path="/community/:id" element={<CommunityPostDetail />} />
-            <Route path="/portfolio/:id" element={<PortfolioViewPage />} />
-            <Route path="/notification" element={<NotificationsPage />} />
-            <Route path="/my-community-posts" element={<MyCommunityPost />} />
-            <Route path="/my-save-posts" element={<MySavePost />} />
-            <Route path="/support-center" element={<SupportCenterPage />} />
-            <Route path="/privacy-center" element={<PrivacyCenterPage />} />
-            <Route path="/terms-policy" element={<TermsPolicyPage />} />
-          </Route>
+          <Route
+            path="/setup-talent-profile"
+            element={<SetupTalentProfile />}
+          />
+          <Route
+            path="/setup-company-profile"
+            element={<SetupCompanyProfile />}
+          />
+          <Route
+            path="/recruitment-management"
+            element={<RecruitmentManagement />}
+          />
+          <Route
+            path="/recruitment-management/create"
+            element={<CreateRecruitmentPost />}
+          />
+          <Route
+            path="/recruitment-management/edit/:postId"
+            element={<EditRecruitmentPost />}
+          />
 
-          <Route path="*" element={<ErrorPage />} />
-        </Routes>
+          <Route
+            path="/recruitment-management/:postId"
+            element={<RecruitmentDetails />}
+          />
+          <Route
+            path="/portfolioManagement"
+            element={<PortfolioManagement />}
+          />
+          <Route path="/portfolio/create" element={<CreatePortfolio />} />
+          <Route path="/portfolio/:id/edit" element={<EditPortfolio />} />
+          <Route path="/emptyPortfolio" element={<EmptyPortfolioPage />} />
+          <Route path="/community" element={<CommunityPost />} />
+          <Route path="/community/:id" element={<CommunityPostDetail />} />
+          <Route path="/portfolio/:id" element={<PortfolioViewPage />} />
+          <Route path="/notification" element={<NotificationsPage />} />
+          <Route path="/my-community-posts" element={<MyCommunityPost />} />
+          <Route path="/my-save-posts" element={<MySavePost />} />
+          <Route path="/support-center" element={<SupportCenterPage />} />
+          <Route path="/privacy-center" element={<PrivacyCenterPage />} />
+          <Route path="/terms-policy" element={<TermsPolicyPage />} />
+        </Route>
 
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          style={{ top: "85px" }}
-          theme="light"
-        />
+        <Route path="*" element={<ErrorPage />} />
+      </Routes>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        style={{ top: "85px" }}
+        theme="light"
+      />
     </Suspense>
   );
 }

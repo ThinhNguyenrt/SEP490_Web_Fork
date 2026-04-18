@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Users,
   LayoutGrid,
@@ -8,12 +8,21 @@ import {
   FileText,
   AlertCircle,
   Loader,
+  Folder,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  X,
 } from "lucide-react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
 import { useAppSelector } from "@/store/hook";
-import { portfolioService } from "@/services/portfolio.api";
+import { portfolioService, unfollowPortfolio } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
+import { SavedFollowCategories } from "@/components/common/SavedFollowCategories";
+import { followCategoryService } from "@/services/followCategory.api";
+import { FollowCategory } from "@/types/followCategory";
+import BookmarkModal from "@/pages/recruiter/home/BookmarkModal";
 
 // Type for saved portfolio
 interface SavedPortfolio {
@@ -22,6 +31,9 @@ interface SavedPortfolio {
   portfolioName: string;
   status: string;
   interestLevel: "low" | "medium" | "high";
+  categoryId?: number;
+  categoryName?: string;
+  categoryCode?: string;
   followedAt: string;
   lastPortfolioUpdateAt: string;
   isUpdatedSinceFollow: boolean;
@@ -45,36 +57,67 @@ const SavedCandidates = () => {
   const [filteredCandidates, setFilteredCandidates] = useState<SavedPortfolio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const [categories, setCategories] = useState<FollowCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [portfolioToDelete, setPortfolioToDelete] = useState<SavedPortfolio | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [portfolioToEdit, setPortfolioToEdit] = useState<SavedPortfolio | null>(null);
   const { accessToken } = useAppSelector((state) => state.auth);
 
+  // Fetch categories on mount
   useEffect(() => {
-    const fetchSavedPortfolios = async () => {
-      if (!accessToken) {
-        notify.error("Vui lòng đăng nhập để xem danh sách đã lưu");
-        setIsLoading(false);
-        return;
-      }
+    const fetchCategories = async () => {
+      if (!accessToken) return;
 
       try {
-        setIsLoading(true);
-        console.log("📡 Fetching saved portfolios...");
-        const data = await portfolioService.fetchSavedPortfolios(accessToken);
-        console.log("✅ Saved portfolios:", data);
-        setCandidates(data);
-        setFilteredCandidates(data);
+        setIsLoadingCategories(true);
+        const data = await followCategoryService.fetchFollowCategories(accessToken);
+        setCategories(data);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Lỗi khi tải danh sách đã lưu";
-        console.error("❌ Error loading saved portfolios:", errorMsg);
-        notify.error(errorMsg);
-        setCandidates([]);
-        setFilteredCandidates([]);
+        console.error("Error fetching categories:", error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingCategories(false);
       }
     };
 
-    fetchSavedPortfolios();
+    fetchCategories();
   }, [accessToken]);
+
+  // Function to refresh the saved portfolios list
+  const refreshSavedPortfolios = useCallback(async (categoryId?: number | null) => {
+    if (!accessToken) {
+      notify.error("Vui lòng đăng nhập để xem danh sách đã lưu");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Use provided categoryId if explicitly passed, otherwise use selectedCategoryId from state
+      const effectiveCategoryId = categoryId !== undefined ? categoryId : selectedCategoryId;
+      console.log("📡 Refreshing saved portfolios...", effectiveCategoryId ? `for category ${effectiveCategoryId}` : "all");
+      const data = await portfolioService.fetchSavedPortfolios(accessToken, effectiveCategoryId === null ? undefined : effectiveCategoryId);
+      console.log("✅ Saved portfolios:", data);
+      setCandidates(data);
+      setFilteredCandidates(data);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Lỗi khi tải danh sách đã lưu";
+      console.error("❌ Error loading saved portfolios:", errorMsg);
+      notify.error(errorMsg);
+      setCandidates([]);
+      setFilteredCandidates([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [accessToken, selectedCategoryId]);
+
+  // Fetch portfolios based on selected category
+  useEffect(() => {
+    refreshSavedPortfolios();
+  }, [refreshSavedPortfolios]);
 
   // Filter by priority
   useEffect(() => {
@@ -113,143 +156,351 @@ const SavedCandidates = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex gap-6">
-        <div className="flex-1 flex items-center justify-center min-h-96">
-          <div className="flex flex-col items-center gap-3">
-            <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-            <p className="text-slate-600">Đang tải danh sách đã lưu...</p>
-          </div>
-        </div>
-        <aside className="w-64 shrink-0" />
-      </div>
-    );
-  }
+  const handleDeletePortfolio = (portfolio: SavedPortfolio) => {
+    setOpenMenuId(null);
+    setPortfolioToDelete(portfolio);
+    setShowDeleteConfirm(true);
+  };
 
-  if (candidates.length === 0) {
-    return (
-      <div className="flex gap-6">
-        <div className="flex-1 flex items-center justify-center min-h-96">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <AlertCircle className="w-12 h-12 text-gray-300" />
-            <p className="text-lg font-semibold text-gray-600">Chưa có hồ sơ được lưu</p>
-            <p className="text-sm text-gray-500">Hãy lưu các hồ sơ quan tâm từ trang tìm kiếm ứng viên</p>
-          </div>
-        </div>
-        <aside className="w-64 shrink-0" />
-      </div>
-    );
-  }
+  const handleConfirmDeletePortfolio = async () => {
+    if (!portfolioToDelete || !accessToken) return;
+
+    try {
+      setIsDeleting(true);
+      await unfollowPortfolio(portfolioToDelete.portfolioId, accessToken);
+      notify.success("Đã xóa hồ sơ khỏi danh sách lưu");
+      setCandidates((prev) => prev.filter((c) => c.portfolioId !== portfolioToDelete.portfolioId));
+      setFilteredCandidates((prev) => prev.filter((c) => c.portfolioId !== portfolioToDelete.portfolioId));
+      setShowDeleteConfirm(false);
+      setPortfolioToDelete(null);
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Lỗi khi xóa hồ sơ";
+      notify.error(errorMsg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditPortfolio = (portfolio: SavedPortfolio) => {
+    setOpenMenuId(null);
+    setPortfolioToEdit(portfolio);
+    setShowEditModal(true);
+  };
+
 
   return (
-    <div className="flex gap-6">
-      {/* Danh sách Card */}
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {filteredCandidates.map((can) => {
-          const levelInfo = getInterestLevelColor(can.interestLevel);
-          return (
-            <div
-              key={can.portfolioId}
-              className={`bg-white border-2 rounded-2xl p-6 flex flex-col items-center text-center transition-all hover:shadow-md ${levelInfo.border}`}
+    <div className="space-y-6">
+      {/* Category Filter Tabs - Always visible when categories exist */}
+      {!isLoadingCategories && categories.length > 0 && (
+        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-800 mb-3">Danh sách theo dõi</h3>
+          <div className="flex flex-wrap gap-2">
+            {/* "Không phân loại" button */}
+            <button
+              onClick={() => setSelectedCategoryId(null)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                selectedCategoryId === null
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
             >
-              <img
-                src={can.preview?.data?.avatar || "https://i.pravatar.cc/150?u=default"}
-                className="w-20 h-20 rounded-full mb-4 border-2 border-slate-50 shadow-sm object-cover"
-                alt={can.preview?.data?.name || "avatar"}
-              />
-              <h3 className="text-xl font-bold text-slate-800">
-                {can.preview?.data?.name || can.portfolioName}
-              </h3>
-              <p className="text-[12px] font-bold text-blue-500 uppercase mt-1">
-                {can.preview?.data?.studyField || "Portfolio"}
-              </p>
-              <p className="text-[13px] text-slate-500 mt-3 leading-relaxed line-clamp-4">
-                {can.preview?.data?.description || "Không có mô tả"}
-              </p>
+              <AlertCircle size={16} />
+              Không phân loại
+            </button>
 
-              <div className="flex gap-6 mt-5 text-[12px] font-medium text-slate-400">
-                {can.preview?.data?.email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail size={14} /> {can.preview.data.email}
-                  </span>
-                )}
-                {can.preview?.data?.phone && (
-                  <span className="flex items-center gap-1.5">
-                    <Phone size={14} /> {can.preview.data.phone}
-                  </span>
-                )}
+            {/* Category buttons */}
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategoryId(category.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedCategoryId === category.id
+                    ? "bg-blue-500 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                <Folder size={16} />
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Portfolios Grid */}
+      <div className="flex gap-6">
+        <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {isLoading ? (
+            <div className="col-span-full flex items-center justify-center min-h-96">
+              <div className="flex flex-col items-center gap-3">
+                <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+                <p className="text-slate-600">Đang tải danh sách...</p>
               </div>
+            </div>
+          ) : candidates.length === 0 ? (
+            <div className="col-span-full flex items-center justify-center min-h-96">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <AlertCircle className="w-12 h-12 text-gray-300" />
+                <p className="text-lg font-semibold text-gray-600">Chưa có hồ sơ được lưu</p>
+                <p className="text-sm text-gray-500">Hãy lưu các hồ sơ quan tâm từ trang tìm kiếm ứng viên</p>
+              </div>
+            </div>
+          ) : filteredCandidates.length === 0 ? (
+            <div className="col-span-full flex items-center justify-center min-h-96">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <AlertCircle className="w-12 h-12 text-gray-300" />
+                <p className="text-lg font-semibold text-gray-600">Không tìm thấy hồ sơ</p>
+                <p className="text-sm text-gray-500">Không có hồ sơ phù hợp với bộ lọc của bạn</p>
+              </div>
+            </div>
+          ) : (
+            filteredCandidates.map((can) => {
+              const levelInfo = getInterestLevelColor(can.interestLevel);
+              return (
+                <div
+                  key={can.portfolioId}
+                  className={`bg-white border-2 rounded-2xl p-6 flex flex-col items-center text-center transition-all hover:shadow-md relative group ${levelInfo.border}`}
+                >
+                  {/* Action Menu Button */}
+                  <div className="absolute top-4 right-4">
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setOpenMenuId(openMenuId === can.portfolioId ? null : can.portfolioId)
+                        }
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Tùy chọn"
+                      >
+                        <MoreVertical className="w-4 h-4 text-slate-400" />
+                      </button>
 
-              <div className="w-full border-t border-slate-100 mt-6 pt-4 flex flex-col gap-3">
-                {/* Dòng 1: Mức độ quan tâm */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${levelInfo.dot}`} />
-                    <span className={`text-[12px] font-bold ${levelInfo.color}`}>
-                      Mức độ ưu tiên: {getInterestLevelLabel(can.interestLevel)}
-                    </span>
+                      {/* Dropdown Menu */}
+                      {openMenuId === can.portfolioId && (
+                        <div className="absolute right-0 top-full mt-2 bg-white border border-slate-100 rounded-lg shadow-lg z-10 min-w-40">
+                          <button
+                            onClick={() => handleEditPortfolio(can)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors first:rounded-t-lg"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Chỉnh sửa
+                          </button>
+                          <button
+                            onClick={() => handleDeletePortfolio(can)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors last:rounded-b-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Xóa
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <img
+                    src={can.preview?.data?.avatar || "https://i.pravatar.cc/150?u=default"}
+                    className="w-20 h-20 rounded-full mb-4 border-2 border-slate-50 shadow-sm object-cover"
+                    alt={can.preview?.data?.name || "avatar"}
+                  />
+                  <h3 className="text-xl font-bold text-slate-800">
+                    {can.preview?.data?.name || can.portfolioName}
+                  </h3>
+                  <p className="text-[12px] font-bold text-blue-500 uppercase mt-1">
+                    {can.preview?.data?.studyField || "Portfolio"}
+                  </p>
+                  <p className="text-[13px] text-slate-500 mt-3 leading-relaxed line-clamp-4">
+                    {can.preview?.data?.description || "Không có mô tả"}
+                  </p>
+
+                  <div className="flex gap-6 mt-5 text-[12px] font-medium text-slate-400">
+                    {can.preview?.data?.email && (
+                      <span className="flex items-center gap-1.5">
+                        <Mail size={14} /> {can.preview.data.email}
+                      </span>
+                    )}
+                    {can.preview?.data?.phone && (
+                      <span className="flex items-center gap-1.5">
+                        <Phone size={14} /> {can.preview.data.phone}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-full border-t border-slate-100 mt-6 pt-4 flex flex-col gap-3">
+                    {/* Dòng 1: Mức độ quan tâm */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${levelInfo.dot}`} />
+                        <span className={`text-[12px] font-bold ${levelInfo.color}`}>
+                          Mức độ ưu tiên: {getInterestLevelLabel(can.interestLevel)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Dòng 2: Trạng thái cập nhật */}
+                    {can.isUpdatedSinceFollow && (
+                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                        <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          Mới cập nhật
+                        </span>
+                        <span className="text-[10px] text-blue-400 font-medium">
+                          Hồ sơ này mới cập nhật từ lần lưu
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Delete Portfolio Modal */}
+        {showDeleteConfirm && portfolioToDelete && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900">Xóa hồ sơ khỏi danh sách</h3>
+                  <button
+                    onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                    className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div className="text-center">
+                    <p className="text-gray-700 font-medium mb-2">Bạn có chắc chắn muốn xóa hồ sơ này?</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Tên hồ sơ: <span className="font-semibold">{portfolioToDelete.preview?.data?.name || portfolioToDelete.portfolioName}</span>
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800">
+                      ℹ️ Hồ sơ sẽ được xóa khỏi danh sách lưu của bạn. Bạn có thể lưu lại hồ sơ này sau.
+                    </p>
                   </div>
                 </div>
 
-                {/* Dòng 2: Trạng thái cập nhật */}
-                {can.isUpdatedSinceFollow && (
-                  <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                      Mới cập nhật
-                    </span>
-                    <span className="text-[10px] text-blue-400 font-medium">
-                      Hồ sơ này mới cập nhật từ lần lưu
-                    </span>
-                  </div>
-                )}
+                <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleConfirmDeletePortfolio}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Đang xóa...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={18} />
+                        Xóa
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          );
-        })}
+          </>
+        )}
+
+        {/* Edit Portfolio Modal */}
+        {/* BookmarkModal for editing portfolio */}
+        {showEditModal && portfolioToEdit && (
+          <BookmarkModal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setPortfolioToEdit(null);
+            }}
+            portfolioId={portfolioToEdit.portfolioId}
+            onSuccess={() => {
+              // Refresh the list after successful update
+              refreshSavedPortfolios(selectedCategoryId);
+            }}
+            mode="edit"
+            currentInterestLevel={portfolioToEdit.interestLevel.toUpperCase() as "LOW" | "MEDIUM" | "HIGH"}
+            currentCategoryId={portfolioToEdit.categoryId || null}
+          />
+        )}
+
+        {/* Sidebar Lọc bên phải */}
+        <aside className="w-64 shrink-0">
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm sticky top-6">
+            <h2 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-5">
+              Lọc theo ưu tiên
+            </h2>
+            <nav className="space-y-2">
+              <button
+                onClick={() => setSelectedPriority("all")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-bold transition-all ${
+                  selectedPriority === "all"
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                <LayoutGrid size={16} /> Tất cả hồ sơ ({candidates.length})
+              </button>
+              {[
+                { value: "high", label: "Mức độ ưu tiên: Cao", color: "bg-green-500" },
+                { value: "medium", label: "Mức độ ưu tiên: Trung bình", color: "bg-amber-400" },
+                { value: "low", label: "Mức độ ưu tiên: Thấp", color: "bg-red-500" },
+              ].map((item) => {
+                const count = candidates.filter((c) => c.interestLevel === item.value).length;
+                return (
+                  <button
+                    key={item.value}
+                    onClick={() => setSelectedPriority(item.value)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[12px] font-semibold transition-all ${
+                      selectedPriority === item.value
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                    {item.label} ({count})
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+};
+
+// 2. Component hiển thị Danh sách theo dõi
+const SavedCandidatesWithCategories = () => {
+  return (
+    <div className="space-y-8">
+      {/* Section: Hồ sơ ứng viên */}
+      <div>
+        <h2 className="text-xl font-bold text-slate-800 mb-6">Hồ sơ ứng viên đã lưu</h2>
+        <SavedCandidates />
       </div>
 
-      {/* Sidebar Lọc bên phải */}
-      <aside className="w-64 shrink-0">
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm sticky top-6">
-          <h2 className="text-[12px] font-black text-slate-800 uppercase tracking-widest mb-5">
-            Lọc theo ưu tiên
-          </h2>
-          <nav className="space-y-2">
-            <button
-              onClick={() => setSelectedPriority("all")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-bold transition-all ${
-                selectedPriority === "all"
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-slate-500 hover:bg-slate-50"
-              }`}
-            >
-              <LayoutGrid size={16} /> Tất cả hồ sơ ({candidates.length})
-            </button>
-            {[
-              { value: "high", label: "Mức độ ưu tiên: Cao", color: "bg-green-500" },
-              { value: "medium", label: "Mức độ ưu tiên: Trung bình", color: "bg-amber-400" },
-              { value: "low", label: "Mức độ ưu tiên: Thấp", color: "bg-red-500" },
-            ].map((item) => {
-              const count = candidates.filter((c) => c.interestLevel === item.value).length;
-              return (
-                <button
-                  key={item.value}
-                  onClick={() => setSelectedPriority(item.value)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[12px] font-semibold transition-all ${
-                    selectedPriority === item.value
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                  {item.label} ({count})
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
+      {/* Section: Danh sách theo dõi */}
+      <div>
+        <h2 className="text-xl font-bold text-slate-800 mb-6">Danh sách theo dõi</h2>
+        <SavedFollowCategories />
+      </div>
     </div>
   );
 };
@@ -257,39 +508,36 @@ const SavedCandidates = () => {
 // --- Main Page Component ---
 const CompanySavePost = () => {
   const [activeTab, setActiveTab] = useState("candidates");
-  const [isLoading, setIsLoading] = useState(false);
   const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]);
   const { accessToken } = useAppSelector((state) => state.auth);
-  const fetchCompanySavePosts = async () => {
-    if (isLoading) return;
 
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Fetched saved posts:", data.items);
-        setSavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
-      }
-    } catch (error) {
-      console.error("Lỗi khi fetch posts:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   useEffect(() => {
+    const fetchCompanySavePostsData = async () => {
+      try {
+        const response = await fetch(
+          `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Fetched saved posts:", data.items);
+          setSavedPosts(data); // Cập nhật danh sách bài viết đã lưu với dữ liệu từ API
+        }
+      } catch (error) {
+        console.error("Lỗi khi fetch posts:", error);
+      }
+    };
+
     if (activeTab !== "candidates") {
-      fetchCompanySavePosts();
+      fetchCompanySavePostsData();
     }
-  }, [activeTab]);
+  }, [activeTab, accessToken]);
+
   return (
     <div className="text-slate-900 min-h-screen transition-colors duration-200">
       <div className="max-w-[1440px] mx-auto px-8 flex gap-8">
@@ -356,7 +604,7 @@ const CompanySavePost = () => {
             </div>
           </div>
           {activeTab === "candidates" ? (
-            <SavedCandidates />
+            <SavedCandidatesWithCategories />
           ) : savedPosts.length > 0 ? (
             <div className="space-y-6 max-w-3xl mx-auto">
               {savedPosts.map((post: CommunityPost) => (

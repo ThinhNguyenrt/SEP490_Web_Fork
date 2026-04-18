@@ -4230,9 +4230,12 @@ export default function CreatePortfolio() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (!isAllowed) return;
-                            setSelectedBlockTypeForVariant(blockItem.type);
-                            setShowVariantSelector(true);
+                            if (blockItem.type === "OTHERINFO") {
+                              addBlockFromCatalog("OTHERINFO", "OTHERONE");
+                            } else {
+                              setSelectedBlockTypeForVariant(blockItem.type);
+                              setShowVariantSelector(true);
+                            }
                           }}
                           disabled={!isAllowed}
                           className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${

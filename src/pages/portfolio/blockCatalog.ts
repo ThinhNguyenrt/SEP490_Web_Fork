@@ -192,7 +192,7 @@ export const BLOCK_CATALOG: BlockInfo[] = [
   },
   {
     type: "OTHERINFO",
-    label: "Sở thích cá nhân",
+    label: "Thông tin khác",
     icon: Lightbulb,
     description: "Mục tiêu, tài liệu, kỹ năng mềm",
     variants: [

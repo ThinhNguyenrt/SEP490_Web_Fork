@@ -8,9 +8,9 @@ import {
   Info,
   Key,
   LogOut,
-  Award,
   Calendar,
   Briefcase,
+  Crown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -169,7 +169,7 @@ export default function ProfilePage() {
           <CardContent className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
-                <Award className="text-blue-600" size={24} />
+                <Crown className="text-blue-600" size={24} />
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 uppercase text-xs tracking-widest">

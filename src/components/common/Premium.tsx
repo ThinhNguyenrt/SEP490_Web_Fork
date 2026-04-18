@@ -1,4 +1,4 @@
-import { Award, CheckCircle2, ChevronRight, Lightbulb } from "lucide-react";
+import { CheckCircle2, ChevronRight, Crown, Lightbulb } from "lucide-react";
 
 const TipItem = ({ text }: { text: string }) => (
   <li className="flex gap-4 group">
@@ -47,7 +47,7 @@ export function PremiumInNotification() {
     <aside className="w-full lg:w-96 shrink-0">
       <div className="sticky top-40 space-y-6">
         <h2 className="text-gray-500 font-medium flex items-center gap-2 text-sm uppercase tracking-wider">
-          <Award size={16} className="text-blue-500" />
+          <Crown size={16} className="text-blue-500" />
           Dành riêng cho bạn
         </h2>
 
@@ -55,7 +55,7 @@ export function PremiumInNotification() {
           <div className="p-6">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 ">
-                <Award size={32} />
+                <Crown size={32} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 leading-tight">

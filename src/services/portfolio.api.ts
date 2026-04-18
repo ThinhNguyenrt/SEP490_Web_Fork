@@ -3012,14 +3012,294 @@ export const followPortfolio = async (
   }
 };
 
+// Follow/Bookmark portfolio with interest level and category
+export const followPortfolioWithCategory = async (
+  payload: {
+    portfolioId: number;
+    interestLevel: "LOW" | "MEDIUM" | "HIGH";
+    categoryId: number;
+  },
+  accessToken: string,
+): Promise<any> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [followPortfolioWithCategory] Following portfolio:", payload.portfolioId, "with interest level:", payload.interestLevel, "categoryId:", payload.categoryId);
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Follow request timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/follows`, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [followPortfolioWithCategory] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 [followPortfolioWithCategory] Raw response:", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 [followPortfolioWithCategory] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Follow portfolio error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log("✅ Portfolio followed with category successfully");
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
+// Unfollow/Remove saved portfolio
+export const unfollowPortfolio = async (
+  portfolioId: number,
+  accessToken: string,
+): Promise<void> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [unfollowPortfolio] Unfollowing portfolio:", portfolioId);
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Unfollow request timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/follows/${portfolioId}`, {
+      method: "DELETE",
+      headers: headers,
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [unfollowPortfolio] Response status:", response.status);
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Handle 204 No Content - success
+    if (response.status === 204) {
+      console.log("✅ Portfolio unfollowed successfully (204 No Content)");
+      return;
+    }
+
+    // Handle other non-ok responses
+    if (!response.ok) {
+      let errorMsg = `Server error: ${response.status} ${response.statusText}`;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          const data = await response.json();
+          errorMsg = data?.message || data?.errors?.[0] || errorMsg;
+        }
+      } catch (parseError) {
+        console.error("❌ Error parsing error response:", parseError);
+      }
+      console.error("❌ Unfollow portfolio error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log("✅ Portfolio unfollowed successfully");
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
+// Update a saved portfolio (follow record)
+export const updateFollow = async (
+  portfolioId: number,
+  payload: {
+    interestLevel: "LOW" | "MEDIUM" | "HIGH";
+    categoryId?: number | null;
+  },
+  accessToken: string,
+): Promise<any> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+    console.log("📡 [updateFollow] Updating follow for portfolio:", portfolioId, "with payload:", payload);
+    console.log("🔐 Token available:", !!accessToken);
+
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("⏱️ Update follow request timeout after 30 seconds");
+      controller.abort();
+    }, 30000);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}/follows/${portfolioId}`, {
+      method: "PUT",
+      headers: headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+      credentials: "include",
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("📡 [updateFollow] Response status:", response.status);
+
+    const contentType = response.headers.get("content-type");
+    let data: any;
+    let responseText: string = "";
+
+    try {
+      responseText = await response.text();
+      console.log("📦 [updateFollow] Raw response:", responseText.substring(0, 500));
+    } catch (readError) {
+      console.error("❌ Error reading response body:", readError);
+      throw new Error("Failed to read server response");
+    }
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized - Token is invalid or expired");
+      throw new Error("Your session has expired. Please login again.");
+    }
+
+    // Handle 204 No Content - success but no response body
+    if (response.status === 204) {
+      console.log("✅ Follow updated successfully (204 No Content)");
+      return { portfolioId, message: "Follow updated successfully" };
+    }
+
+    if (contentType?.includes("application/json") && responseText) {
+      try {
+        data = JSON.parse(responseText);
+        console.log("📦 [updateFollow] Response data:", data);
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data?.message ||
+        data?.errors?.[0] ||
+        `Server error: ${response.status} ${response.statusText}`;
+      console.error("❌ Update follow error:", errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    console.log("✅ Follow updated successfully");
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 // Fetch saved/followed portfolios
 export const fetchSavedPortfolios = async (
   accessToken: string,
+  categoryId?: number,
 ): Promise<any[]> => {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
-    console.log("📡 [fetchSavedPortfolios] Fetching saved portfolios");
+    console.log("📡 [fetchSavedPortfolios] Fetching saved portfolios", categoryId ? `for category ${categoryId}` : "");
     console.log("🔐 Token available:", !!accessToken);
 
     if (!accessToken) {
@@ -3038,7 +3318,13 @@ export const fetchSavedPortfolios = async (
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const response = await fetch(`${API_BASE_URL}/follows`, {
+    // Build URL with optional categoryId parameter
+    let url = `${API_BASE_URL}/follows`;
+    if (categoryId) {
+      url += `?categoryId=${categoryId}`;
+    }
+
+    const response = await fetch(url, {
       method: "GET",
       headers: headers,
       signal: controller.signal,

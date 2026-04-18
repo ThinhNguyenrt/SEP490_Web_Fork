@@ -358,16 +358,7 @@ export default function RecruiterHome() {
         </div>
 
         {/* Main Content - Candidate Card */}
-        <div className="flex-1 min-w-0 flex items-center justify-center gap-4 xl:gap-6 xl:ml-88 mr-2 lg:mr-4">
-          {/* Left Arrow */}
-          <button 
-            onClick={handlePrev}
-            disabled={currentIndex === 0 || filteredPortfolios.length === 0}
-            className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          >
-            <ChevronLeft size={32} className="text-slate-600" />
-          </button>
-
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-6 xl:ml-88 mr-2 lg:mr-4">
           {/* Portfolio Card or Empty State */}
           {filteredPortfolios.length === 0 ? (
             // Màn hình không tìm thấy
@@ -406,49 +397,61 @@ export default function RecruiterHome() {
                   )}
                 </div>
 
+                {/* Loading Indicator */}
+                {isLoading && (
+                  <div className="flex justify-center mt-4">
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Floating Action Bar - Similar to ExploreTab */}
+              <div className="w-fit px-6 py-2 bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-3xl flex items-center gap-10">
+                {/* Previous Button */}
+                <button
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                  className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
+                >
+                  <ChevronLeft size={32} strokeWidth={2.5} />
+                </button>
+
                 {/* Action Buttons */}
-                <div className="flex justify-center items-center gap-6 sm:gap-8 py-3 sm:py-4 rounded-lg px-2 mb-2" style={{ backgroundColor: '#EFF6FF' }}>
+                <div className="flex items-center gap-12 border-x border-slate-100 px-12">
                   <button
                     onClick={() => setIsCommentModalOpen(true)}
-                    className="flex items-center justify-center gap-2 hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
                     title="Nhận xét"
                   >
-                    <MessageSquare className="text-blue-500" size={30} />
+                    <MessageSquare className="text-blue-500" size={24} />
                   </button>
                   <button
                     onClick={handleBookmark}
-                    className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
                     title="Lưu"
                   >
-                    <img src={BookmarkIcon} alt="Bookmark" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
+                    <img src={BookmarkIcon} alt="Bookmark" className="w-6 h-6" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
                   </button>
                   <button
                     onClick={handleShare}
-                    className="flex items-center justify-center hover:opacity-70 transition-opacity bg-transparent border-none cursor-pointer"
+                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
                     title="Chia sẻ"
                   >
-                    <img src={ShareIcon} alt="Share" className="w-7.5 h-7.5" style={{ filter: 'brightness(0) saturate(100%)' }} />
+                    <img src={ShareIcon} alt="Share" className="w-6 h-6" style={{ filter: 'brightness(0) saturate(100%)' }} />
                   </button>
                 </div>
-              </div>
 
-              {/* Loading Indicator */}
-              {isLoading && (
-                <div className="flex justify-center mt-4">
-                  <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
-                </div>
-              )}
+                {/* Next Button */}
+                <button
+                  onClick={handleNext}
+                  disabled={currentIndex === filteredPortfolios.length - 1}
+                  className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
+                >
+                  <ChevronRight size={32} strokeWidth={2.5} />
+                </button>
+              </div>
             </>
           )}
-
-          {/* Right Arrow */}
-          <button 
-            onClick={handleNext}
-            disabled={currentIndex === filteredPortfolios.length - 1 || filteredPortfolios.length === 0}
-            className="p-2 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          >
-            <ChevronRight size={32} className="text-slate-600" />
-          </button>
         </div>
 
         {/* Right Premium Section */}

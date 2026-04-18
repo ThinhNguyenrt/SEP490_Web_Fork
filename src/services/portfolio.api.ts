@@ -2926,7 +2926,7 @@ export const followPortfolio = async (
   accessToken: string,
 ): Promise<any> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const API_BASE_URL = import.meta.env.VITE_PORTFOLIO_API_BASE_URL || API_BASE_URLS.portfolio;
 
     console.log("📡 [followPortfolio] Following portfolio:", payload.portfolioId, "with interest level:", payload.interestLevel);
     console.log("🔐 Token available:", !!accessToken);
@@ -3022,7 +3022,7 @@ export const followPortfolioWithCategory = async (
   accessToken: string,
 ): Promise<any> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const API_BASE_URL = import.meta.env.VITE_PORTFOLIO_API_BASE_URL || API_BASE_URLS.portfolio;
 
     console.log("📡 [followPortfolioWithCategory] Following portfolio:", payload.portfolioId, "with interest level:", payload.interestLevel, "categoryId:", payload.categoryId);
     console.log("🔐 Token available:", !!accessToken);
@@ -3114,7 +3114,7 @@ export const unfollowPortfolio = async (
   accessToken: string,
 ): Promise<void> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const API_BASE_URL = import.meta.env.VITE_PORTFOLIO_API_BASE_URL || API_BASE_URLS.portfolio;
 
     console.log("📡 [unfollowPortfolio] Unfollowing portfolio:", portfolioId);
     console.log("🔐 Token available:", !!accessToken);
@@ -3199,7 +3199,7 @@ export const updateFollow = async (
   accessToken: string,
 ): Promise<any> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const API_BASE_URL = import.meta.env.VITE_PORTFOLIO_API_BASE_URL || API_BASE_URLS.portfolio;
 
     console.log("📡 [updateFollow] Updating follow for portfolio:", portfolioId, "with payload:", payload);
     console.log("🔐 Token available:", !!accessToken);
@@ -3297,9 +3297,10 @@ export const fetchSavedPortfolios = async (
   categoryId?: number,
 ): Promise<any[]> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const API_BASE_URL = import.meta.env.VITE_PORTFOLIO_API_BASE_URL || API_BASE_URLS.portfolio;
 
     console.log("📡 [fetchSavedPortfolios] Fetching saved portfolios", categoryId ? `for category ${categoryId}` : "");
+    console.log("📍 API Base URL:", API_BASE_URL);
     console.log("🔐 Token available:", !!accessToken);
 
     if (!accessToken) {
@@ -3323,6 +3324,7 @@ export const fetchSavedPortfolios = async (
     if (categoryId) {
       url += `?categoryId=${categoryId}`;
     }
+    console.log("📡 [fetchSavedPortfolios] Full URL:", url);
 
     const response = await fetch(url, {
       method: "GET",

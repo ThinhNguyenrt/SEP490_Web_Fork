@@ -19,7 +19,7 @@ export default function PaymentResultPage() {
   const [message, setMessage] = useState("Đang xác thực giao dịch từ hệ thống...");
   
   const retryCount = useRef(0);
-  const maxRetries = 30; 
+  const maxRetries = 5; 
 
   useEffect(() => {
     // Nếu không có cả 2 thì mới báo lỗi
@@ -46,7 +46,7 @@ export default function PaymentResultPage() {
 
         const data = await res.json();
 
-        if (res.ok) {
+        if (data.status === "Succeeded") {
           // Xóa vết sau khi thành công
           localStorage.removeItem("pending_payment_id");
           localStorage.removeItem("pending_order_code");

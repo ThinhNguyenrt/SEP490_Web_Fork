@@ -1,15 +1,16 @@
 import { useState, useRef } from "react";
 import { Camera, User, ArrowRight, Phone } from "lucide-react";
 import { toast } from "react-toastify";
-import { useAppSelector } from "@/store/hook";
+import { useAppDispatch, useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 import { useNavigate } from "react-router-dom";
+import { updateUserInfo } from "@/store/features/auth/authSlice";
 
 const SetupTalentProfile = () => {
   const { user, accessToken } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+  const dispatch = useAppDispatch();
   // State thông tin text
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -84,8 +85,20 @@ const SetupTalentProfile = () => {
       );
 
       if (response.ok) {
-        notify.success("Thiết lập hồ sơ thành công!");
+        // 1. Lấy dữ liệu mới từ response
+        const checkResponse = await fetch(
+          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee/by-user/${user?.id}`,
+        );
+        const employeeData = await checkResponse.json();
 
+        // 3. Cập nhật vào Redux
+        // Chúng ta lấy field 'id' từ API (là 12) và gán nó vào 'employeeId' trong Redux
+        dispatch(
+          updateUserInfo({
+            employeeId: employeeData.id,
+          }),
+        );
+        notify.success("Thiết lập hồ sơ thành công!");
         navigate("/talent-home");
       } else {
         notify.error("Có lỗi xảy ra khi lưu thông tin");

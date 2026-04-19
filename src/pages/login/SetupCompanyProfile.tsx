@@ -5,16 +5,19 @@ import {
   ArrowRight,
   MapPin,
   FileText,
-  Hash
+  Hash,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hook";
 import { notify } from "@/lib/toast";
 import { useNavigate } from "react-router-dom";
+import { updateUserInfo } from "@/store/features/auth/authSlice";
+import { useDispatch } from "react-redux";
 
 const SetupCompanyProfile = () => {
   const { user, accessToken } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   // 1. State thông tin text (Khớp với Swagger)
   const [companyName, setCompanyName] = useState("");
@@ -96,8 +99,20 @@ const SetupCompanyProfile = () => {
       );
 
       if (response.ok) {
-        notify.success("Thiết lập hồ sơ công ty thành công!");
+        // 1. Lấy dữ liệu mới từ response
+        const checkResponse = await fetch(
+          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/by-user/${user?.id}`,
+        );
+        const companyData = await checkResponse.json();
 
+        // 3. Cập nhật vào Redux
+        // Chúng ta lấy field 'id' từ API (là 12) và gán nó vào 'companyId' trong Redux
+        dispatch(
+          updateUserInfo({
+            companyId: companyData.id,
+          }),
+        );
+        notify.success("Thiết lập hồ sơ công ty thành công!");
         navigate("/recruiter-home");
       } else {
         notify.error("Không thể lưu thông tin công ty. Vui lòng kiểm tra lại.");

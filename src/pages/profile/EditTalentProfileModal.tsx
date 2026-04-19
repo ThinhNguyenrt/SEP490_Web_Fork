@@ -189,7 +189,7 @@ const EditTalentProfileModal = ({ isOpen, onClose, initialProfile, onProfileUpda
   if (!isOpen) return null;
 
   const displayCoverImage = previewState.coverImage || formState.coverImage || "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000";
-  const displayAvatar = previewState.avatar || formState.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=AnNhien";
+  const displayAvatar = previewState.avatar || formState.avatar ||"/user_placeholder.png";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

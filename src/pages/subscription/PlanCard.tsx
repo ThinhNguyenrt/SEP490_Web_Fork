@@ -1,9 +1,11 @@
+import { useUserProfile } from "@/hook/useUserProfile";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/hook";
 import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -11,7 +13,9 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isPro = plan.name === "Pro";
   const { accessToken } = useAppSelector((state) => state.auth);
-
+  const navigate = useNavigate();
+  const { profile } = useUserProfile();
+  const isCurrentPlan = profile?.planName === plan.name;
   const handlePayment = async () => {
     // 1. Kiểm tra gói Free
     if (plan.price === 0) {
@@ -61,29 +65,22 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       if (!paymentRes.ok) {
         throw new Error("Không thể tạo liên kết thanh toán");
       }
-
       const paymentData = await paymentRes.json();
-
-      // BƯỚC 5: MỞ THANH TOÁN Ở TAB MỚI
       if (paymentData.paymentUrl) {
+        // Lưu thông tin vào LocalStorage để trang ResultPage có thể đọc được
         localStorage.setItem("pending_payment_id", paymentData.paymentId);
         localStorage.setItem("pending_order_code", paymentData.orderCode);
-        notify.success("Đang chuyển hướng sang trang thanh toán...");
 
-        // Mở tab mới
-        const paymentWindow = window.open(paymentData.paymentUrl, "_blank");
+        notify.success("Đang mở trang thanh toán...");
 
-        // Kiểm tra nếu trình duyệt chặn popup
-        if (
-          !paymentWindow ||
-          paymentWindow.closed ||
-          typeof paymentWindow.closed === "undefined"
-        ) {
-          // Nếu bị chặn popup, chuyển hướng ngay tại tab hiện tại để đảm bảo user vẫn thanh toán được
-          window.location.href = paymentData.paymentUrl;
-        }
-      } else {
-        throw new Error("Dữ liệu thanh toán từ máy chủ không hợp lệ");
+        // 1. Mở trang thanh toán của PayOS ở TAB MỚI
+        window.open(paymentData.paymentUrl, "_blank");
+
+        // 2. Chuyển TAB HIỆN TẠI sang trang kết quả (Polling)
+        // Dùng navigate từ hook useNavigate() của react-router-dom
+        navigate(
+          `/payment/result?paymentId=${paymentData.paymentId}&orderCode=${paymentData.orderCode}`,
+        );
       }
     } catch (error: any) {
       console.error("Payment Error:", error);
@@ -187,24 +184,23 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       {/* Action Button */}
       <button
         onClick={handlePayment}
-        disabled={isLoading}
+        disabled={isLoading || isCurrentPlan} // Không cho bấm nếu là gói hiện tại
         className={cn(
-          "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all active:scale-95 cursor-pointer shadow-lg flex items-center justify-center",
-          isPro
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25"
-            : "bg-slate-900 hover:bg-black text-white",
-          isLoading && "bg-slate-400 shadow-none cursor-wait",
+          "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all",
+          isCurrentPlan
+            ? "bg-emerald-100 text-emerald-600 cursor-default border-2 border-emerald-200" // Style cho gói hiện tại
+            : isPro
+              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              : "bg-slate-900 hover:bg-black text-white",
+          isLoading && "opacity-50 cursor-wait",
         )}
       >
         {isLoading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ĐANG XỬ LÝ...
-          </>
-        ) : plan.price === 0 ? (
-          "BẮT ĐẦU NGAY"
+          <Loader2 className="animate-spin" />
+        ) : isCurrentPlan ? (
+          "GÓI BẠN ĐANG DÙNG"
         ) : (
-          "NÂNG CẤP GÓI"
+          "NÂNG CẤP NGAY"
         )}
       </button>
     </div>

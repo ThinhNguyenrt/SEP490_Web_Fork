@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
-// import { Button } from "@/components/ui/button"; 
+import { ArrowUpRight, ChevronLeft, ChevronRight, Plus, Trophy } from "lucide-react";
+// import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import SortIcon from "@/assets/myWeb/sort.png";
 import ShareIcon from "@/assets/myWeb/share1.png";
+import top1Avatar from "@/assets/myWeb/top1avatar.png";
 import {
   portfolioService,
   PortfolioMainBlockItem,
@@ -15,6 +12,7 @@ import {
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { notify } from "@/lib/toast";
 import CommentModal from "../../recruiter/home/CommentModal";
+import { useNavigate } from "react-router-dom";
 
 interface PortfolioMetadata {
   portfolioId: number;
@@ -33,21 +31,38 @@ const extractPortfolioMetadata = (
 
   blocks.forEach((block: Record<string, unknown>) => {
     if (!block) return;
-    const data = block.data as Record<string, unknown> || {};
+    const data = (block.data as Record<string, unknown>) || {};
     if (
       block.type === "intro" ||
       block.type === "name" ||
       block.type === "header"
     ) {
-      title = (data.jobTitle as string) || (data.position as string) || (data.title as string) || title;
+      title =
+        (data.jobTitle as string) ||
+        (data.position as string) ||
+        (data.title as string) ||
+        title;
     }
     if (block.type === "skills") {
       if (Array.isArray(data.skills)) {
-        skills = (data.skills as Array<Record<string, string> | string>).map((s) =>
-          (typeof s === 'object' && s !== null && 'name' in s ? (s as Record<string, string>).name : s).toString().toLowerCase(),
+        skills = (data.skills as Array<Record<string, string> | string>).map(
+          (s) =>
+            (typeof s === "object" && s !== null && "name" in s
+              ? (s as Record<string, string>).name
+              : s
+            )
+              .toString()
+              .toLowerCase(),
         );
       } else if (Array.isArray(data)) {
-        skills = (data as Array<Record<string, string> | string>).map((s) => (typeof s === 'object' && s !== null && 'name' in s ? (s as Record<string, string>).name : s).toString().toLowerCase());
+        skills = (data as Array<Record<string, string> | string>).map((s) =>
+          (typeof s === "object" && s !== null && "name" in s
+            ? (s as Record<string, string>).name
+            : s
+          )
+            .toString()
+            .toLowerCase(),
+        );
       }
     }
   });
@@ -79,6 +94,7 @@ export default function ExploreTab() {
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+   const navigate = useNavigate();
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
@@ -97,16 +113,15 @@ export default function ExploreTab() {
       const metadata = new Map<number, PortfolioMetadata>();
       portfolios.forEach((p, index) => {
         metadata.set(p.portfolioId, extractPortfolioMetadata(p));
-        console.log(
-          `📊 [ExploreTab] Portfolio #${index + 1}:`,
-          {
-            portfolioId: p.portfolioId,
-            name: p.portfolio?.name,
-            ranking: p.ranking,
-            rankPosition: p.ranking?.rankPosition,
-            hasRankBadge: (p.ranking?.rankPosition ?? 0) >= 1 && (p.ranking?.rankPosition ?? 0) <= 10
-          }
-        );
+        console.log(`📊 [ExploreTab] Portfolio #${index + 1}:`, {
+          portfolioId: p.portfolioId,
+          name: p.portfolio?.name,
+          ranking: p.ranking,
+          rankPosition: p.ranking?.rankPosition,
+          hasRankBadge:
+            (p.ranking?.rankPosition ?? 0) >= 1 &&
+            (p.ranking?.rankPosition ?? 0) <= 10,
+        });
       });
 
       setFilteredPortfolios(portfolios);
@@ -151,9 +166,9 @@ export default function ExploreTab() {
           );
         });
       }
-      
+
       // Backend already sorted by rank with sort=0 (rank_asc), keep original order
-      
+
       setFilteredPortfolios(results);
       setCurrentIndex(0);
       setIsLoading(false);
@@ -163,10 +178,10 @@ export default function ExploreTab() {
   const handleResetFilter = () => {
     setFilters({ position: "", skills: "", location: "" });
     setSkillTags([]);
-    
+
     // Backend already sorted by rank with sort=0 (rank_asc), keep original order
     const sortedPortfolios = [...allPortfolios];
-    
+
     setFilteredPortfolios(sortedPortfolios);
     setCurrentIndex(0);
   };
@@ -275,10 +290,10 @@ export default function ExploreTab() {
 
       {/* Main Content Area */}
 
-      <main className="flex-1 flex flex-col items-center justify-center py-8 px-6 overflow-x-hidden">
+      <main className="flex-1 flex flex-col items-center py-8 px-6 overflow-x-hidden">
         {/* Container chính bao bọc Portfolio */}
 
-        <div className="max-w-4xl space-y-6">
+        <div className="w-full max-w-4xl space-y-6">
           {/* Khung nội dung Portfolio */}
 
           <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden flex flex-col min-h-[750px] transition-all">
@@ -323,7 +338,6 @@ export default function ExploreTab() {
             </button>
 
             <div className="flex items-center gap-12 border-x border-slate-100 px-12">
-
               <button className="hover:scale-125 transition-all cursor-pointer">
                 <img
                   src={ShareIcon}
@@ -347,6 +361,38 @@ export default function ExploreTab() {
       </main>
 
       {/* Right Sidebar - Commented out */}
+
+      <aside className="hidden 2xl:block w-[320px] shrink-0 p-6 h-fit sticky top-20 -z-20">
+        <div
+          onClick={() => navigate("/ranking")}
+          className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] p-6 text-white cursor-pointer shadow-lg shadow-orange-200 hover:scale-[1.02] transition-all group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <Trophy size={24} className="animate-bounce" />
+            <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase">
+              Bảng xếp hạng tuần
+            </span>
+          </div>
+          <h3 className="text-xl font-black mb-2">TOP PORTFOLIO</h3>
+          <p className="text-sm text-orange-100 mb-6">
+            Khám phá những gương mặt nổi bật nhất cộng đồng SkillSnap!
+          </p>
+
+          {/* Preview Top 1 in Sidebar */}
+          <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl">
+            <img
+              src={top1Avatar}
+              className="w-10 h-10 rounded-xl object-cover"
+              alt=""
+            />
+            <div>
+              <p className="text-xs font-bold opacity-70">#1 Hiện tại</p>
+              <p className="font-bold text-sm">Lê Minh Hoàng</p>
+            </div>
+            <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+      </aside>
       {/* Modals */}
 
       {currentPortfolio && isCommentModalOpen && (

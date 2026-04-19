@@ -25,6 +25,7 @@ export interface Application {
   };
   company?: {
     companyId: number;
+    userId?: number;  // Recruiter's user ID (owner of the company)
     companyName: string;
     logo: string;
   };

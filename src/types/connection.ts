@@ -2,7 +2,9 @@
 export enum ConnectionStatus {
   PENDING = "PENDING",
   MATCHED = "MATCHED",
-  REJECTED = "REJECTED",
+  BLOCK = "BLOCK",
+  STORED = "STORED",
+  REJECTED = "REJECTED", // Deprecated: kept for backward compatibility
 }
 
 // Request body for creating a connection

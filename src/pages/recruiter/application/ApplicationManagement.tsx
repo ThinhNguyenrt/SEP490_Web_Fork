@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ConnectionButton from "@/components/common/ConnectionButton";
 import { getCompanyApplications, getApplicationStatusInfo, getApplicationStatusStyles, updateApplicationStatus } from "@/services/application.api";
 import { useAppSelector } from "@/store/hook";
 import { Application, ApplicationStatus } from "@/types/application";
@@ -459,6 +460,13 @@ export default function ApplicationManagement() {
                               >
                                 Xem hồ sơ
                               </Button>
+                              {app.candidate?.userId && (
+                                <ConnectionButton
+                                  targetUserId={app.candidate.userId}
+                                  targetUserRole={1}
+                                  compact={true}
+                                />
+                              )}
                             </div>
                           </div>
                         </div>

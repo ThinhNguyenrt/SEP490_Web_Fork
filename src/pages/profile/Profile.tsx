@@ -8,9 +8,7 @@ import {
   Info,
   Key,
   LogOut,
-  Calendar,
   Briefcase,
-  Crown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,9 +91,6 @@ export default function ProfilePage() {
   const handleSavedClick = () => {
     navigate("/talent-saved");
   };
-  const handleApplicationManagementClick = () => {
-    navigate("/application-management");
-  };
 
   const handleSupportCenterClick = () => {
     navigate("/support-center");
@@ -156,33 +151,9 @@ export default function ProfilePage() {
             desc="Danh sách đã lưu"
             onClick={handleSavedClick}
           />
-          <ServiceCard
-            icon={<Calendar className="text-blue-600" />}
-            title="Quản lý lịch phỏng vấn"
-            desc="Quản lý, theo dõi lịch trình phỏng vấn"
-            onClick={handleApplicationManagementClick}
-          />
         </div>
 
-        {/* Premium Banner */}
-        <Card className="border-2 border-slate-200 shadow-sm rounded-2xl cursor-pointer hover:bg-blue-50/30 transition-all bg-white">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
-                <Crown className="text-blue-600" size={24} />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-800 uppercase text-xs tracking-widest">
-                  Gói Premium của tôi
-                </h4>
-                <p className="text-sm text-blue-600 font-bold">
-                  Nâng cấp để mở khóa thêm các tính năng
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="text-slate-400" />
-          </CardContent>
-        </Card>
+    
       </div>
 
       {/* CỘT PHẢI - Settings & Support */}

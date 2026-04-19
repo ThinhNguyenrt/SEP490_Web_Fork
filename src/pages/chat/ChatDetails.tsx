@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Send, ArrowLeft, Loader2, CheckCheck, Check } from "lucide-react";
 import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
@@ -47,8 +47,14 @@ export default function ChatDetails({
 }: ChatDetailsProps) {
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
- 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (newMessage.trim()) {
@@ -148,6 +154,7 @@ export default function ChatDetails({
               Chưa có tin nhắn trong cuộc trò chuyện này
             </p>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}

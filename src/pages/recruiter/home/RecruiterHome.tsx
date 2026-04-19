@@ -406,7 +406,7 @@ export default function RecruiterHome() {
               </div>
 
               {/* Floating Action Bar - Similar to ExploreTab */}
-              <div className="w-fit px-6 py-2 bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-3xl flex items-center gap-10">
+              <div className="fixed bottom-4 z-[100] w-fit px-6 py-2 bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-3xl flex items-center gap-10">
                 {/* Previous Button */}
                 <button
                   onClick={handlePrev}

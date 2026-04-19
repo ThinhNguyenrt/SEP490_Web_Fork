@@ -11,6 +11,7 @@ interface ConnectionButtonProps {
   targetUserRole: number; // 1 = talent, 2 = recruiter
   portfolioId?: number;
   onConnectionStatusChange?: (connection: Connection | null) => void;
+  compact?: boolean; // true for compact size in cards
 }
 
 /**
@@ -35,6 +36,7 @@ export default function ConnectionButton({
   targetUserRole,
   portfolioId = 0,
   onConnectionStatusChange,
+  compact = false,
 }: ConnectionButtonProps) {
   const { user, accessToken } = useAppSelector((state) => state.auth);
   const [connection, setConnection] = useState<Connection | null>(null);
@@ -187,26 +189,31 @@ export default function ConnectionButton({
 
   // No connection exists - show connect button
   if (!connection) {
+    const buttonClass = compact 
+      ? "h-8 rounded-xl border-blue-200 bg-blue-50 text-xs font-semibold text-blue-600 hover:bg-blue-100"
+      : "flex-1 lg:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all";
+    
     return (
       <>
         <Button
           onClick={handleConnect}
           disabled={loading}
-          className="flex-1 lg:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+          className={buttonClass}
+          size={compact ? "sm" : "default"}
         >
           {loading ? (
             <>
-              <Loader2 size={16} className="animate-spin mr-2" />
-              Đang gửi...
+              <Loader2 size={compact ? 12 : 16} className="animate-spin mr-2" />
+              {!compact && "Đang gửi..."}
             </>
           ) : (
             <>
-              <UserPlus size={16} className="mr-2" />
+              <UserPlus size={compact ? 12 : 16} className="mr-1" />
               Kết nối
             </>
           )}
         </Button>
-        {error && (
+        {!compact && error && (
           <div className="flex items-center gap-2 text-red-500 text-sm mt-2">
             <AlertCircle size={14} />
             {error}
@@ -224,6 +231,13 @@ export default function ConnectionButton({
 
     if (isSender) {
       // Sender side: show only status message, no buttons
+      if (compact) {
+        return (
+          <div className="h-8 rounded-xl bg-amber-50 border border-amber-200 px-2 flex items-center text-xs font-semibold text-amber-700">
+            Đã gửi
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 border border-amber-300 rounded-2xl">
           <Loader2 size={16} className="animate-spin text-amber-600" />
@@ -233,6 +247,29 @@ export default function ConnectionButton({
     }
 
     // Receiver side: show accept/reject buttons
+    if (compact) {
+      return (
+        <div className="flex gap-1">
+          <Button
+            onClick={handleAccept}
+            disabled={loading}
+            className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white px-2 text-xs font-semibold"
+            size="sm"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+          </Button>
+          <Button
+            onClick={handleReject}
+            disabled={loading}
+            className="h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white px-2 text-xs font-semibold"
+            size="sm"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+          </Button>
+        </div>
+      );
+    }
+    
     return (
       <div className="flex gap-2">
         <Button
@@ -249,27 +286,21 @@ export default function ConnectionButton({
             </>
           )}
         </Button>
-        <Button
-          onClick={handleReject}
-          disabled={loading}
-          variant="outline"
-          className="flex-1 lg:flex-none px-4 py-3 border-2 border-red-300 text-red-600 rounded-2xl font-black text-sm hover:bg-red-50 transition-all cursor-pointer"
-        >
-          {loading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <>
-              <X size={16} className="mr-1" />
-              Từ chối
-            </>
-          )}
-        </Button>
+        
       </div>
     );
   }
 
   // Connection matched - show connected status
   if (connection && normalizeStatus(connection.status as string) === ConnectionStatus.MATCHED) {
+    if (compact) {
+      return (
+        <div className="h-8 rounded-xl bg-green-50 border border-green-200 px-2 flex items-center gap-1 text-xs font-semibold text-green-700">
+          <Check size={12} />
+          Đã kết nối
+        </div>
+      );
+    }
     return (
       <Button
         disabled
@@ -282,17 +313,7 @@ export default function ConnectionButton({
   }
 
   // Connection rejected - show rejected status
-  if (connection && normalizeStatus(connection.status as string) === ConnectionStatus.REJECTED) {
-    return (
-      <Button
-        disabled
-        className="flex-1 lg:flex-none px-6 py-3 bg-red-100 text-red-700 border border-red-300 rounded-2xl font-black text-sm cursor-not-allowed"
-      >
-        <X size={16} className="mr-2" />
-        Yêu cầu bị từ chối
-      </Button>
-    );
-  }
+  
 
   return null;
 }

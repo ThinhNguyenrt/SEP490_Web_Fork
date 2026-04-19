@@ -4,11 +4,11 @@ import {
   Banknote,
   CalendarClock,
   MapPin,
-  MessageCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ConnectionButton from "@/components/common/ConnectionButton";
 import { getMyApplications, getApplicationStatusInfo, getApplicationStatusStyles } from "@/services/application.api";
 import { useAppSelector } from "@/store/hook";
 import { Application, ApplicationStatus } from "@/types/application";
@@ -356,15 +356,13 @@ export default function ApplicationHistory() {
                               {statusInfo.text}
                             </span>
 
-                            {/* Chat button - only show for certain statuses */}
-                            {(app.status === "REVIEWING" || app.status === "ACCEPTED") && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="h-8 rounded-xl border-blue-200 bg-blue-50 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                              >
-                                <MessageCircle size={14} /> Nhắn tin
-                              </Button>
+                            {/* Connection button - only show for certain statuses */}
+                            {(app.status === "REVIEWING" || app.status === "ACCEPTED") && app.recruiter && (
+                              <ConnectionButton
+                                targetUserId={app.recruiter.userId}
+                                targetUserRole={2}
+                                compact={true}
+                              />
                             )}
 
                             <Button
@@ -455,13 +453,12 @@ export default function ApplicationHistory() {
                     </div>
 
                     <div className="space-y-2 pt-2">
-                      {(selectedApplication.status === "REVIEWING" || selectedApplication.status === "ACCEPTED") && (
-                        <Button
-                          type="button"
-                          className="w-full bg-blue-500 text-white hover:bg-blue-600"
-                        >
-                          Nhắn tin
-                        </Button>
+                      {(selectedApplication.status === "REVIEWING" || selectedApplication.status === "ACCEPTED") && selectedApplication.recruiter && (
+                        <ConnectionButton
+                          targetUserId={selectedApplication.recruiter.userId}
+                          targetUserRole={2}
+                          compact={false}
+                        />
                       )}
                       <Button
                         type="button"

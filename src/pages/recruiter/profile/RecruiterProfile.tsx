@@ -1,5 +1,4 @@
 import {
-  Calendar,
   Bookmark,
   ChevronRight,
   HelpCircle,
@@ -7,7 +6,6 @@ import {
   Info,
   Key,
   LogOut,
-  Award,
   Edit3,
   Building2,
   MapPin,
@@ -100,11 +98,6 @@ export default function RecruiterProfile() {
       // If no profile exists yet, use the updated profile as is
       setCompanyProfile(updatedProfile as Company);
     }
-  };
-
-  const handleInterviewScheduleClick = () => {
-    // Navigate to interview schedule management
-    console.log("Navigate to interview schedule");
   };
 
   const handleEditProfile = () => {
@@ -229,33 +222,9 @@ export default function RecruiterProfile() {
             desc="Danh sách đã lưu"
             onClick={handleInterestClick}
           />
-          <ServiceCard
-            icon={<Calendar className="text-blue-600" />}
-            title="Quản lý lịch phỏng vấn"
-            desc="Quản lý, theo dõi lịch trình phỏng vấn"
-            onClick={handleInterviewScheduleClick}
-          />
         </div>
 
         {/* Premium Banner */}
-        <Card className="border-2 border-slate-200 shadow-sm rounded-2xl cursor-pointer hover:bg-blue-50/30 transition-all bg-white">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
-                <Award className="text-blue-600" size={24} />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-800 uppercase text-xs tracking-widest">
-                  Gói Premium của tôi
-                </h4>
-                <p className="text-sm text-blue-600 font-bold">
-                  Nâng cấp để mở khóa thêm các tính năng
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="text-slate-400" />
-          </CardContent>
-        </Card>
       </div>
 
       {/* CỘT PHẢI - Settings & Support */}

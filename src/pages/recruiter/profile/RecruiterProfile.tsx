@@ -7,7 +7,6 @@ import {
   Info,
   Key,
   LogOut,
-  Award,
   Edit3,
   Building2,
   MapPin,

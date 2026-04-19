@@ -15,7 +15,14 @@ const SubscriptionPage = () => {
       );
       if (res.ok) {
         const data: SubscriptionPlan[] = await res.json();
-        setPlans(data);
+
+        // Nhân price với 1000 cho từng gói cước
+        const adjustedPlans = data.map((plan) => ({
+          ...plan,
+          price: plan.price * 1000,
+        }));
+
+        setPlans(adjustedPlans);
       }
     } catch (error) {
       notify.error("Không thể tải danh sách gói cước");

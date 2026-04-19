@@ -138,7 +138,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       <div className="flex items-baseline justify-center gap-1 mb-10 text-center">
         <span className="text-5xl font-black text-slate-900">
-          ${plan.price}
+          {plan.price + " đ"}
         </span>
         <span className="text-slate-400 font-bold text-sm">/tháng</span>
       </div>

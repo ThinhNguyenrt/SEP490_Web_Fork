@@ -10,7 +10,6 @@ import {
   LogOut,
   Calendar,
   Briefcase,
-  Crown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -165,7 +164,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Premium Banner */}
-        <Card className="border-2 border-slate-200 shadow-sm rounded-2xl cursor-pointer hover:bg-blue-50/30 transition-all bg-white">
+        {/* <Card className="border-2 border-slate-200 shadow-sm rounded-2xl cursor-pointer hover:bg-blue-50/30 transition-all bg-white">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
@@ -182,7 +181,7 @@ export default function ProfilePage() {
             </div>
             <ChevronRight className="text-slate-400" />
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* CỘT PHẢI - Settings & Support */}

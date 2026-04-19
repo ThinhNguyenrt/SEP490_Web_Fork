@@ -26,7 +26,7 @@ export type UserNotification = {
     id: number;
     name: string;
     avatar: string;
-    role: string;
+    Role: string;
   };
   company: {
     id: number;

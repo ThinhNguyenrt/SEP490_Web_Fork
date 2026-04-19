@@ -85,7 +85,7 @@ export function PremiumInNotification() {
                       size={16}
                       className="text-blue-500 shrink-0 mt-0.5"
                     />
-                    <span>Mở rộng giới hạn tạo hồ sơ kỹ năng (+5)</span>
+                    <span>Mở rộng giới hạn tạo hồ sơ kỹ năng</span>
                   </li>
                 </ul>
               </div>

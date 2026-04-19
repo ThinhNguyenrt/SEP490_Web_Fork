@@ -3,14 +3,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  ArrowUpRight,
-  Trophy,
 } from "lucide-react";
 // import { Button } from "@/components/ui/button"; 
 import { Badge } from "@/components/ui/badge";
 import SortIcon from "@/assets/myWeb/sort.png";
 import ShareIcon from "@/assets/myWeb/share1.png";
-import top1Avatar from "@/assets/myWeb/top1avatar.png";
 import {
   portfolioService,
   PortfolioMainBlockItem,
@@ -18,7 +15,6 @@ import {
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { notify } from "@/lib/toast";
 import CommentModal from "../../recruiter/home/CommentModal";
-import { useNavigate } from "react-router-dom";
 
 interface PortfolioMetadata {
   portfolioId: number;
@@ -64,7 +60,6 @@ const extractPortfolioMetadata = (
 };
 
 export default function ExploreTab() {
-  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filters, setFilters] = useState({
     position: "",
@@ -280,10 +275,10 @@ export default function ExploreTab() {
 
       {/* Main Content Area */}
 
-      <main className="flex-1 flex flex-col items-center py-8 px-6 overflow-x-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center py-8 px-6 overflow-x-hidden">
         {/* Container chính bao bọc Portfolio */}
 
-        <div className="w-full max-w-4xl space-y-6">
+        <div className="max-w-4xl space-y-6">
           {/* Khung nội dung Portfolio */}
 
           <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden flex flex-col min-h-[750px] transition-all">
@@ -351,60 +346,7 @@ export default function ExploreTab() {
         )}
       </main>
 
-      {/* Right Sidebar - Chỉ hiện trên màn hình rất lớn */}
-
-      {/* <aside className="hidden 2xl:block w-[320px] shrink-0 p-6">
-        <div className="sticky top-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl shadow-blue-200">
-          <Badge className="bg-white/20 text-white border-none mb-4">
-            Premium
-          </Badge>
-
-          <h2 className="text-2xl font-bold mb-4 leading-tight">
-            Tuyển dụng nhanh hơn gấp 2 lần!
-          </h2>
-
-          <p className="text-blue-100 text-sm mb-8">
-            Nâng cấp để sử dụng AI phân tích ứng viên phù hợp nhất với dự án của
-            bạn.
-          </p>
-
-          <button className="w-full bg-white text-blue-600 font-bold py-4 rounded-2xl hover:bg-blue-50 transition-all">
-            Nâng cấp ngay
-          </button>
-        </div>
-      </aside> */}
-
-      <aside className="hidden 2xl:block w-[320px] shrink-0 p-6 h-fit sticky top-20">
-        <div
-          onClick={() => navigate("/ranking")}
-          className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] p-6 text-white cursor-pointer shadow-lg shadow-orange-200 hover:scale-[1.02] transition-all group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Trophy size={24} className="animate-bounce" />
-            <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase">
-              Bảng xếp hạng tuần
-            </span>
-          </div>
-          <h3 className="text-xl font-black mb-2">TOP PORTFOLIO</h3>
-          <p className="text-sm text-orange-100 mb-6">
-            Khám phá những gương mặt nổi bật nhất cộng đồng SkillSnap!
-          </p>
-
-          {/* Preview Top 1 in Sidebar */}
-          <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl">
-            <img
-              src={top1Avatar}
-              className="w-10 h-10 rounded-xl object-cover"
-              alt=""
-            />
-            <div>
-              <p className="text-xs font-bold opacity-70">#1 Hiện tại</p>
-              <p className="font-bold text-sm">Lê Minh Hoàng</p>
-            </div>
-            <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        </div>
-      </aside>
+      {/* Right Sidebar - Commented out */}
       {/* Modals */}
 
       {currentPortfolio && isCommentModalOpen && (

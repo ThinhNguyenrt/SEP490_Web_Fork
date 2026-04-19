@@ -312,8 +312,43 @@ export default function ConnectionButton({
     );
   }
 
-  // Connection rejected - show rejected status
-  
+  // Connection blocked - show blocked status
+  if (connection && normalizeStatus(connection.status as string) === ConnectionStatus.BLOCK) {
+    if (compact) {
+      return (
+        <div className="h-8 rounded-xl bg-slate-100 border border-slate-300 px-2 flex items-center text-xs font-semibold text-slate-600">
+          Đã chặn
+        </div>
+      );
+    }
+    return (
+      <Button
+        disabled
+        className="flex-1 lg:flex-none px-6 py-3 bg-slate-100 text-slate-600 border border-slate-300 rounded-2xl font-black text-sm cursor-not-allowed"
+      >
+        Đã chặn
+      </Button>
+    );
+  }
+
+  // Connection stored - show stored status
+  if (connection && normalizeStatus(connection.status as string) === ConnectionStatus.STORED) {
+    if (compact) {
+      return (
+        <div className="h-8 rounded-xl bg-slate-50 border border-slate-200 px-2 flex items-center text-xs font-semibold text-slate-600">
+          Đã lưu
+        </div>
+      );
+    }
+    return (
+      <Button
+        disabled
+        className="flex-1 lg:flex-none px-6 py-3 bg-slate-50 text-slate-600 border border-slate-200 rounded-2xl font-black text-sm cursor-not-allowed"
+      >
+        Đã lưu
+      </Button>
+    );
+  }
 
   return null;
 }

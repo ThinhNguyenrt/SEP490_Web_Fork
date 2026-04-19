@@ -116,6 +116,46 @@ export default function ApplicationHistory() {
 
   // Fetch applications from API
   useEffect(() => {
+    const enrichApplicationsWithRecruiterData = async (apps: Application[], token: string) => {
+      // If company already has userId, return as is
+      const enrichedApps = await Promise.all(
+        apps.map(async (app) => {
+          if (app.company?.userId) {
+            return app; // Already has userId
+          }
+          
+          if (!app.company?.companyId) {
+            return app; // No company ID to fetch
+          }
+
+          try {
+            // Fetch company details to get userId
+            const res = await fetch(
+              `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/${app.company.companyId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            );
+            if (res.ok) {
+              const companyData = await res.json();
+              return {
+                ...app,
+                company: {
+                  ...app.company,
+                  userId: companyData.userId // Add recruiter userId
+                }
+              };
+            }
+          } catch (err) {
+            console.error(`❌ Error fetching company ${app.company.companyId}:`, err);
+          }
+          
+          return app;
+        })
+      );
+      return enrichedApps;
+    };
+
     const fetchApplications = async () => {
       if (!accessToken) {
         setError("Vui lòng đăng nhập lại");
@@ -130,7 +170,9 @@ export default function ApplicationHistory() {
         const response = await getMyApplications(currentPage, pageSize, accessToken);
         console.log("✅ Applications fetched:", response);
 
-        setApplications(response.items || []);
+        // Enrich applications with recruiter userId if missing
+        const enrichedApps = await enrichApplicationsWithRecruiterData(response.items || [], accessToken);
+        setApplications(enrichedApps);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Không thể tải lịch sử ứng tuyển";
         console.error("❌ Error fetching applications:", errorMessage);
@@ -356,13 +398,18 @@ export default function ApplicationHistory() {
                               {statusInfo.text}
                             </span>
 
-                            {/* Connection button - only show for certain statuses */}
-                            {(app.status === "REVIEWING" || app.status === "ACCEPTED") && app.recruiter && (
-                              <ConnectionButton
-                                targetUserId={app.recruiter.userId}
-                                targetUserRole={2}
-                                compact={true}
-                              />
+                            {/* Message + Connection buttons - show for all applications with company */}
+                            {app.company?.userId && (
+                              <div className="flex gap-2">
+                                <button className="h-8 rounded-xl border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100 transition-all">
+                                  Nhắn tin
+                                </button>
+                                <ConnectionButton
+                                  targetUserId={app.company.userId}
+                                  targetUserRole={2}
+                                  compact={true}
+                                />
+                              </div>
                             )}
 
                             <Button
@@ -452,13 +499,18 @@ export default function ApplicationHistory() {
                       </div>
                     </div>
 
-                    <div className="space-y-2 pt-2">
-                      {(selectedApplication.status === "REVIEWING" || selectedApplication.status === "ACCEPTED") && selectedApplication.recruiter && (
-                        <ConnectionButton
-                          targetUserId={selectedApplication.recruiter.userId}
-                          targetUserRole={2}
-                          compact={false}
-                        />
+                    <div className="space-y-3 pt-4">
+                      {selectedApplication.company?.userId && (
+                        <div className="flex gap-3">
+                          <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer">
+                            Nhắn tin
+                          </button>
+                          <ConnectionButton
+                            targetUserId={selectedApplication.company.userId}
+                            targetUserRole={2}
+                            compact={false}
+                          />
+                        </div>
                       )}
                       <Button
                         type="button"

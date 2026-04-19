@@ -1,11 +1,10 @@
 import { CheckCircle2, ChevronRight, Crown, Lightbulb } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const TipItem = ({ text }: { text: string }) => (
   <li className="flex gap-4 group">
     <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 shrink-0 transition-transform group-hover:scale-125"></div>
-    <p className="text-sm text-slate-600 leading-relaxed">
-      {text}
-    </p>
+    <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
   </li>
 );
 export function PremiumAndTips() {
@@ -43,6 +42,7 @@ export function PremiumAndTips() {
   );
 }
 export function PremiumInNotification() {
+  const navigate = useNavigate();
   return (
     <aside className="w-full lg:w-96 shrink-0">
       <div className="sticky top-40 space-y-6">
@@ -113,8 +113,11 @@ export function PremiumInNotification() {
               </div>
             </div>
 
-            <button className="w-full mt-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2">
-              Nâng cấp gói chỉ với 399.000/tháng
+            <button
+              onClick={() => navigate("/subscription")}
+              className="w-full mt-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+            >
+              Nâng cấp gói
               <ChevronRight size={18} />
             </button>
           </div>

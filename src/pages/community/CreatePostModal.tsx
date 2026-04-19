@@ -123,7 +123,7 @@ const CreatePostModal = ({
         <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
           <div className="flex items-center gap-3 mb-4">
             <img
-              src={profile?.avatar || "/default-avatar.png"}
+              src={profile?.avatar || "/user_placeholder.png"}
               className="w-11 h-11 rounded-full object-cover"
               alt="Avatar"
             />

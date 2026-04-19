@@ -174,7 +174,7 @@ export default function CommunityPost() {
                       ? "border-blue-500"
                       : "border-gray-100",
                 )}
-                src={profile?.avatar || "/default-avatar.png"}
+                src={profile?.avatar || "/user_placeholder.png"}
               />
 
               {/* 3. Tick xanh cho doanh nghiệp */}

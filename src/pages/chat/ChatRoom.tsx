@@ -426,7 +426,10 @@ export default function ChatRoom() {
                     <h3 className="font-medium text-gray-900 text-sm truncate">
                       {conversation.connectionName}
                     </h3>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                    <p className="text-xs text-gray-600 truncate mt-0.5">
+                      {conversation.lastMessage}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
                       {conversation.lastMessageTime}
                     </p>
                   </div>

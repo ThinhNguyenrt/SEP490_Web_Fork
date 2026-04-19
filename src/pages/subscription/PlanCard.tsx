@@ -29,6 +29,22 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       return;
     }
 
+    // --- CHIẾN THUẬT MỞ TAB CHỜ ---
+    // Mở ngay một tab trống để trình duyệt hiểu đây là hành động trực tiếp từ user click
+    const paymentWindow = window.open("", "_blank");
+    if (paymentWindow) {
+      paymentWindow.document.write(`
+      <html>
+        <head><title>Đang kết nối...</title></head>
+        <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
+          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite;"></div>
+          <p style="margin-top: 20px; color: #64748b;">Đang chuyển hướng đến cổng thanh toán PayOS...</p>
+          <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+        </body>
+      </html>
+    `);
+    }
+
     setIsLoading(true);
 
     try {
@@ -65,32 +81,36 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       if (!paymentRes.ok) {
         throw new Error("Không thể tạo liên kết thanh toán");
       }
+
       const paymentData = await paymentRes.json();
-      if (paymentData.paymentUrl) {
-        // Lưu thông tin vào LocalStorage để trang ResultPage có thể đọc được
+
+      if (paymentData.paymentUrl && paymentWindow) {
+        // BƯỚC 5: CẬP NHẬT TAB VÀ ĐIỀU HƯỚNG
+        // Gán URL thật cho tab đang chờ
+        paymentWindow.location.href = paymentData.paymentUrl;
+
+        // Lưu thông tin để trang ResultPage đối soát
         localStorage.setItem("pending_payment_id", paymentData.paymentId);
         localStorage.setItem("pending_order_code", paymentData.orderCode);
 
         notify.success("Đang mở trang thanh toán...");
 
-        // 1. Mở trang thanh toán của PayOS ở TAB MỚI
-        window.open(paymentData.paymentUrl, "_blank");
-
-        // 2. Chuyển TAB HIỆN TẠI sang trang kết quả (Polling)
-        // Dùng navigate từ hook useNavigate() của react-router-dom
+        // Chuyển TAB HIỆN TẠI sang trang kết quả (Polling)
         navigate(
           `/payment/result?paymentId=${paymentData.paymentId}&orderCode=${paymentData.orderCode}`,
         );
+      } else {
+        paymentWindow?.close();
+        throw new Error("Dữ liệu thanh toán không hợp lệ");
       }
     } catch (error: any) {
       console.error("Payment Error:", error);
+      paymentWindow?.close(); // Đóng tab nếu gặp lỗi để tránh treo tab trắng
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
     } finally {
-      // Tắt trạng thái loading để user có thể tương tác lại nếu quay lại tab cũ
       setIsLoading(false);
     }
   };
-
   return (
     <div
       className={cn(
@@ -172,7 +192,13 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
                 </span>
                 {!isNotAvailable && (
                   <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">
-                    {feature.value === "-1" ? "Vô hạn" : feature.value}
+                    {feature.type === "Boolean"
+                      ? feature.value === "true"
+                        ? "Có"
+                        : "Không"
+                      : feature.value === "-1"
+                        ? "Vô hạn"
+                        : feature.value}
                   </span>
                 )}
               </div>

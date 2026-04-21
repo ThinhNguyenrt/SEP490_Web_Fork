@@ -192,9 +192,9 @@ const CommunityNotification = () => {
               <img
                 alt={notif.actor?.name}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
-                src={notif.actor?.avatar || "/default-avatar.png"}
+                src={notif.actor?.avatar || "/user_placeholder.png"}
               />
-              {notif.actor?.role === "COMPANY" && (
+              {notif.actor?.Role === "COMPANY" && (
                 <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 z-10">
                   <img
                     src="/blue-tick-company.png"

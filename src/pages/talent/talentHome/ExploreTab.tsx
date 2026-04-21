@@ -10,7 +10,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import SortIcon from "@/assets/myWeb/sort.png";
 import ShareIcon from "@/assets/myWeb/share1.png";
-import top1Avatar from "@/assets/myWeb/top1avatar.png";
 import {
   portfolioService,
   PortfolioMainBlockItem,
@@ -131,7 +130,6 @@ export default function ExploreTab() {
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
-   const navigate = useNavigate();
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 

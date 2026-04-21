@@ -2777,7 +2777,7 @@ export const deletePortfolio = async (
 };
 
 // Fetch all portfolios without authentication (public listing)
-export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10): Promise<PortfoliosPageResponse> => {
+export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10, sort: string = "0"): Promise<PortfoliosPageResponse> => {
   try {
     const API_BASE_URL =
       import.meta.env.VITE_API_BASE_URL || "/api";
@@ -2786,7 +2786,7 @@ export const fetchAllPortfolios = async (page: number = 1, pageSize: number = 10
     const params = new URLSearchParams({
       page: page.toString(),
       pageSize: pageSize.toString(),
-      sort: "0", // 0 = rank_asc (ascending - best rank first)
+      sort: sort, // 0 = rank_asc, 2 = random
     });
 
     const endpoint = `${API_BASE_URL}/portfolio?${params.toString()}`;

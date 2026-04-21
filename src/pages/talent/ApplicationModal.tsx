@@ -27,6 +27,7 @@ export const ApplicationModal = ({
   const [isLoadingPortfolios, setIsLoadingPortfolios] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'load' | 'submit' | null>(null);
 
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const user = useAppSelector((state) => state.auth.user);
@@ -50,6 +51,7 @@ export const ApplicationModal = ({
     try {
       setIsLoadingPortfolios(true);
       setError(null);
+      setErrorType(null);
       setPortfolios([]); // Reset portfolios before loading
       setSelectedPortfolioId(null);
       console.log("📥 Fetching user portfolios for employee:", user.employeeId || user.id);
@@ -73,6 +75,7 @@ export const ApplicationModal = ({
       const errorMessage = err instanceof Error ? err.message : "Không thể tải danh sách Portfolio";
       console.error("❌ Error loading portfolios:", errorMessage);
       setError(errorMessage);
+      setErrorType('load');
       setPortfolios([]);
     } finally {
       setIsLoadingPortfolios(false);
@@ -94,6 +97,7 @@ export const ApplicationModal = ({
     try {
       setIsSubmitting(true);
       setError(null);
+      setErrorType(null);
       
       // Use refs to get the current/stable values
       const safeCompanyPostId = postIdRef.current;
@@ -113,9 +117,16 @@ export const ApplicationModal = ({
       onSubmitSuccess?.(result.applicationId);
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to submit application";
+      let errorMessage = err instanceof Error ? err.message : "Failed to submit application";
       console.error("❌ Error submitting application:", errorMessage);
+      
+      // Handle 409 error (already applied)
+      if (errorMessage.includes("409") || errorMessage.toLowerCase().includes("already")) {
+        errorMessage = "Bạn đã ứng tuyển vào công ty này rồi! Hãy tìm bài đăng khác nhé";
+      }
+      
       setError(errorMessage);
+      setErrorType('submit');
     } finally {
       setIsSubmitting(false);
     }
@@ -159,16 +170,50 @@ export const ApplicationModal = ({
               <p className="text-gray-600 text-base">Đang tải danh sách Portfolio...</p>
             </div>
           ) : error ? (
-            <div className="max-w-md mx-auto bg-white rounded-lg p-8 text-center shadow-sm">
-              <div className="text-red-500 text-5xl mb-4">⚠️</div>
-              <p className="text-red-700 font-semibold text-lg mb-2">Lỗi tải Portfolio</p>
-              <p className="text-gray-600 text-sm mb-6">{error}</p>
-              <button
-                onClick={loadPortfolios}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Thử tải lại
-              </button>
+            <div className="max-w-md mx-auto">
+              {errorType === 'submit' ? (
+                // Submission error - prettier display
+                <div className="bg-white rounded-xl p-8 text-center shadow-lg border-2 border-amber-200">
+                  <div className="text-6xl mb-4 animate-bounce">📋</div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">
+                    {error.includes("đã ứng tuyển") ? "Đã ứng tuyển rồi!" : "Không thể nộp hồ sơ"}
+                  </h2>
+                  <p className="text-gray-600 text-base leading-relaxed mb-6">
+                    {error}
+                  </p>
+                  {error.includes("đã ứng tuyển") ? (
+                    <button
+                      onClick={onClose}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md"
+                    >
+                      Tìm bài đăng khác
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setErrorType(null);
+                      }}
+                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                    >
+                      Thử lại
+                    </button>
+                  )}
+                </div>
+              ) : (
+                // Loading error
+                <div className="bg-white rounded-lg p-8 text-center shadow-sm">
+                  <div className="text-red-500 text-5xl mb-4">⚠️</div>
+                  <p className="text-red-700 font-semibold text-lg mb-2">Lỗi tải Portfolio</p>
+                  <p className="text-gray-600 text-sm mb-6">{error}</p>
+                  <button
+                    onClick={loadPortfolios}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Thử tải lại
+                  </button>
+                </div>
+              )}
             </div>
           ) : portfolios.length === 0 ? (
             <div className="max-w-md mx-auto bg-white rounded-lg p-8 text-center shadow-sm">

@@ -14,6 +14,8 @@ const PortfolioViewPage: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = new URLSearchParams(window.location.search);
+  const viewOnly = searchParams.get('viewOnly') === 'true';
 
   // Get access token from Redux
   const { accessToken } = useAppSelector((state) => state.auth);
@@ -116,13 +118,16 @@ const PortfolioViewPage: React.FC = () => {
               <ArrowLeft size={24} />
             </button>
             <h1 className="text-xl font-bold text-gray-900">Hồ sơ cá nhân</h1>
-            <button
-              onClick={handleEdit}
-              className="appearance-none border-none bg-transparent p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-              title="Chỉnh sửa"
-            >
-              <img src={PencilIcon} alt="Chỉnh sửa" className="w-5 h-5" />
-            </button>
+            {!viewOnly && (
+              <button
+                onClick={handleEdit}
+                className="appearance-none border-none bg-transparent p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                title="Chỉnh sửa"
+              >
+                <img src={PencilIcon} alt="Chỉnh sửa" className="w-5 h-5" />
+              </button>
+            )}
+            {viewOnly && <div className="w-9"></div>}
           </div>
         </div>
       </div>

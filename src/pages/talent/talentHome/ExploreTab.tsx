@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  
   ChevronLeft,
   ChevronRight,
   Plus,
+  Trophy,
 } from "lucide-react";
 // import { Button } from "@/components/ui/button"; 
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +17,21 @@ import {
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { notify } from "@/lib/toast";
 import CommentModal from "../../recruiter/home/CommentModal";
+import { useNavigate } from "react-router-dom";
 
 interface PortfolioMetadata {
   portfolioId: number;
   title: string;
   skills: string[];
+}
+
+interface IntroData {
+  portfolioId: number;
+  position: string;
+  jobTitle?: string;
+  name?: string;
+  avatar?: string;
+  ranking?: { rankPosition: number; totalScore: number };
 }
 
 const extractPortfolioMetadata = (
@@ -34,14 +46,16 @@ const extractPortfolioMetadata = (
   blocks.forEach((block: Record<string, unknown>) => {
     if (!block) return;
     const data = block.data as Record<string, unknown> || {};
+    const blockType = (block.type as string)?.toUpperCase() || "";
+    
     if (
-      block.type === "intro" ||
-      block.type === "name" ||
-      block.type === "header"
+      blockType === "INTRO" ||
+      blockType === "NAME" ||
+      blockType === "HEADER"
     ) {
-      title = (data.jobTitle as string) || (data.position as string) || (data.title as string) || title;
+      title = (data.jobTitle as string) || (data.studyField as string) || (data.position as string) || (data.title as string) || title;
     }
-    if (block.type === "skills") {
+    if (blockType === "SKILLS") {
       if (Array.isArray(data.skills)) {
         skills = (data.skills as Array<Record<string, string> | string>).map((s) =>
           (typeof s === 'object' && s !== null && 'name' in s ? (s as Record<string, string>).name : s).toString().toLowerCase(),
@@ -59,7 +73,30 @@ const extractPortfolioMetadata = (
   };
 };
 
+const extractIntroData = (portfolio: PortfolioMainBlockItem): IntroData | null => {
+  const blocks = Array.isArray(portfolio.blocks)
+    ? portfolio.blocks
+    : [portfolio.blocks];
+  
+  for (const block of blocks) {
+    if (!block || block.type?.toUpperCase() !== "INTRO") continue;
+    
+    const data = block.data as Record<string, unknown> || {};
+    return {
+      portfolioId: portfolio.portfolioId,
+      position: (data.studyField as string) || (data.position as string) || (data.jobTitle as string) || "",
+      jobTitle: (data.jobTitle as string) || "",
+      name: (data.name as string) || portfolio.portfolio?.name || "",
+      avatar: (data.avatar as string) || (data.image as string) || "",
+      ranking: portfolio.ranking
+    };
+  }
+  
+  return null;
+};
+
 export default function ExploreTab() {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filters, setFilters] = useState({
     position: "",
@@ -75,6 +112,7 @@ export default function ExploreTab() {
   const [portfolioMetadata, setPortfolioMetadata] = useState<
     Map<number, PortfolioMetadata>
   >(new Map());
+  const [topPortfolios, setTopPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [skillTags, setSkillTags] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
@@ -85,13 +123,22 @@ export default function ExploreTab() {
   const loadPortfolios = async () => {
     try {
       setIsLoading(true);
-      const response = await portfolioService.fetchAllPortfolios(1, 10000);
+      
+      // Fetch top portfolio separately (sorted by ranking)
+      const topResponse = await portfolioService.fetchAllPortfolios(1, 1, "0");
+      if (topResponse && topResponse.items && topResponse.items.length > 0) {
+        const topPortfolio = topResponse.items[0];
+        setTopPortfolios([topPortfolio]);
+      }
+      
+      // Fetch random portfolios for main view
+      const response = await portfolioService.fetchAllPortfolios(1, 10000, "2");
       if (!response || !response.items || response.items.length === 0) {
         setFilteredPortfolios([]);
         return;
       }
 
-      // Backend already sorted by rank with sort=0 (rank_asc)
+      // Backend returns random portfolios with sort=2 (random)
       const portfolios = response.items;
 
       const metadata = new Map<number, PortfolioMetadata>();
@@ -113,7 +160,8 @@ export default function ExploreTab() {
       setAllPortfolios(portfolios);
       setPortfolioMetadata(metadata);
       setCurrentIndex(0);
-    } catch {
+    } catch (error) {
+      console.error("❌ Error loading portfolios:", error);
       notify.error("Không thể tải danh sách portfolio.");
     } finally {
       setIsLoading(false);
@@ -152,7 +200,7 @@ export default function ExploreTab() {
         });
       }
       
-      // Backend already sorted by rank with sort=0 (rank_asc), keep original order
+      // Backend returns random portfolios with sort=2 (random), keep original order
       
       setFilteredPortfolios(results);
       setCurrentIndex(0);
@@ -164,7 +212,7 @@ export default function ExploreTab() {
     setFilters({ position: "", skills: "", location: "" });
     setSkillTags([]);
     
-    // Backend already sorted by rank with sort=0 (rank_asc), keep original order
+    // Backend returns random portfolios with sort=2 (random), keep original order
     const sortedPortfolios = [...allPortfolios];
     
     setFilteredPortfolios(sortedPortfolios);
@@ -346,8 +394,49 @@ export default function ExploreTab() {
         )}
       </main>
 
-      {/* Right Sidebar - Commented out */}
-      {/* Modals */}
+      {/* Right Sidebar - Top Ranked Portfolio */}
+      <div className="hidden xl:block w-[320px] shrink-0 px-4 py-8">
+        <div className="sticky top-16 w-full bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-fit">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-6">
+            <Trophy size={24} className="text-yellow-500" />
+            <h2 className="text-xl font-bold text-gray-900">Portfolio được đánh giá cao nhất</h2>
+          </div>
+
+          {/* Top 1 Portfolio */}
+          {topPortfolios.length > 0 && extractIntroData(topPortfolios[0]) ? (
+            (() => {
+              const introData = extractIntroData(topPortfolios[0]);
+              return (
+                <div className="flex flex-col items-center text-center mb-6">
+                  {/* Avatar */}
+                  {introData?.avatar && (
+                    <img
+                      src={introData.avatar}
+                      alt={introData.name || "Avatar"}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-purple-200 mb-4"
+                    />
+                  )}
+                  {/* Name */}
+                  <p className="text-lg font-bold text-gray-900">
+                    {introData?.name || "Ứng viên"}
+                  </p>
+                </div>
+              );
+            })()
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-8">Chưa có dữ liệu</p>
+          )}
+
+          {/* View Details Button */}
+          <button
+            onClick={() => navigate("/ranking")}
+            className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-[0.98]"
+          >
+            Xem chi tiết
+          </button>
+        </div>
+      </div>
 
       {currentPortfolio && isCommentModalOpen && (
         <CommentModal

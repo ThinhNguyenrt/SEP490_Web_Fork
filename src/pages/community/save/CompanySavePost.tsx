@@ -13,16 +13,18 @@ import {
   Edit2,
   Trash2,
   X,
+  Eye,
 } from "lucide-react";
 import { CommunityPost } from "@/types/communityPost";
 import { CommunityPostCard } from "../CommunityPostCard";
 import { useAppSelector } from "@/store/hook";
-import { portfolioService, unfollowPortfolio } from "@/services/portfolio.api";
+import { portfolioService, unfollowPortfolio, PortfolioResponse } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 import { SavedFollowCategories } from "@/components/common/SavedFollowCategories";
 import { followCategoryService } from "@/services/followCategory.api";
 import { FollowCategory } from "@/types/followCategory";
 import BookmarkModal from "@/pages/recruiter/home/BookmarkModal";
+import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 
 // Type for saved portfolio
 interface SavedPortfolio {
@@ -66,6 +68,10 @@ const SavedCandidates = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [portfolioToEdit, setPortfolioToEdit] = useState<SavedPortfolio | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [portfolioToView, setPortfolioToView] = useState<SavedPortfolio | null>(null);
+  const [portfolioDetail, setPortfolioDetail] = useState<PortfolioResponse | null>(null);
+  const [portfolioDetailLoading, setPortfolioDetailLoading] = useState(false);
   const { accessToken } = useAppSelector((state) => state.auth);
 
   // Fetch categories on mount
@@ -188,6 +194,33 @@ const SavedCandidates = () => {
     setShowEditModal(true);
   };
 
+  const handleViewPortfolio = async (portfolio: SavedPortfolio) => {
+    setOpenMenuId(null);
+    setPortfolioToView(portfolio);
+    setShowDetailModal(true);
+
+    // Fetch full portfolio details
+    if (!accessToken) {
+      notify.error("Vui lòng đăng nhập để xem chi tiết");
+      return;
+    }
+
+    try {
+      setPortfolioDetailLoading(true);
+      const detail = await portfolioService.fetchPortfolioByIdAPI(portfolio.portfolioId, accessToken);
+      if (detail) {
+        setPortfolioDetail(detail);
+      } else {
+        notify.error("Không thể tải chi tiết portfolio");
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Lỗi khi tải chi tiết portfolio";
+      console.error("❌ Error loading portfolio detail:", errorMsg);
+      notify.error(errorMsg);
+    } finally {
+      setPortfolioDetailLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -279,8 +312,15 @@ const SavedCandidates = () => {
                       {openMenuId === can.portfolioId && (
                         <div className="absolute right-0 top-full mt-2 bg-white border border-slate-100 rounded-lg shadow-lg z-10 min-w-40">
                           <button
-                            onClick={() => handleEditPortfolio(can)}
+                            onClick={() => handleViewPortfolio(can)}
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors first:rounded-t-lg"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Xem chi tiết
+                          </button>
+                          <button
+                            onClick={() => handleEditPortfolio(can)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
                             Chỉnh sửa
@@ -438,6 +478,69 @@ const SavedCandidates = () => {
             currentInterestLevel={portfolioToEdit.interestLevel.toUpperCase() as "LOW" | "MEDIUM" | "HIGH"}
             currentCategoryId={portfolioToEdit.categoryId || null}
           />
+        )}
+
+        {/* Detail Portfolio Modal (View Only) */}
+        {showDetailModal && portfolioToView && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => !portfolioDetailLoading && setShowDetailModal(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Chi tiết Portfolio</h3>
+                    <p className="text-sm text-gray-500 mt-1">{portfolioToView.portfolioName}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    disabled={portfolioDetailLoading}
+                    className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  {portfolioDetailLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+                        <p className="text-slate-600">Đang tải chi tiết portfolio...</p>
+                      </div>
+                    </div>
+                  ) : portfolioDetail ? (
+                    <PortfolioRenderer
+                      blocks={portfolioDetail.blocks}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center py-20">
+                      <div className="flex flex-col items-center gap-4 text-center">
+                        <AlertCircle className="w-12 h-12 text-gray-300" />
+                        <p className="text-lg font-semibold text-gray-600">Không thể tải chi tiết portfolio</p>
+                        <p className="text-sm text-gray-500">Vui lòng thử lại</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    disabled={portfolioDetailLoading}
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Sidebar Lọc bên phải */}

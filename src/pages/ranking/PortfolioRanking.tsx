@@ -1,8 +1,8 @@
-import { ChevronLeft, Trophy, Flame, Star, ArrowUpRight } from "lucide-react";
+import { ChevronLeft, Trophy, Flame, ArrowUpRight } from "lucide-react";
 import top1Avatar from "@/assets/myWeb/top1avatar.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.api";
+import { portfolioService, PortfolioMainBlockItem, Reviewer } from "@/services/portfolio.api";
 import { notify } from "@/lib/toast";
 
 interface IntroData {
@@ -12,6 +12,7 @@ interface IntroData {
   studyField?: string;
   totalScore?: number;
   rankPosition?: number;
+  reviewers?: Reviewer[];
 }
 
 const extractIntroData = (portfolio: PortfolioMainBlockItem): IntroData => {
@@ -23,6 +24,7 @@ const extractIntroData = (portfolio: PortfolioMainBlockItem): IntroData => {
     portfolioId: portfolio.portfolioId,
     totalScore: portfolio.ranking?.totalScore,
     rankPosition: portfolio.ranking?.rankPosition,
+    reviewers: portfolio.reviewers || [],
   };
 
   for (const block of blocks) {
@@ -50,7 +52,7 @@ export default function PortfolioRanking() {
     const loadTopPortfolios = async () => {
       try {
         setIsLoading(true);
-        const response = await portfolioService.fetchAllPortfolios(1, 5, "0");
+        const response = await portfolioService.fetchAllPortfolios(1, 10, "0");
         if (response && response.items) {
           setTopPortfolios(response.items);
         }
@@ -100,7 +102,7 @@ export default function PortfolioRanking() {
                   <div className="absolute -top-5 flex items-center gap-2 bg-gradient-to-r from-orange-600 to-red-500 text-white px-6 py-2.5 rounded-full shadow-xl">
                     <Flame size={20} fill="currentColor" className="animate-pulse" />
                     <span className="font-black text-sm uppercase tracking-tighter">
-                      Nổi bật tuần
+                      Portfolio nổi bật
                     </span>
                     <span className="bg-black/20 px-2.5 py-0.5 rounded-lg ml-1 font-bold">
                       #1
@@ -122,23 +124,36 @@ export default function PortfolioRanking() {
                       {top1Data.studyField}
                     </p>
 
-                    {/* Score Display */}
-                    <div className="flex items-start justify-start gap-1.5 rounded-2xl w-full mb-6">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={18}
-                          className={
-                            i < 4
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }
-                        />
-                      ))}
-                      <span className="ml-2 font-black text-gray-800">
-                        {top1Data.totalScore?.toFixed(1) || "0"}
-                      </span>
-                    </div>
+                    {/* Reviewers Section */}
+                    {top1Data.reviewers && top1Data.reviewers.length > 0 && (
+                      <div className="w-full mb-6">
+                        <p className="text-xs font-semibold text-gray-600 mb-2.5 uppercase tracking-wider">
+                          Được đánh giá bởi
+                        </p>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {top1Data.reviewers.map((reviewer) => (
+                            <div
+                              key={reviewer.userId}
+                              className="group relative"
+                              title={`${reviewer.name} (${reviewer.role})`}
+                            >
+                              <img
+                                src={reviewer.avatar}
+                                alt={reviewer.name}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-orange-200 shadow-sm hover:shadow-md transition-all hover:scale-110"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = top1Avatar;
+                                }}
+                              />
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                {reviewer.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <button 
@@ -183,14 +198,118 @@ export default function PortfolioRanking() {
                   <p className="text-gray-400 text-xs mt-2 font-medium">
                     {portfolioData.studyField}
                   </p>
-                  <div className="mt-4 px-4 py-1.5 bg-yellow-50 rounded-full flex items-center gap-1.5 text-sm font-black text-yellow-600">
-                    <Star size={14} fill="currentColor" /> {portfolioData.totalScore?.toFixed(1) || "0"}
-                  </div>
+
+                  {/* Reviewers Section */}
+                  {portfolioData.reviewers && portfolioData.reviewers.length > 0 && (
+                    <div className="w-full mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {portfolioData.reviewers.map((reviewer) => (
+                          <div
+                            key={reviewer.userId}
+                            className="group relative"
+                            title={`${reviewer.name} (${reviewer.role})`}
+                          >
+                            <img
+                              src={reviewer.avatar}
+                              alt={reviewer.name}
+                              className="w-8 h-8 rounded-full object-cover border-2 border-blue-200 shadow-sm hover:shadow-md transition-all hover:scale-110"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = top1Avatar;
+                              }}
+                            />
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                              {reviewer.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </section>
+
+        {/* 4. SECTION RANK 6 TO 10 - VERTICAL LIST */}
+        {topPortfolios.length > 5 && (
+          <section className="max-w-7xl mx-auto px-6 mt-12 py-8">
+            {/* Section Title */}
+            <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3">
+              <span className="text-xl">📋</span> Các portfolio khác
+            </h2>
+
+            {/* Vertical List */}
+            <div className="space-y-4">
+              {topPortfolios.slice(5, 10).map((portfolio, index) => {
+                const portfolioData = extractIntroData(portfolio);
+                return (
+                  <div
+                    key={portfolio.portfolioId}
+                    onClick={() => navigate(`/portfolio/${portfolio.portfolioId}?viewOnly=true`)}
+                    className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 flex items-center gap-5 hover:shadow-lg hover:border-gray-200 transition-all duration-300 cursor-pointer group"
+                  >
+                    {/* Rank Badge */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                        <img
+                          src={portfolioData.avatar || top1Avatar}
+                          className="w-14 h-14 rounded-lg object-cover"
+                          alt={portfolioData.name}
+                        />
+                      </div>
+                      <span className="absolute -bottom-1 -right-1 bg-zinc-900 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-xs border-2 border-white">
+                        {index + 6}
+                      </span>
+                    </div>
+
+                    {/* Portfolio Info */}
+                    <div className="flex-grow min-w-0">
+                      <h3 className="font-bold text-lg text-gray-900 leading-tight truncate">
+                        {portfolioData.name}
+                      </h3>
+                      <p className="text-gray-500 text-sm mt-1 truncate">
+                        {portfolioData.studyField}
+                      </p>
+                    </div>
+
+                    {/* Reviewers Mini */}
+                    {portfolioData.reviewers && portfolioData.reviewers.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {portfolioData.reviewers.slice(0, 3).map((reviewer) => (
+                          <div
+                            key={reviewer.userId}
+                            className="group/reviewer relative"
+                            title={`${reviewer.name} (${reviewer.role})`}
+                          >
+                            <img
+                              src={reviewer.avatar}
+                              alt={reviewer.name}
+                              className="w-7 h-7 rounded-full object-cover border border-blue-200 shadow-sm hover:shadow-md transition-all hover:scale-110"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = top1Avatar;
+                              }}
+                            />
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full right-0 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover/reviewer:opacity-100 transition-opacity pointer-events-none z-50">
+                              {reviewer.name}
+                            </div>
+                          </div>
+                        ))}
+                        {portfolioData.reviewers.length > 3 && (
+                          <div className="text-xs font-semibold text-gray-500 ml-1">
+                            +{portfolioData.reviewers.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

@@ -14,12 +14,20 @@ export type Ranking = {
   rankPosition: number;
 };
 
+export type Reviewer = {
+  userId: number;
+  name: string;
+  avatar: string;
+  role: string;
+};
+
 export type PortfolioResponse = {
   portfolioId: number;
   userId: number;
   employeeId?: number;
   blocks: PortfolioBlock[];
   portfolioName?: string;
+  reviewers?: Reviewer[];
 };
 
 export type PortfolioMainBlockItem = {
@@ -38,6 +46,7 @@ export type PortfolioMainBlockItem = {
   updatedAt?: string;
   ranking?: Ranking;
   blocks: PortfolioBlock;
+  reviewers?: Reviewer[];
 };
 
 // Type for paginated API response
@@ -63,6 +72,7 @@ export type PortfolioAPIResponse = {
   createdByName: string | null;
   ranking?: Ranking;
   blocks: PortfolioBlock[];
+  reviewers?: Reviewer[];
 };
 
 export type SavePortfolioPayload = {

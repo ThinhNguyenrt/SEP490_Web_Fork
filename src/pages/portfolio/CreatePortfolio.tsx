@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  Plus,
   Save,
   Trash2,
   Target,
@@ -9,12 +8,15 @@ import {
   FileText,
   ScrollText,
   Briefcase,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   useEffect,
   useMemo,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TemplatePreviewImage from "@/assets/testImage/testImage.png";
@@ -176,13 +178,6 @@ import { notify } from "@/lib/toast";
 
 type EditorTab = "template" | "component";
 
-type FieldDefinition = {
-  key: string;
-  label: string;
-  placeholder?: string;
-  multiline?: boolean;
-};
-
 type EditableBlockType =
   | "INTRO"
   | "SKILL"
@@ -319,37 +314,17 @@ const BLOCK_VARIANTS: Record<string, string[]> = {
   TYPICALCASE: ["TYPICALCASEONE"],
 };
 
-const OTHERINFO_OBJECT_VARIANTS = new Set([
-  "OTHERTWO",
-  "OTHERTHREE",
-  "OTHERFOUR",
-  "OTHEREIGHT",
-]);
-
 const normalizeBlockType = (type: string): string => {
   const upper = type.toUpperCase();
   if (upper === "EXPERIENCE") {
     return "EXPERIMENT";
   }
-
   return upper;
-};
-
-const getBlockVariantKey = (block: Pick<PortfolioBlock, "type" | "variant">): string => {
-  return `${normalizeBlockType(block.type)}.${block.variant.toUpperCase()}`;
 };
 
 const getDefaultVariant = (type: string): string => {
   const normalizedType = normalizeBlockType(type);
   return BLOCK_VARIANTS[normalizedType]?.[0] ?? "INTROONE";
-};
-
-const isEditableBlockType = (type: string): type is EditableBlockType => {
-  return EDITABLE_BLOCK_TYPES.includes(type as EditableBlockType);
-};
-
-const isExtendedEditorBlockType = (type: string): type is ExtendedEditorBlockType => {
-  return isEditableBlockType(type) || type === "RESEARCH" || type === "TEACHING" || type === "TYPICALCASE";
 };
 
 const getPreferredEditableType = (blocks: PortfolioBlock[]): EditableBlockType => {
@@ -358,7 +333,6 @@ const getPreferredEditableType = (blocks: PortfolioBlock[]): EditableBlockType =
       return type;
     }
   }
-
   return "INTRO";
 };
 
@@ -375,7 +349,6 @@ const deepClone = <T,>(value: T): T => {
   if (value === null || value === undefined) {
     return value;
   }
-
   try {
     return JSON.parse(JSON.stringify(value)) as T;
   } catch {
@@ -387,7 +360,6 @@ const toRecord = (value: unknown): Record<string, unknown> => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
   }
-
   return {};
 };
 
@@ -395,7 +367,6 @@ const toRecordArray = (value: unknown): Record<string, unknown>[] => {
   if (!Array.isArray(value)) {
     return [];
   }
-
   return value.map((item) =>
     item && typeof item === "object" && !Array.isArray(item)
       ? { ...(item as Record<string, unknown>) }
@@ -407,11 +378,9 @@ const toText = (value: unknown): string => {
   if (typeof value === "string") {
     return value;
   }
-
   if (typeof value === "number") {
     return String(value);
   }
-
   return "";
 };
 
@@ -438,7 +407,6 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
           tools: [],
         };
       }
-
       return [];
 
     case "EDUCATION":
@@ -463,19 +431,15 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
       if (normalizedVariant === "OTHERONE") {
         return [];
       }
-
       if (normalizedVariant === "OTHERTWO" || normalizedVariant === "OTHERTHREE" || normalizedVariant === "OTHERFOUR") {
         return { detail: "" };
       }
-
       if (normalizedVariant === "OTHERFIVE" || normalizedVariant === "OTHERSIX") {
         return [];
       }
-
       if (normalizedVariant === "OTHERSEVEN") {
         return [];
       }
-
       if (normalizedVariant === "OTHEREIGHT") {
         return {
           title: "",
@@ -485,7 +449,6 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
           detail: "",
         };
       }
-
       return [];
 
     case "REFERENCE":
@@ -505,25 +468,6 @@ const createDefaultBlockData = (type: string, variant: string): unknown => {
   }
 };
 
-const shouldUseObjectData = (type: string, variant: string): boolean => {
-  const normalizedType = normalizeBlockType(type);
-  const normalizedVariant = variant.toUpperCase();
-
-  if (normalizedType === "INTRO") {
-    return true;
-  }
-
-  if (normalizedType === "SKILL" && normalizedVariant === "SKILLTWO") {
-    return true;
-  }
-
-  if (normalizedType === "OTHERINFO" && OTHERINFO_OBJECT_VARIANTS.has(normalizedVariant)) {
-    return true;
-  }
-
-  return false;
-};
-
 const getTemplateName = (
   templateId: number,
   templates: PortfolioResponse[],
@@ -536,35 +480,8 @@ const getTemplateName = (
   return `Template ${templateId}`;
 };
 
-const getFirstProjectLink = (item: Record<string, unknown>): string => {
-  const projectLinks = Array.isArray(item.projectLinks) ? item.projectLinks : [];
-  const links = Array.isArray(item.links) ? item.links : [];
-
-  for (const candidate of projectLinks) {
-    if (candidate && typeof candidate === "object") {
-      const link = toText((candidate as Record<string, unknown>).link).trim();
-      if (link) {
-        return link;
-      }
-    }
-  }
-
-  for (const candidate of links) {
-    if (candidate && typeof candidate === "object") {
-      const link = toText((candidate as Record<string, unknown>).link).trim();
-      if (link) {
-        return link;
-      }
-    }
-  }
-
-  return "";
-};
-
 const getOrderedBlockCatalog = (): typeof BLOCK_CATALOG => {
   const catalog = [...BLOCK_CATALOG];
-  
-  // Define custom order: position of each block type
   const blockOrder: Record<string, number> = {
     INTRO: 0,
     SKILL: 1,
@@ -579,8 +496,6 @@ const getOrderedBlockCatalog = (): typeof BLOCK_CATALOG => {
     TEACHING: 10,
     TYPICALCASE: 11,
   };
-  
-  // Sort blocks by custom order
   return catalog.sort((a, b) => {
     const orderA = blockOrder[a.type] ?? 999;
     const orderB = blockOrder[b.type] ?? 999;
@@ -588,28 +503,70 @@ const getOrderedBlockCatalog = (): typeof BLOCK_CATALOG => {
   });
 };
 
+// ─── Slot key helper ────────────────────────────────────────────────────────
+const getSlotKey = (slot: EditorSlot): string =>
+  `${slot.type}.${(slot.variant ?? "default").toUpperCase()}`;
+
+// ─── Accordion item component ────────────────────────────────────────────────
+function AccordionItem({
+  title,
+  hasData,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  hasData: boolean;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors",
+          open ? "bg-blue-50" : "hover:bg-slate-50",
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-semibold text-slate-800 truncate">{title}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+              hasData
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-slate-100 text-slate-500",
+            )}
+          >
+            {hasData ? "Đã có" : "Trống"}
+          </span>
+        </div>
+        {open ? (
+          <ChevronUp size={15} className="shrink-0 text-slate-400" />
+        ) : (
+          <ChevronDown size={15} className="shrink-0 text-slate-400" />
+        )}
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-100 bg-[#EFF6FF] p-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CreatePortfolio() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  // Get user authentication data
   const { user, accessToken } = useAppSelector((state) => state.auth);
 
-  // Helper function to extract user info for auto-populating intro fields
-  const getUserInfo = () => {
-    if (!user) {
-      return undefined;
-    }
-    return {
-      fullName: employeeProfile?.name || (user as any).fullName || (user as any).name || undefined,
-      email: user.email,
-      phone: employeeProfile?.phone || (user as any).phone || undefined,
-      name: employeeProfile?.name || (user as any).name || undefined,
-    };
-  };
-
-  // Portfolio template display names by index
   const TEMPLATE_DISPLAY_NAMES: Record<number, string> = {
     0: "Hồ sơ xin việc",
     1: "Hồ sơ xin thực tập",
@@ -624,21 +581,22 @@ export default function CreatePortfolio() {
   const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
   const [allowedBlockTypes, setAllowedBlockTypes] = useState<Set<string>>(new Set());
   const [portfolioName, setPortfolioName] = useState("Hồ sơ mới");
-  const [activeEditorBlockType, setActiveEditorBlockType] =
+  const [_activeEditorBlockType, setActiveEditorBlockType] =
     useState<ExtendedEditorBlockType>("INTRO");
-  const [activeEditorBlockVariant, setActiveEditorBlockVariant] = useState<string | null>(null);
+  const [_activeEditorBlockVariant, setActiveEditorBlockVariant] = useState<string | null>(null);
   const [editorSlotPreset, setEditorSlotPreset] = useState<EditorSlotPreset>("default");
   const [blocks, setBlocks] = useState<PortfolioBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
-  const [showBlockSelector, setShowBlockSelector] = useState(false);
+  const [_showBlockSelector, setShowBlockSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editorResetKey, setEditorResetKey] = useState(0);
+
+  // Track reset keys per slot so each accordion editor resets independently
+  const [slotResetKeys, setSlotResetKeys] = useState<Record<string, number>>({});
 
   const nextTempBlockIdRef = useRef(-1);
 
-  // Variant selector state
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   const [selectedBlockTypeForVariant, setSelectedBlockTypeForVariant] = useState<string | null>(null);
 
@@ -648,24 +606,26 @@ export default function CreatePortfolio() {
     return nextId;
   };
 
-  // Fetch employee profile for auto-populating user info
+  const getUserInfo = useCallback(() => {
+    if (!user) return undefined;
+    return {
+      fullName: employeeProfile?.name || (user as any).fullName || (user as any).name || undefined,
+      email: user.email,
+      phone: employeeProfile?.phone || (user as any).phone || undefined,
+      name: employeeProfile?.name || (user as any).name || undefined,
+    };
+  }, [user, employeeProfile]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        if (!user || !accessToken) {
-          return;
-        }
-
-        console.log("📡 Fetching employee profile for user:", user.employeeId);
+        if (!user || !accessToken) return;
         const profile = await fetchEmployeeProfile(accessToken);
-        console.log("✅ Employee profile fetched:", profile);
         setEmployeeProfile(profile);
       } catch (error) {
         console.warn("⚠️ Failed to fetch employee profile:", error);
-        // Don't show error notification, this is optional data
       }
     };
-
     fetchProfile();
   }, [user, accessToken]);
 
@@ -675,20 +635,15 @@ export default function CreatePortfolio() {
         setLoading(true);
         setError(null);
 
-        // Fetch portfolio templates
         const templateData = await portfolioService.fetchPortfolioTemplates();
         setTemplates(templateData.slice(0, 5));
 
         if (isEditMode && id) {
           const portfolioId = Number(id);
-          
-          // Ensure accessToken is available
           if (!accessToken) {
             throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
           }
-          
           const detail = await portfolioService.fetchPortfolioByIdAPI(portfolioId, accessToken);
-
           if (!detail) {
             throw new Error("Không tìm thấy portfolio cần chỉnh sửa.");
           }
@@ -700,31 +655,23 @@ export default function CreatePortfolio() {
 
           const preferredType = getPreferredEditableType(sortedBlocks);
           const preferredBlock =
-            sortedBlocks.find(
-              (block) => normalizeBlockType(block.type) === preferredType,
-            ) ?? sortedBlocks[0] ?? null;
+            sortedBlocks.find((block) => normalizeBlockType(block.type) === preferredType) ??
+            sortedBlocks[0] ??
+            null;
 
           setBlocks(sortedBlocks);
           setActiveTab("component");
-          setActiveEditorBlockType(preferredType);
-          // Set the variant from the preferred block so the correct editor is shown
-          setActiveEditorBlockVariant(preferredBlock?.variant?.toUpperCase() ?? null);
           setEditorSlotPreset("default");
           setSelectedBlockId(preferredBlock?.id ?? null);
-          setShowBlockSelector(false);
-          // Use actual portfolio name from API response, fallback to default name
           setPortfolioName(detail.portfolioName || `Portfolio ${portfolioId}`);
           return;
         }
 
         setBlocks([]);
-        setActiveEditorBlockType("INTRO");
-        setActiveEditorBlockVariant(null);
         setEditorSlotPreset("default");
         setSelectedBlockId(null);
-        setShowBlockSelector(false);
         setPortfolioName("Hồ sơ mới");
-        setAllowedBlockTypes(new Set()); // Create mode: no template selected yet
+        setAllowedBlockTypes(new Set());
       } catch (initializationError) {
         const message =
           initializationError instanceof Error
@@ -739,1142 +686,191 @@ export default function CreatePortfolio() {
     initialize();
   }, [id, isEditMode, accessToken]);
 
-  useEffect(() => {
-    if (blocks.length === 0) {
-      setSelectedBlockId(null);
-      setShowBlockSelector(true);
-      return;
-    }
-
-    if (showBlockSelector) {
-      return;
-    }
-
-    const preferredBlock = blocks.find(
-      (block) =>
-        normalizeBlockType(block.type) === activeEditorBlockType
-        && (!activeEditorBlockVariant || block.variant.toUpperCase() === activeEditorBlockVariant),
-    );
-
-    const fallbackBlock = blocks.find(
-      (block) => normalizeBlockType(block.type) === activeEditorBlockType,
-    );
-
-    const targetBlock = preferredBlock ?? fallbackBlock;
-
-    if (targetBlock) {
-      if (selectedBlockId !== targetBlock.id) {
-        setSelectedBlockId(targetBlock.id);
-      }
-      return;
-    }
-
-    if (selectedBlockId === null || !blocks.some((block) => block.id === selectedBlockId)) {
-      setSelectedBlockId(blocks[0].id);
-    }
-  }, [activeEditorBlockType, activeEditorBlockVariant, blocks, selectedBlockId, showBlockSelector]);
-
-  const selectedBlock = useMemo(
-    () => {
-      const found = blocks.find((block) => block.id === selectedBlockId) ?? null;
-      console.log("📋 [selectedBlock useMemo] selectedBlockId:", selectedBlockId, "found:", found);
-      if (found) {
-        console.log("📋 [selectedBlock useMemo] Block data:", found.data);
-      }
-      return found;
-    },
-    [blocks, selectedBlockId],
-  );
-
-  const activeEditorBlock = useMemo(
-    () =>
-      blocks.find(
-        (block) =>
-          normalizeBlockType(block.type) === activeEditorBlockType
-          && (!activeEditorBlockVariant || block.variant.toUpperCase() === activeEditorBlockVariant),
-      ) ?? null,
-    [activeEditorBlockType, activeEditorBlockVariant, blocks],
-  );
-
-  const isTemplateBasedEditorSlots = !isEditMode && editorSlotPreset !== "default";
+  // ─── Derived state ───────────────────────────────────────────────────────
 
   const editorSlots = useMemo<EditorSlot[]>(() => {
-    if (editorSlotPreset === "template2") {
-      return TEMPLATE_TWO_EDITOR_SLOTS;
-    }
+  let baseSlots: EditorSlot[] = [];
 
-    if (editorSlotPreset === "template3") {
-      return TEMPLATE_THREE_EDITOR_SLOTS;
-    }
+  // 1. Lấy slots dựa trên Template hiện tại
+  if (editorSlotPreset === "template2") baseSlots = [...TEMPLATE_TWO_EDITOR_SLOTS];
+  else if (editorSlotPreset === "template3") baseSlots = [...TEMPLATE_THREE_EDITOR_SLOTS];
+  else if (editorSlotPreset === "template4") baseSlots = [...TEMPLATE_FOUR_EDITOR_SLOTS];
+  else if (editorSlotPreset === "template5") baseSlots = [...TEMPLATE_FIVE_EDITOR_SLOTS];
+  else {
+    baseSlots = EDITABLE_BLOCK_TYPES.map((type) => ({ type, label: BLOCK_LABELS[type] }));
+  }
 
-    if (editorSlotPreset === "template4") {
-      return TEMPLATE_FOUR_EDITOR_SLOTS;
-    }
-
-    if (editorSlotPreset === "template5") {
-      return TEMPLATE_FIVE_EDITOR_SLOTS;
-    }
-
-    return EDITABLE_BLOCK_TYPES.map((type) => ({
-      type,
-      label: BLOCK_LABELS[type],
-    }));
-  }, [editorSlotPreset]);
-
-  const activeEditorSlot = useMemo(() => {
-    return (
-      editorSlots.find((slot) => {
-        const normalizedVariant = slot.variant?.toUpperCase();
-
-        return (
-          slot.type === activeEditorBlockType
-          && (!normalizedVariant || normalizedVariant === activeEditorBlockVariant)
-        );
-      }) ?? null
+  // 2. TÌM CÁC BLOCK LẺ: Duyệt qua danh sách `blocks` hiện có, 
+  // nếu có block nào chưa nằm trong `baseSlots` thì thêm nó vào cuối Sidebar.
+  const extraSlots: EditorSlot[] = [];
+  blocks.forEach(block => {
+    const isAlreadyInSlots = baseSlots.some(slot => 
+      slot.type === normalizeBlockType(block.type) && 
+      slot.variant?.toUpperCase() === block.variant.toUpperCase()
     );
-  }, [activeEditorBlockType, activeEditorBlockVariant, editorSlots]);
 
-  const activeEditorLabel = activeEditorSlot?.label ?? BLOCK_LABELS[activeEditorBlockType];
-
-  const selectedBlockVariantKey = useMemo(() => {
-    if (!selectedBlock) {
-      return "";
-    }
-
-    return getBlockVariantKey(selectedBlock);
-  }, [selectedBlock]);
-
-  const isEditingIntroOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "INTRO"
-      && selectedBlock.variant.toUpperCase() === "INTROONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingIntroTwo = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "INTRO"
-      && selectedBlock.variant.toUpperCase() === "INTROTWO"
-    );
-  }, [selectedBlock]);
-
-  const isEditingIntroThree = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "INTRO"
-      && selectedBlock.variant.toUpperCase() === "INTROTHREE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingIntroFour = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "INTRO"
-      && selectedBlock.variant.toUpperCase() === "INTROFOUR"
-    );
-  }, [selectedBlock]);
-
-  const isEditingIntroFive = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      console.log("🎯 [isEditingIntroFive useMemo] No selectedBlock");
-      return false;
-    }
-
-    const result = (
-      normalizeBlockType(selectedBlock.type) === "INTRO"
-      && selectedBlock.variant.toUpperCase() === "INTROFIVE"
-    );
-    
-    console.log("🎯 [isEditingIntroFive useMemo] selectedBlock type:", selectedBlock.type, "variant:", selectedBlock.variant, "result:", result);
-    return result;
-  }, [selectedBlock]);
-
-  const isEditingSkillOne = selectedBlockVariantKey === "SKILL.SKILLONE";
-
-  const isEditingSkillTwo = selectedBlockVariantKey === "SKILL.SKILLTWO";
-
-  const isEditingSkillThree = selectedBlockVariantKey === "SKILL.SKILLTHREE";
-
-  const isEditingEducationOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "EDUCATION"
-      && selectedBlock.variant.toUpperCase() === "EDUCATIONONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingEducationThree = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "EDUCATION"
-      && selectedBlock.variant.toUpperCase() === "EDUCATIONTHREE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingEducationTwo = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "EDUCATION"
-      && selectedBlock.variant.toUpperCase() === "EDUCATIONTWO"
-    );
-  }, [selectedBlock]);
-
-  const isEditingExperienceOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "EXPERIMENT"
-      && selectedBlock.variant.toUpperCase() === "EXPERIMENTONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingProjectOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "PROJECT"
-      && selectedBlock.variant.toUpperCase() === "PROJECTONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingProjectTwo = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "PROJECT"
-      && selectedBlock.variant.toUpperCase() === "PROJECTTWO"
-    );
-  }, [selectedBlock]);
-
-  const isEditingProjectThree = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "PROJECT"
-      && selectedBlock.variant.toUpperCase() === "PROJECTTHREE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingAwardOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "AWARD"
-      && selectedBlock.variant.toUpperCase() === "AWARDONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingActivityOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "ACTIVITIES"
-      && selectedBlock.variant.toUpperCase() === "ACTIVITYONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHERONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoTwo = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHERTWO"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoSix = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHERSIX"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoSeven = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHERSEVEN"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoFive = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHERFIVE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingOtherInfoEight = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "OTHERINFO"
-      && selectedBlock.variant.toUpperCase() === "OTHEREIGHT"
-    );
-  }, [selectedBlock]);
-
-  const isEditingReferenceOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "REFERENCE"
-      && selectedBlock.variant.toUpperCase() === "REFERENCEONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingCertificateOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "DIPLOMA"
-      && selectedBlock.variant.toUpperCase() === "DIPLOMAONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingTeachingOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "TEACHING"
-      && selectedBlock.variant.toUpperCase() === "TEACHINGONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingTypicalCaseOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "TYPICALCASE"
-      && selectedBlock.variant.toUpperCase() === "TYPICALCASEONE"
-    );
-  }, [selectedBlock]);
-
-  const isEditingResearchOne = useMemo<boolean>(() => {
-    if (!selectedBlock) {
-      return false;
-    }
-
-    return (
-      normalizeBlockType(selectedBlock.type) === "RESEARCH"
-      && selectedBlock.variant.toUpperCase() === "RESEARCHONE"
-    );
-  }, [selectedBlock]);
-
-  const isUsingDedicatedEditor =
-    isEditingIntroOne
-    || isEditingIntroTwo
-    || isEditingIntroThree
-    || isEditingIntroFour
-    || isEditingIntroFive
-    || isEditingSkillOne
-    || isEditingSkillTwo
-    || isEditingSkillThree
-    || isEditingEducationOne
-    || isEditingEducationTwo
-    || isEditingEducationThree
-    || isEditingExperienceOne
-    || isEditingProjectOne
-    || isEditingProjectTwo
-    || isEditingProjectThree
-    || isEditingAwardOne
-    || isEditingActivityOne
-    || isEditingOtherInfoOne
-    || isEditingOtherInfoTwo
-    || isEditingOtherInfoFive
-    || isEditingOtherInfoSix
-    || isEditingOtherInfoSeven
-    || isEditingOtherInfoEight
-    || isEditingReferenceOne
-    || isEditingCertificateOne
-    || isEditingTeachingOne
-    || isEditingTypicalCaseOne
-    || isEditingResearchOne;
-
-  const introOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroOne) {
-      return null;
-    }
-
-    return createIntroOneDraft(selectedBlock.data, getUserInfo());
-  }, [isEditingIntroOne, selectedBlock, employeeProfile]);
-
-  const introOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroOne) {
-      return "intro-one-editor";
-    }
-
-    return `intro-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`;
-  }, [isEditingIntroOne, selectedBlock, editorResetKey]);
-
-  const introTwoInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroTwo) {
-      return null;
-    }
-
-    return createIntroTwoDraft(selectedBlock.data, getUserInfo());
-  }, [isEditingIntroTwo, selectedBlock, employeeProfile]);
-
-  const introTwoEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroTwo) {
-      return "intro-two-editor";
-    }
-
-    return `intro-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingIntroTwo, selectedBlock]);
-
-  const introThreeInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroThree) {
-      return null;
-    }
-
-    return createIntroThreeDraft(selectedBlock.data, getUserInfo());
-  }, [isEditingIntroThree, selectedBlock, employeeProfile]);
-
-  const introThreeEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroThree) {
-      return "intro-three-editor";
-    }
-
-    return `intro-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingIntroThree, selectedBlock]);
-
-  const introFourInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroFour) {
-      return null;
-    }
-
-    return createIntroFourDraft(selectedBlock.data, getUserInfo());
-  }, [isEditingIntroFour, selectedBlock, employeeProfile]);
-
-  const introFourEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroFour) {
-      return "intro-four-editor";
-    }
-
-    return `intro-four-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingIntroFour, selectedBlock]);
-
-  const introFiveInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroFive) {
-      return null;
-    }
-
-    return createIntroFiveDraft(selectedBlock.data, getUserInfo());
-  }, [isEditingIntroFive, selectedBlock, employeeProfile]);
-
-  const introFiveEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingIntroFive) {
-      return "intro-five-editor";
-    }
-
-    return `intro-five-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingIntroFive, selectedBlock]);
-
-  const educationOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationOne) {
-      return null;
-    }
-
-    return createEducationOneDraft(selectedBlock.data);
-  }, [isEditingEducationOne, selectedBlock]);
-
-  const educationOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createEducationOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingEducationOne, selectedBlock]);
-
-  const educationOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationOne) {
-      return "education-one-editor";
-    }
-
-    return `education-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingEducationOne, selectedBlock]);
-
-  const educationThreeInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationThree) {
-      return null;
-    }
-
-    return createEducationThreeDraft(selectedBlock.data);
-  }, [isEditingEducationThree, selectedBlock]);
-
-  const educationThreeEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationThree) {
-      return "education-three-editor";
-    }
-
-    return `education-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingEducationThree, selectedBlock]);
-
-  const educationTwoInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationTwo) {
-      return null;
-    }
-
-    return createEducationTwoDraft(selectedBlock.data);
-  }, [isEditingEducationTwo, selectedBlock]);
-
-  const educationTwoEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingEducationTwo) {
-      return "education-two-editor";
-    }
-
-    return `education-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingEducationTwo, selectedBlock]);
-
-  const experienceOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingExperienceOne) {
-      return null;
-    }
-
-    return createExperienceOneDraft(selectedBlock.data);
-  }, [isEditingExperienceOne, selectedBlock]);
-
-  const experienceOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingExperienceOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createExperienceOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingExperienceOne, selectedBlock]);
-
-  const experienceOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingExperienceOne) {
-      return "experience-one-editor";
-    }
-
-    return `experience-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingExperienceOne, selectedBlock]);
-
-  const projectOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectOne) {
-      return null;
-    }
-
-    return createProjectOneDraft(selectedBlock.data);
-  }, [isEditingProjectOne, selectedBlock]);
-
-  const projectOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createProjectOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingProjectOne, selectedBlock]);
-
-  const projectOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectOne) {
-      return "project-one-editor";
-    }
-
-    return `project-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingProjectOne, selectedBlock]);
-
-  const projectTwoInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectTwo) {
-      return null;
-    }
-
-    return createProjectTwoDraft(selectedBlock.data);
-  }, [isEditingProjectTwo, selectedBlock]);
-
-  const projectTwoEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectTwo) {
-      return "project-two-editor";
-    }
-
-    return `project-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingProjectTwo, selectedBlock]);
-
-  const projectThreeInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectThree) {
-      return null;
-    }
-
-    return createProjectThreeDraft(selectedBlock.data);
-  }, [isEditingProjectThree, selectedBlock]);
-
-  const projectThreeEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingProjectThree) {
-      return "project-three-editor";
-    }
-
-    return `project-three-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingProjectThree, selectedBlock]);
-
-  const awardOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingAwardOne) {
-      return null;
-    }
-
-    return createAwardOneDraft(selectedBlock.data);
-  }, [isEditingAwardOne, selectedBlock]);
-
-  const awardOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingAwardOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createAwardOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingAwardOne, selectedBlock]);
-
-  const awardOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingAwardOne) {
-      return "award-one-editor";
-    }
-
-    return `award-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingAwardOne, selectedBlock]);
-
-  const activityOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingActivityOne) {
-      return null;
-    }
-
-    return createActivityOneDraft(selectedBlock.data);
-  }, [isEditingActivityOne, selectedBlock]);
-
-  const activityOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingActivityOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createActivityOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingActivityOne, selectedBlock]);
-
-  const activityOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingActivityOne) {
-      return "activity-one-editor";
-    }
-
-    return `activity-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingActivityOne, selectedBlock]);
-
-  const otherInfoOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoOne) {
-      return null;
-    }
-
-    return createOtherInfoOneDraft(selectedBlock.data);
-  }, [isEditingOtherInfoOne, selectedBlock]);
-
-  const otherInfoOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoOne) {
-      return "otherinfo-one-editor";
-    }
-
-    return `otherinfo-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoOne, selectedBlock]);
-
-  const otherInfoTwoInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoTwo) {
-      return null;
-    }
-
-    return createOtherInfoTwoDraft(selectedBlock.data);
-  }, [isEditingOtherInfoTwo, selectedBlock]);
-
-  const otherInfoTwoEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoTwo) {
-      return "otherinfo-two-editor";
-    }
-
-    return `otherinfo-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoTwo, selectedBlock]);
-
-  const otherInfoFiveInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoFive) {
-      return null;
-    }
-
-    return createOtherFiveDraft(selectedBlock.data);
-  }, [isEditingOtherInfoFive, selectedBlock]);
-
-  const otherInfoFiveEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoFive) {
-      return "otherinfo-five-editor";
-    }
-
-    return `otherinfo-five-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoFive, selectedBlock]);
-
-  const otherInfoSixInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoSix) {
-      return null;
-    }
-
-    return createOtherInfoSixDraft(selectedBlock.data);
-  }, [isEditingOtherInfoSix, selectedBlock]);
-
-  const otherInfoSixEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoSix) {
-      return "otherinfo-six-editor";
-    }
-
-    return `otherinfo-six-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoSix, selectedBlock]);
-
-  const otherInfoSevenInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoSeven) {
-      return null;
-    }
-
-    return createOtherSevenDraft(selectedBlock.data);
-  }, [isEditingOtherInfoSeven, selectedBlock]);
-
-  const otherInfoSevenEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoSeven) {
-      return "otherinfo-seven-editor";
-    }
-
-    return `otherinfo-seven-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoSeven, selectedBlock]);
-
-  const otherInfoEightInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoEight) {
-      return null;
-    }
-
-    return createOtherEightDraft(selectedBlock.data);
-  }, [isEditingOtherInfoEight, selectedBlock]);
-
-  const otherInfoEightEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingOtherInfoEight) {
-      return "otherinfo-eight-editor";
-    }
-
-    return `otherinfo-eight-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingOtherInfoEight, selectedBlock]);
-
-  const referenceOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingReferenceOne) {
-      return null;
-    }
-
-    return createReferenceOneDraft(selectedBlock.data);
-  }, [isEditingReferenceOne, selectedBlock]);
-
-  const referenceOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingReferenceOne) {
-      return "reference-one-editor";
-    }
-
-    return `reference-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingReferenceOne, selectedBlock]);
-
-  const certificateOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingCertificateOne) {
-      return null;
-    }
-
-    return createCertificateOneDraft(selectedBlock.data);
-  }, [isEditingCertificateOne, selectedBlock]);
-
-  const certificateOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingCertificateOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createCertificateOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingCertificateOne, selectedBlock]);
-
-  const certificateOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingCertificateOne) {
-      return "certificate-one-editor";
-    }
-
-    return `certificate-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingCertificateOne, selectedBlock]);
-
-  const skillOneInitialData = useMemo(() => {
-    console.log("📊 [skillOneInitialData useMemo] isEditingSkillOne:", isEditingSkillOne, "selectedBlock:", selectedBlock);
-    
-    if (!selectedBlock || !isEditingSkillOne) {
-      console.log("  ✗ Returning null");
-      return null;
-    }
-
-    const draft = createSkillOneDraft(selectedBlock.data);
-    console.log("  ✓ Created draft:", draft);
-    return draft;
-  }, [isEditingSkillOne, selectedBlock]);
-
-  const skillOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingSkillOne) {
-      return "skill-one-editor";
-    }
-
-    return `skill-one-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}-${editorResetKey}`;
-  }, [isEditingSkillOne, selectedBlock, editorResetKey]);
-
-  const skillTwoInitialData = useMemo(() => {
-    console.log("📊 [skillTwoInitialData useMemo] isEditingSkillTwo:", isEditingSkillTwo, "selectedBlock:", selectedBlock);
-    
-    if (!selectedBlock || !isEditingSkillTwo) {
-      console.log("  ✗ Returning null");
-      return null;
-    }
-
-    const draft = createSkillTwoDraft(selectedBlock.data);
-    console.log("  ✓ Created draft:", draft);
-    return draft;
-  }, [isEditingSkillTwo, selectedBlock]);
-
-  const skillTwoEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingSkillTwo) {
-      return "skill-two-editor";
-    }
-
-    return `skill-two-${selectedBlock.id}-${selectedBlock.variant.toUpperCase()}`;
-  }, [isEditingSkillTwo, selectedBlock]);
-
-  const skillThreeEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingSkillThree) {
-      return "skill-three-editor";
-    }
-
-    const entryCount = toRecordArray(selectedBlock.data).length;
-    return `skill-three-${selectedBlock.id}-${entryCount}`;
-  }, [isEditingSkillThree, selectedBlock]);
-
-  const teachingOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingTeachingOne) {
-      return null;
-    }
-
-    return createEmptyTeachingOneDraft();
-  }, [isEditingTeachingOne, selectedBlock]);
-
-  const teachingOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingTeachingOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => {
-        if (item && typeof item === "object") {
-          const record = item as Record<string, unknown>;
-          return {
-            subject: toText(record.subject),
-            teachingplace: toText(record.teachingplace),
-          };
-        }
-        return createEmptyTeachingOneDraft();
+    if (!isAlreadyInSlots) {
+      extraSlots.push({
+        type: normalizeBlockType(block.type) as ExtendedEditorBlockType,
+        variant: block.variant,
+        label: `${BLOCK_LABELS[normalizeBlockType(block.type)]} (Tùy chỉnh)`
       });
     }
+  });
 
-    return [];
-  }, [isEditingTeachingOne, selectedBlock]);
+  return [...baseSlots, ...extraSlots];
+}, [editorSlotPreset, blocks]); // Thêm blocks vào dependency để cập nhật khi thêm block mới
 
-  const typicalCaseOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingTypicalCaseOne) {
-      return null;
-    }
+  // ─── Core block helpers ──────────────────────────────────────────────────
 
-    return createEmptyTypicalCaseOneDraft();
-  }, [isEditingTypicalCaseOne, selectedBlock]);
+  /**
+   * Find the block matching a given slot (type + optional variant).
+   */
+  const findBlockForSlot = useCallback(
+    (slot: EditorSlot): PortfolioBlock | null => {
+      const slotVariant = slot.variant?.toUpperCase();
+      return (
+        blocks.find(
+          (b) =>
+            normalizeBlockType(b.type) === slot.type &&
+            (!slotVariant || b.variant.toUpperCase() === slotVariant),
+        ) ?? null
+      );
+    },
+    [blocks],
+  );
 
-  const typicalCaseOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingTypicalCaseOne) {
-      return [];
-    }
+  /**
+   * Update block data by block id.
+   */
+  const updateBlockDataById = useCallback(
+    (blockId: number, updater: (current: unknown) => unknown) => {
+      setBlocks((prevBlocks) =>
+        prevBlocks.map((block) => {
+          if (block.id !== blockId) return block;
+          const cloned = deepClone(block.data);
+          return { ...block, data: updater(cloned) };
+        }),
+      );
+    },
+    [],
+  );
 
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => {
-        if (item && typeof item === "object") {
-          const record = item as Record<string, unknown>;
-          return {
-            patient: toText(record.patient),
-            age: toText(record.age),
-            caseName: toText(record.caseName),
-            stage: toText(record.stage),
-            regiment: toText(record.regiment),
-          };
-        }
-        return createEmptyTypicalCaseOneDraft();
-      });
-    }
+  const resetSlotKey = useCallback((slotKey: string) => {
+    setSlotResetKeys((prev) => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + 1 }));
+  }, []);
 
-    return [];
-  }, [isEditingTypicalCaseOne, selectedBlock]);
+  // ─── addBlockFromCatalog ─────────────────────────────────────────────────
 
-  const researchOneInitialData = useMemo(() => {
-    if (!selectedBlock || !isEditingResearchOne) {
-      return null;
-    }
-
-    return createResearchOneDraft(selectedBlock.data);
-  }, [isEditingResearchOne, selectedBlock]);
-
-  const researchOneListData = useMemo(() => {
-    if (!selectedBlock || !isEditingResearchOne) {
-      return [];
-    }
-
-    const data = selectedBlock.data;
-    if (Array.isArray(data)) {
-      return data.map((item) => createResearchOneDraft(item));
-    }
-
-    return [];
-  }, [isEditingResearchOne, selectedBlock]);
-
-  const teachingOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingTeachingOne) {
-      return "teaching-one-editor";
-    }
-
-    const entryCount = toRecordArray(selectedBlock.data).length;
-    return `teaching-one-${selectedBlock.id}-${entryCount}`;
-  }, [isEditingTeachingOne, selectedBlock]);
-
-  const typicalCaseOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingTypicalCaseOne) {
-      return "typical-case-one-editor";
-    }
-
-    const entryCount = toRecordArray(selectedBlock.data).length;
-    return `typical-case-one-${selectedBlock.id}-${entryCount}`;
-  }, [isEditingTypicalCaseOne, selectedBlock]);
-
-  const researchOneEditorKey = useMemo(() => {
-    if (!selectedBlock || !isEditingResearchOne) {
-      return "research-one-editor";
-    }
-
-    const entryCount = toRecordArray(selectedBlock.data).length;
-    return `research-one-${selectedBlock.id}-${entryCount}`;
-  }, [isEditingResearchOne, selectedBlock]);
-
-  const updateSelectedBlockData = (updater: (current: unknown) => unknown) => {
-    console.log("🔵 [updateSelectedBlockData] Called - selectedBlockId:", selectedBlockId);
-    if (selectedBlockId === null) {
-      console.log("🔴 [updateSelectedBlockData] selectedBlockId is null, returning");
+  const addBlockFromCatalog = (type: string, forcedVariant?: string) => {
+    const normalizedType = normalizeBlockType(type);
+    if (!isEditMode && activeTemplateId && !allowedBlockTypes.has(normalizedType)) {
+      setError(`Loại block "${BLOCK_LABELS[normalizedType] || normalizedType}" không được hỗ trợ bởi template này.`);
       return;
     }
 
-    console.log("🟡 [updateSelectedBlockData] Current blocks before update:", blocks);
-    
-    setBlocks((prevBlocks) => {
-      const blockFound = prevBlocks.some(b => b.id === selectedBlockId);
-      console.log("🟡 [updateSelectedBlockData] Looking for block with id", selectedBlockId, "found:", blockFound);
-      
-      const newBlocks = prevBlocks.map((block) => {
-        if (block.id === selectedBlockId) {
-          console.log("🟡 [updateSelectedBlockData] Found matching block:", block.id);
-          const deepClonedData = deepClone(block.data);
-          console.log("🟡 [updateSelectedBlockData] Deep cloned data:", deepClonedData);
-          const updatedData = updater(deepClonedData);
-          console.log("🟡 [updateSelectedBlockData] After updater, new data:", updatedData);
-          return {
-            ...block,
-            data: updatedData,
-          };
-        }
-        return block;
-      });
-      
-      // Verify the update actually happened
-      const updatedBlockFound = newBlocks.some(b => b.id === selectedBlockId);
-      console.log("🟢 [updateSelectedBlockData] After mapping, block found:", updatedBlockFound);
-      if (updatedBlockFound) {
-        const updatedBlock = newBlocks.find(b => b.id === selectedBlockId);
-        console.log("🟢 [updateSelectedBlockData] Updated block data:", updatedBlock?.data);
-      }
-      console.log("🟢 [updateSelectedBlockData] New blocks array:", newBlocks);
-      return newBlocks;
-    });
+    const variant = (forcedVariant?.toUpperCase() || getDefaultVariant(type)).toUpperCase();
+    const newBlock: PortfolioBlock = {
+      id: allocateTempBlockId(),
+      type: normalizedType,
+      variant,
+      order: blocks.length + 1,
+      data: createDefaultBlockData(type, variant),
+    };
+
+    setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
+    setSelectedBlockId(newBlock.id);
+    setActiveTab("component");
   };
 
-  // Helper function to reset editor form after saving
-  const resetEditorFormAfterSave = () => {
-    setEditorResetKey((prev) => prev + 1);
-  };
+  const handleSave = async () => {
+    if (!user || !accessToken) {
+      setError("Bạn cần đăng nhập để lưu hồ sơ.");
+      navigate("/login");
+      return;
+    }
 
-  const updateSelectedObjectField = (field: string, value: string) => {
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData[field] = value;
-      return nextData;
-    });
-  };
+    if (blocks.length === 0) {
+      setError("Bạn cần thêm ít nhất một block trước khi lưu.");
+      return;
+    }
 
-  const updateSelectedArrayItemField = (
-    index: number,
-    field: string,
-    value: string,
-  ) => {
-    updateSelectedBlockData((current) => {
-      const nextData = toRecordArray(current);
-      const currentItem = nextData[index] ?? {};
-      nextData[index] = {
-        ...currentItem,
-        [field]: value,
+    try {
+      setSaving(true);
+      setError(null);
+
+      const portfolioData = {
+        employeeId: user.employeeId || user.id,
+        name: portfolioName.trim() || "Hồ sơ mới",
+        blocks: sortAndReindexBlocks(blocks).map((block) => ({
+          id: block.id,
+          type: normalizeBlockType(block.type),
+          variant: block.variant.toUpperCase(),
+          order: block.order,
+          data: deepClone(block.data),
+        })),
       };
-      return nextData;
-    });
+
+      try {
+        if (isEditMode && id) {
+          const portfolioId = Number(id);
+          await portfolioService.updatePortfolioAPI(portfolioId, portfolioData, accessToken);
+          notify.success("Hồ sơ đã được cập nhật thành công!");
+        } else {
+          await portfolioService.createPortfolioAPI(portfolioData, accessToken);
+          notify.success("Hồ sơ đã được lưu thành công!");
+        }
+
+        portfolioService.clearPortfolioImageFiles();
+        navigate("/portfolioManagement?refresh=true", { replace: true });
+      } catch (apiError) {
+        const errorMessage =
+          apiError instanceof Error ? apiError.message : "Không thể lưu hồ sơ lên máy chủ";
+        setError(errorMessage);
+        notify.error(errorMessage);
+      }
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : "Không thể lưu portfolio.";
+      setError(message);
+      notify.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const updateSelectedArrayItem = (
-    index: number,
-    updater: (currentItem: Record<string, unknown>) => Record<string, unknown>,
-  ) => {
-    updateSelectedBlockData((current) => {
-      const nextData = toRecordArray(current);
-      const currentItem = nextData[index] ?? {};
-      nextData[index] = updater(currentItem);
-      return nextData;
+  const handleDeleteBlock = (blockId: number) => {
+    setBlocks((current) => {
+      const updated = current.filter((block) => block.id !== blockId);
+      return sortAndReindexBlocks(updated);
     });
-  };
-
-  const addSelectedArrayItem = (factory: () => Record<string, unknown>) => {
-    updateSelectedBlockData((current) => {
-      const nextData = toRecordArray(current);
-      nextData.push(factory());
-      return nextData;
-    });
-  };
-
-  const removeSelectedArrayItem = (index: number) => {
-    updateSelectedBlockData((current) => {
-      const nextData = toRecordArray(current);
-      return nextData.filter((_, itemIndex) => itemIndex !== index);
-    });
+    if (selectedBlockId === blockId) {
+      setSelectedBlockId(null);
+      setShowBlockSelector(true);
+    }
   };
 
   const applyTemplate = (template: PortfolioResponse) => {
-    // Extract allowed block types from template (for filtering component catalog)
-    const blockTypes = new Set(
-      template.blocks.map((block) => normalizeBlockType(block.type))
-    );
-    
-    // Initialize as empty portfolio - user starts fresh but with template block type restrictions
+    const blockTypes = new Set(template.blocks.map((block) => normalizeBlockType(block.type)));
     setAllowedBlockTypes(blockTypes);
     setBlocks([]);
     setActiveTemplateId(template.portfolioId);
-    const selectedTemplateIndex = templates.findIndex(
-      (item) => item.portfolioId === template.portfolioId,
-    );
-    const templateVariants = new Set(
-      template.blocks.map((block) => block.variant.toUpperCase()),
-    );
+
+    const selectedTemplateIndex = templates.findIndex((item) => item.portfolioId === template.portfolioId);
+    const templateVariants = new Set(template.blocks.map((block) => block.variant.toUpperCase()));
+
     const hasTemplateTwoVariantSet =
-      templateVariants.size === TEMPLATE_TWO_REQUIRED_VARIANTS.size
-      && Array.from(TEMPLATE_TWO_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+      templateVariants.size === TEMPLATE_TWO_REQUIRED_VARIANTS.size &&
+      Array.from(TEMPLATE_TWO_REQUIRED_VARIANTS).every((v) => templateVariants.has(v));
     const hasTemplateThreeVariantSet =
-      templateVariants.size === TEMPLATE_THREE_REQUIRED_VARIANTS.size
-      && Array.from(TEMPLATE_THREE_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+      templateVariants.size === TEMPLATE_THREE_REQUIRED_VARIANTS.size &&
+      Array.from(TEMPLATE_THREE_REQUIRED_VARIANTS).every((v) => templateVariants.has(v));
     const hasTemplateFourVariantSet =
-      templateVariants.size === TEMPLATE_FOUR_REQUIRED_VARIANTS.size
-      && Array.from(TEMPLATE_FOUR_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+      templateVariants.size === TEMPLATE_FOUR_REQUIRED_VARIANTS.size &&
+      Array.from(TEMPLATE_FOUR_REQUIRED_VARIANTS).every((v) => templateVariants.has(v));
     const hasTemplateFiveVariantSet =
-      templateVariants.size === TEMPLATE_FIVE_REQUIRED_VARIANTS.size
-      && Array.from(TEMPLATE_FIVE_REQUIRED_VARIANTS).every((variant) => templateVariants.has(variant));
+      templateVariants.size === TEMPLATE_FIVE_REQUIRED_VARIANTS.size &&
+      Array.from(TEMPLATE_FIVE_REQUIRED_VARIANTS).every((v) => templateVariants.has(v));
+
     const shouldUseTemplateTwoSlots = selectedTemplateIndex === 1 || hasTemplateTwoVariantSet;
     const shouldUseTemplateThreeSlots = selectedTemplateIndex === 2 || hasTemplateThreeVariantSet;
     const shouldUseTemplateFourSlots = selectedTemplateIndex === 3 || hasTemplateFourVariantSet;
@@ -1901,313 +897,10 @@ export default function CreatePortfolio() {
       setActiveEditorBlockType("INTRO");
       setActiveEditorBlockVariant(null);
     }
+
     setSelectedBlockId(null);
     setShowBlockSelector(true);
     setActiveTab("component");
-  };
-
-  const addBlockFromCatalog = (type: string, forcedVariant?: string) => {
-    const normalizedType = normalizeBlockType(type);
-    // In create mode with template, check if block type is allowed
-    if (!isEditMode && activeTemplateId && !allowedBlockTypes.has(normalizedType)) {
-      setError(`Loại block "${BLOCK_LABELS[normalizedType] || normalizedType}" không được hỗ trợ bởi template này.`);
-      return;
-    }
-
-    const variant = (forcedVariant?.toUpperCase() || getDefaultVariant(type)).toUpperCase();
-    const newBlock: PortfolioBlock = {
-      id: allocateTempBlockId(),
-      type: normalizedType,
-      variant,
-      order: blocks.length + 1,
-      data: createDefaultBlockData(type, variant),
-    };
-
-    if (isExtendedEditorBlockType(normalizedType)) {
-      setActiveEditorBlockType(normalizedType);
-      setActiveEditorBlockVariant(variant);
-    }
-
-    setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
-    setSelectedBlockId(newBlock.id);
-    setShowBlockSelector(false);
-    setActiveTab("component");
-  };
-
-  const updateSelectedVariant = (nextVariant: string) => {
-    if (selectedBlockId === null) {
-      return;
-    }
-
-    setBlocks((prevBlocks) =>
-      prevBlocks.map((block) => {
-        if (block.id !== selectedBlockId) {
-          return block;
-        }
-
-        const normalizedType = normalizeBlockType(block.type);
-        const normalizedVariant = nextVariant.toUpperCase();
-        const currentData = deepClone(block.data);
-        const nextShouldBeObject = shouldUseObjectData(normalizedType, normalizedVariant);
-
-        if (nextShouldBeObject && (Array.isArray(currentData) || typeof currentData !== "object" || !currentData)) {
-          return {
-            ...block,
-            variant: normalizedVariant,
-            data: createDefaultBlockData(normalizedType, normalizedVariant),
-          };
-        }
-
-        if (!nextShouldBeObject && !Array.isArray(currentData)) {
-          return {
-            ...block,
-            variant: normalizedVariant,
-            data: createDefaultBlockData(normalizedType, normalizedVariant),
-          };
-        }
-
-        return {
-          ...block,
-          variant: normalizedVariant,
-          data: currentData,
-        };
-      }),
-    );
-  };
-
-
-  const handleSave = async () => {
-    // Check if user is authenticated
-    if (!user || !accessToken) {
-      setError("Bạn cần đăng nhập để lưu hồ sơ.");
-      navigate("/login");
-      return;
-    }
-
-    if (blocks.length === 0) {
-      setError("Bạn cần thêm ít nhất một block trước khi lưu.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      // Debug: Log user info
-      console.log("👤 Current user object:", user);
-      console.log("👤 Employee ID:", user.employeeId);
-      console.log("👤 User ID:", user.id);
-      console.log("👤 User email:", user.email);
-
-      // Prepare the portfolio data structure
-      const portfolioData = {
-        employeeId: user.employeeId || user.id,  // Use employeeId, fallback to user.id if null
-        name: portfolioName.trim() || "Hồ sơ mới",
-        blocks: sortAndReindexBlocks(blocks).map((block) => ({
-          id: block.id,
-          type: normalizeBlockType(block.type),
-          variant: block.variant.toUpperCase(),
-          order: block.order,
-          data: deepClone(block.data),
-        })),
-      };
-
-      console.log("💾 Saving portfolio:", portfolioData);
-
-      // Call API to create or update portfolio with files
-      // Files are now collected inside the API function itself
-      try {
-        let result;
-        
-        if (isEditMode && id) {
-          // Update existing portfolio
-          const portfolioId = Number(id);
-          console.log("📝 Updating portfolio ID:", portfolioId);
-          result = await portfolioService.updatePortfolioAPI(
-            portfolioId,
-            portfolioData,
-            accessToken,
-          );
-          console.log("✅ Portfolio updated successfully:", result);
-          notify.success("Hồ sơ đã được cập nhật thành công!");
-        } else {
-          // Create new portfolio
-          console.log("📝 Creating new portfolio");
-          result = await portfolioService.createPortfolioAPI(
-            portfolioData,
-            accessToken,
-          );
-          console.log("✅ Portfolio created successfully:", result);
-          notify.success("Hồ sơ đã được lưu thành công!");
-        }
-
-        // Clear stored image files after successful upload
-        portfolioService.clearPortfolioImageFiles();
-        console.log("📸 Cleared stored image files after successful portfolio save");
-
-        // Navigate to portfolio management page with refetch flag
-        navigate("/portfolioManagement?refresh=true", { replace: true });
-      } catch (apiError) {
-        const errorMessage =
-          apiError instanceof Error
-            ? apiError.message
-            : "Không thể lưu hồ sơ lên máy chủ";
-        console.error("❌ API Error:", errorMessage);
-        setError(errorMessage);
-        notify.error(errorMessage);
-      }
-    } catch (saveError) {
-      const message =
-        saveError instanceof Error ? saveError.message : "Không thể lưu portfolio.";
-      setError(message);
-      notify.error(message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleIntroOneSave = (nextDraft: IntroOneDraft) => {
-    if (!selectedBlock || !isEditingIntroOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.fullName = nextDraft.fullName;
-      nextData.name = nextDraft.fullName; // Also save as 'name' for backend compatibility
-      nextData.studyField = nextDraft.studyField;
-      nextData.email = nextDraft.email;
-      nextData.phone = nextDraft.phone;
-      nextData.description = nextDraft.description;
-      nextData.avatar = nextDraft.avatar;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleIntroOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleIntroTwoSave = (nextDraft: IntroTwoDraft) => {
-    if (!selectedBlock || !isEditingIntroTwo) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.fullName = nextDraft.fullName;
-      nextData.name = nextDraft.fullName;
-      nextData.position = nextDraft.position;
-      nextData.title = nextDraft.position;
-      nextData.yearOfStudy = nextDraft.yearOfStudy;
-      nextData.school = nextDraft.school;
-      nextData.studyField = nextDraft.studyField;
-      nextData.email = nextDraft.email;
-      nextData.phoneNumber = nextDraft.phoneNumber;
-      nextData.phone = nextDraft.phoneNumber;
-      nextData.avatar = nextDraft.avatar;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleIntroTwoCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleIntroThreeSave = (nextDraft: IntroThreeDraft) => {
-    if (!selectedBlock || !isEditingIntroThree) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.fullName = nextDraft.fullName;
-      nextData.name = nextDraft.fullName;
-      nextData.school = nextDraft.school;
-      nextData.department = nextDraft.department;
-      nextData.studyField = nextDraft.studyField;
-      nextData.title = nextDraft.studyField;
-      nextData.gpa = nextDraft.gpa;
-      nextData.avatar = nextDraft.avatar;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleIntroThreeCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleIntroFourSave = (nextDraft: IntroFourDraft) => {
-    console.log("🔵 [handleIntroFourSave] Called with nextDraft:", nextDraft);
-    
-    if (!selectedBlock || !isEditingIntroFour) {
-      console.log("🔴 [handleIntroFourSave] Early return - selectedBlock:", selectedBlock, "isEditingIntroFour:", isEditingIntroFour);
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      console.log("🟡 [handleIntroFourSave] Current block data:", current);
-      const nextData = toRecord(current);
-      console.log("🟡 [handleIntroFourSave] After toRecord:", nextData);
-      
-      nextData.fullName = nextDraft.fullName;
-      nextData.name = nextDraft.fullName;
-      nextData.school = nextDraft.school;
-      nextData.department = nextDraft.department;
-      nextData.studyField = nextDraft.studyField;
-      nextData.title = nextDraft.studyField;
-      nextData.gpa = nextDraft.gpa;
-      nextData.avatar = nextDraft.avatar;
-      
-      console.log("🟢 [handleIntroFourSave] Updated block data:", nextData);
-      
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleIntroFourCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleIntroFiveSave = (nextDraft: IntroFiveDraft) => {
-    console.log("🔵 [handleIntroFiveSave] Called with nextDraft:", nextDraft);
-    if (!selectedBlock || !isEditingIntroFive) {
-      console.log("🔴 [handleIntroFiveSave] Early return - selectedBlock:", selectedBlock, "isEditingIntroFive:", isEditingIntroFive);
-      return;
-    }
-
-    console.log("🟡 [handleIntroFiveSave] Before updateSelectedBlockData - selectedBlock.data:", selectedBlock.data);
-    
-    updateSelectedBlockData((current) => {
-      console.log("🟡 [handleIntroFiveSave] Inside updater function - current data:", current);
-      const nextData = toRecord(current);
-      nextData.fullName = nextDraft.fullName;
-      nextData.name = nextDraft.fullName;
-      nextData.school = nextDraft.school;
-      nextData.department = nextDraft.department;
-      nextData.experience = nextDraft.experience;
-      nextData.avatar = nextDraft.avatar;
-      nextData.studyField = nextDraft.studyField;
-      nextData.title = nextDraft.title;
-      console.log("🟢 [handleIntroFiveSave] Updated nextData:", nextData);
-      return nextData;
-    });
-    
-    console.log("🟢 [handleIntroFiveSave] Calling resetEditorFormAfterSave");
-    resetEditorFormAfterSave();
-  };
-
-  const handleIntroFiveCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
   };
 
   const handleVariantSelect = (variant: string) => {
@@ -2217,1879 +910,823 @@ export default function CreatePortfolio() {
     setShowVariantSelector(false);
   };
 
-  const handleDeleteBlock = (blockId: number) => {
-    setBlocks((current) => {
-      const updated = current.filter((block) => block.id !== blockId);
-      return sortAndReindexBlocks(updated);
-    });
-
-    // Clear selection
-    if (selectedBlockId === blockId) {
-      setSelectedBlockId(null);
-      setShowBlockSelector(true);
-    }
-  };
-
-  const handleSkillOneSave = (nextDraft: SkillOneDraft) => {
-    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLONE") {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return nextDraft.skills.map((skillName) => ({ name: skillName }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleSkillOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleSkillTwoSave = (nextDraft: SkillTwoDraft) => {
-    if (!selectedBlock || selectedBlockVariantKey !== "SKILL.SKILLTWO") {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.languages = nextDraft.languages;
-      nextData.frameworks = nextDraft.frameworks;
-      nextData.tools = nextDraft.tools;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleSkillTwoCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleSkillThreeSave = (nextDraft: SkillThreeDraft) => {
-    if (!selectedBlock || !isEditingSkillThree) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          name: nextDraft.name,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleSkillThreeCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleEducationOneSave = (nextDraft: EducationOneDraft) => {
-    if (!selectedBlock || !isEditingEducationOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          schoolName: nextDraft.schoolName,
-          school: nextDraft.schoolName,
-          time: nextDraft.time,
-          department: nextDraft.department,
-          major: nextDraft.department,
-          certificate: nextDraft.certificate,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleEducationOneListSave = (educationList: EducationOneDraft[]) => {
-    if (!selectedBlock || !isEditingEducationOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return educationList.map((education) => ({
-        schoolName: education.schoolName,
-        school: education.schoolName,
-        time: education.time,
-        department: education.department,
-        major: education.department,
-        certificate: education.certificate,
-        description: education.description,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleEducationOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleEducationThreeSave = (nextDraft: EducationThreeDraft) => {
-    if (!selectedBlock || !isEditingEducationThree) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          time: nextDraft.time,
-          gpa: nextDraft.gpa,
-          qualified: nextDraft.qualified,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleEducationThreeCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleEducationTwoSave = (nextDraft: EducationTwoDraft) => {
-    if (!selectedBlock || !isEditingEducationTwo) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          time: nextDraft.time,
-          department: nextDraft.department,
-          schoolName: nextDraft.schoolName,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleEducationTwoCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleExperienceOneSave = (nextDraft: ExperienceOneDraft) => {
-    if (!selectedBlock || !isEditingExperienceOne) {
-      return;
-    }
-
-    const { startDate, endDate } = splitExperienceOneTimeRange(nextDraft.time);
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          jobName: nextDraft.jobName,
-          address: nextDraft.address,
-          startDate,
-          endDate,
-          time: nextDraft.time,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleExperienceOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleProjectOneSave = (nextDraft: ProjectOneDraft) => {
-    if (!selectedBlock || !isEditingProjectOne) {
-      return;
-    }
-
-    const projectLinks = [
-      { type: "github", link: nextDraft.githubLink.trim() },
-      { type: "figma", link: nextDraft.figmaLink.trim() },
-      { type: "app", link: nextDraft.appLink.trim() },
-      { type: "website", link: nextDraft.websiteLink.trim() },
-    ].filter((item) => item.link.length > 0);
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
-
-      return [
-        {
-          ...currentItem,
-          image: nextDraft.image,
-          name: nextDraft.name,
-          description: nextDraft.description,
-          role: nextDraft.role,
-          technology: nextDraft.technology,
-          projectLinks,
-          links: projectLinks,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleProjectOneListSave = (projectList: ProjectOneDraft[]) => {
-    if (!selectedBlock || !isEditingProjectOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return projectList.map((project) => {
-        const projectLinks = [
-          { type: "github", link: project.githubLink.trim() },
-          { type: "figma", link: project.figmaLink.trim() },
-          { type: "app", link: project.appLink.trim() },
-          { type: "website", link: project.websiteLink.trim() },
-        ].filter((item) => item.link.length > 0);
-
-        return {
-          image: project.image,
-          name: project.name,
-          description: project.description,
-          role: project.role,
-          technology: project.technology,
-          projectLinks,
-          links: projectLinks,
-        };
-      });
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleProjectOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleProjectTwoSave = (nextDraft: ProjectTwoDraft) => {
-    if (!selectedBlock || !isEditingProjectTwo) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const normalizedLink = nextDraft.link.trim();
-      const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
-
-      return [
-        ...currentItems,
-        {
-          name: nextDraft.name,
-          action: nextDraft.action,
-          publisher: nextDraft.publisher,
-          description: nextDraft.description,
-          projectLinks: linkItems,
-          links: linkItems,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleProjectTwoCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleProjectThreeSave = (nextDraft: ProjectThreeDraft) => {
-    if (!selectedBlock || !isEditingProjectThree) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const normalizedLink = nextDraft.link.trim();
-      const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
-
-      return [
-        ...currentItems,
-        {
-          name: nextDraft.name,
-          action: nextDraft.action,
-          publisher: nextDraft.publisher,
-          description: nextDraft.description,
-          projectLinks: linkItems,
-          links: linkItems,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleProjectThreeCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleAwardOneSave = (nextDraft: AwardOneDraft) => {
-    if (!selectedBlock || !isEditingAwardOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
-
-      return [
-        {
-          ...currentItem,
-          name: nextDraft.name,
-          date: nextDraft.date,
-          time: nextDraft.date,
-          organization: nextDraft.organization,
-          issuer: nextDraft.organization,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleAwardOneListSave = (awardList: AwardOneDraft[]) => {
-    if (!selectedBlock || !isEditingAwardOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return awardList.map((award) => ({
-        name: award.name,
-        date: award.date,
-        time: award.date,
-        organization: award.organization,
-        issuer: award.organization,
-        description: award.description,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleAwardOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleActivityOneSave = (nextDraft: ActivityOneDraft) => {
-    if (!selectedBlock || !isEditingActivityOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
-
-      return [
-        {
-          ...currentItem,
-          name: nextDraft.name,
-          date: nextDraft.date,
-          time: nextDraft.date,
-          description: nextDraft.description,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleActivityOneListSave = (activityList: ActivityOneDraft[]) => {
-    if (!selectedBlock || !isEditingActivityOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return activityList.map((activity) => ({
-        name: activity.name,
-        date: activity.date,
-        time: activity.date,
-        description: activity.description,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleActivityOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoOneSave = (nextDraft: OtherInfoOneDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return nextDraft.interests.map((interestName) => ({ detail: interestName }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoTwoSave = (nextDraft: OtherInfoTwoDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoTwo) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.detail = nextDraft.detail;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoTwoCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoFiveSave = (nextDraft: OtherFiveDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoFive) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return nextDraft.topics.map((topicName) => ({ name: topicName }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoFiveCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoSixSave = (nextDraft: OtherInfoSixDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoSix) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return nextDraft.softSkills.map((skillName) => ({ name: skillName }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoSixCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoSevenSave = (nextDraft: OtherSevenDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoSeven) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          name: nextDraft.name,
-          detail: nextDraft.detail,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoSevenCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleOtherInfoEightSave = (nextDraft: OtherEightDraft) => {
-    if (!selectedBlock || !isEditingOtherInfoEight) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const nextData = toRecord(current);
-      nextData.detail = nextDraft.detail;
-      return nextData;
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleOtherInfoEightCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleReferenceOneSave = (nextDraft: ReferenceOneDraft) => {
-    if (!selectedBlock || !isEditingReferenceOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
-
-      return [
-        {
-          ...currentItem,
-          name: nextDraft.name,
-          position: nextDraft.position,
-          mail: nextDraft.email,
-          email: nextDraft.email,
-          phone: nextDraft.contactInfo,
-          detail: nextDraft.contactInfo,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleReferenceOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleCertificateOneSave = (nextDraft: CertificateOneDraft) => {
-    if (!selectedBlock || !isEditingCertificateOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-      const currentItem = currentItems[0] ?? {};
-
-      return [
-        {
-          ...currentItem,
-          name: nextDraft.name,
-          issuer: nextDraft.issuer,
-          provider: nextDraft.issuer,
-          year: nextDraft.year,
-          date: nextDraft.year,
-          link: nextDraft.link,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleCertificateOneListSave = (certificateList: CertificateOneDraft[]) => {
-    if (!selectedBlock || !isEditingCertificateOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return certificateList.map((certificate) => ({
-        name: certificate.name,
-        issuer: certificate.issuer,
-        provider: certificate.issuer,
-        year: certificate.year,
-        date: certificate.year,
-        link: certificate.link,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleCertificateOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleTeachingOneSave = (nextDraft: TeachingOneDraft) => {
-    if (!selectedBlock || !isEditingTeachingOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          subject: nextDraft.subject,
-          teachingplace: nextDraft.teachingplace,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleTeachingOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleTypicalCaseOneSave = (nextDraft: TypicalCaseOneDraft) => {
-    if (!selectedBlock || !isEditingTypicalCaseOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          patient: nextDraft.patient,
-          age: nextDraft.age,
-          caseName: nextDraft.caseName,
-          stage: nextDraft.stage,
-          regiment: nextDraft.regiment,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleTypicalCaseOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleResearchOneSave = (nextDraft: ResearchOneDraft) => {
-    if (!selectedBlock || !isEditingResearchOne) {
-      return;
-    }
-
-    updateSelectedBlockData((current) => {
-      const currentItems = toRecordArray(current);
-
-      return [
-        ...currentItems,
-        {
-          name: nextDraft.title,
-          time: nextDraft.date,
-          description: nextDraft.conference,
-          link: nextDraft.link,
-          conference: nextDraft.conference,
-        },
-      ];
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleResearchOneCancel = () => {
-    setSelectedBlockId(null);
-    setShowBlockSelector(true);
-  };
-
-  const handleTeachingOneListSave = (teachingList: TeachingOneDraft[]) => {
-    if (!selectedBlock || !isEditingTeachingOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return teachingList.map((teaching) => ({
-        subject: teaching.subject,
-        teachingplace: teaching.teachingplace,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleTypicalCaseOneListSave = (caseList: TypicalCaseOneDraft[]) => {
-    if (!selectedBlock || !isEditingTypicalCaseOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return caseList.map((typicalCase) => ({
-        patient: typicalCase.patient,
-        age: typicalCase.age,
-        caseName: typicalCase.caseName,
-        stage: typicalCase.stage,
-        regiment: typicalCase.regiment,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const handleResearchOneListSave = (researchList: ResearchOneDraft[]) => {
-    if (!selectedBlock || !isEditingResearchOne) {
-      return;
-    }
-
-    updateSelectedBlockData(() => {
-      return researchList.map((research) => ({
-        name: research.title,
-        time: research.date,
-        description: research.conference,
-        link: research.link,
-        conference: research.conference,
-      }));
-    });
-    resetEditorFormAfterSave();
-  };
-
-  const renderFieldInput = (
-    field: FieldDefinition,
-    value: string,
-    onChange: (nextValue: string) => void,
-  ) => {
-    const sharedClassName =
-      "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400";
-
-    if (field.multiline) {
-      return (
-        <textarea
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={field.placeholder}
-          className={`${sharedClassName} min-h-20 resize-y`}
-        />
-      );
-    }
-
-    return (
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={field.placeholder}
-        className={sharedClassName}
-      />
-    );
-  };
-
-  const renderObjectFields = (fields: FieldDefinition[]) => {
-    if (!selectedBlock) {
-      return null;
-    }
-
-    const data = toRecord(selectedBlock.data);
-
-    return (
-      <div className="space-y-3">
-        {fields.map((field) => (
-          <div key={field.key} className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {field.label}
-            </label>
-            {renderFieldInput(field, toText(data[field.key]), (nextValue) => {
-              updateSelectedObjectField(field.key, nextValue);
-            })}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderArrayFields = (
-    fields: FieldDefinition[],
-    itemFactory: () => Record<string, unknown>,
-    addLabel: string,
-    emptyLabel: string,
-  ) => {
-    if (!selectedBlock) {
-      return null;
-    }
-
-    const items = toRecordArray(selectedBlock.data);
-
-    return (
-      <div className="space-y-3">
-        {items.length === 0 && (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-500">
-            {emptyLabel}
-          </p>
-        )}
-
-        {items.map((item, index) => (
-          <div key={`item-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Mục {index + 1}
-              </p>
-              <button
-                type="button"
-                onClick={() => removeSelectedArrayItem(index)}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                title="Xóa mục"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {fields.map((field) => (
-                <div key={`${field.key}-${index}`} className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {field.label}
-                  </label>
-                  {renderFieldInput(field, toText(item[field.key]), (nextValue) => {
-                    updateSelectedArrayItemField(index, field.key, nextValue);
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => addSelectedArrayItem(itemFactory)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-        >
-          <Plus size={16} /> {addLabel}
-        </button>
-      </div>
-    );
-  };
-
-  const renderProjectEditor = () => {
-    if (!selectedBlock) {
-      return null;
-    }
-
-    const variant = selectedBlock.variant.toUpperCase();
-    const projects = toRecordArray(selectedBlock.data);
-
-    return (
-      <div className="space-y-3">
-        {projects.map((project, index) => {
-          const linkValue = getFirstProjectLink(project);
-
-          return (
-            <div key={`project-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Dự án {index + 1}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => removeSelectedArrayItem(index)}
-                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                  title="Xóa dự án"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tên dự án</label>
-                  <input
-                    value={toText(project.name)}
-                    onChange={(event) => updateSelectedArrayItemField(index, "name", event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                    placeholder="Nhập tên dự án"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mô tả</label>
-                  <textarea
-                    value={toText(project.description)}
-                    onChange={(event) => updateSelectedArrayItemField(index, "description", event.target.value)}
-                    className="min-h-20 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                    placeholder="Nhập mô tả"
-                  />
-                </div>
-
-                {variant === "PROJECTONE" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò</label>
-                      <input
-                        value={toText(project.role)}
-                        onChange={(event) => updateSelectedArrayItemField(index, "role", event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                        placeholder="Frontend Developer"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Công nghệ</label>
-                      <input
-                        value={toText(project.technology)}
-                        onChange={(event) => updateSelectedArrayItemField(index, "technology", event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                        placeholder="React, TypeScript"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ảnh dự án (URL)</label>
-                      <input
-                        value={toText(project.image)}
-                        onChange={(event) => updateSelectedArrayItemField(index, "image", event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                        placeholder="https://..."
-                      />
-                    </div>
-                  </>
-                )}
-
-                {variant !== "PROJECTONE" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổ chức / Nơi xuất bản</label>
-                      <input
-                        value={toText(project.publisher)}
-                        onChange={(event) => updateSelectedArrayItemField(index, "publisher", event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                        placeholder="IEEE, VINIF..."
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò / Trạng thái</label>
-                      <input
-                        value={toText(project.action)}
-                        onChange={(event) => updateSelectedArrayItemField(index, "action", event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                        placeholder="Tác giả chính, Đang thực hiện..."
-                      />
-                    </div>
-                  </>
-                )}
-
-                {variant === "PROJECTTHREE" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thời gian</label>
-                    <input
-                      value={toText(project.time)}
-                      onChange={(event) => updateSelectedArrayItemField(index, "time", event.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                      placeholder="2024"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Link dự án / báo cáo</label>
-                  <input
-                    value={linkValue}
-                    onChange={(event) => {
-                      const nextLink = event.target.value.trim();
-                      updateSelectedArrayItem(index, (currentItem) => {
-                        if (!nextLink) {
-                          return {
-                            ...currentItem,
-                            projectLinks: [],
-                            links: [],
-                          };
-                        }
-
-                        if (variant === "PROJECTONE") {
-                          return {
-                            ...currentItem,
-                            projectLinks: [{ type: "link", link: nextLink }],
-                          };
-                        }
-
-                        if (variant === "PROJECTTWO") {
-                          return {
-                            ...currentItem,
-                            projectLinks: [{ link: nextLink }],
-                          };
-                        }
-
-                        return {
-                          ...currentItem,
-                          links: [{ link: nextLink }],
-                        };
-                      });
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        <button
-          type="button"
-          onClick={() => {
-            const variant = selectedBlock.variant.toUpperCase();
-            if (variant === "PROJECTTWO") {
-              addSelectedArrayItem(() => ({
-                name: "",
-                description: "",
-                action: "",
-                publisher: "",
-                projectLinks: [],
-              }));
-              return;
-            }
-
-            if (variant === "PROJECTTHREE") {
-              addSelectedArrayItem(() => ({
-                name: "",
-                publisher: "",
-                time: "",
-                description: "",
-                action: "",
-              }));
-              return;
-            }
-
-            addSelectedArrayItem(() => ({
-              name: "",
-              description: "",
-              role: "",
-              technology: "",
-              image: "",
-              projectLinks: [],
-            }));
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-100"
-        >
-          <Plus size={16} /> Thêm dự án
-        </button>
-      </div>
-    );
-  };
-
-  const renderIntroOneEditor = () => {
-    if (!introOneInitialData) {
-      return null;
-    }
-
-    return (
-      <IntroOneEditor
-        key={introOneEditorKey}
-        initialData={introOneInitialData}
-        onSave={handleIntroOneSave}
-        onCancel={handleIntroOneCancel}
-      />
-    );
-  };
-
-  const renderIntroTwoEditor = () => {
-    if (!introTwoInitialData) {
-      return null;
-    }
-
-    return (
-      <IntroTwoEditor
-        key={introTwoEditorKey}
-        initialData={introTwoInitialData}
-        onSave={handleIntroTwoSave}
-        onCancel={handleIntroTwoCancel}
-      />
-    );
-  };
-
-  const renderIntroThreeEditor = () => {
-    if (!introThreeInitialData) {
-      return null;
-    }
-
-    return (
-      <IntroThreeEditor
-        key={introThreeEditorKey}
-        initialData={introThreeInitialData}
-        onSave={handleIntroThreeSave}
-        onCancel={handleIntroThreeCancel}
-      />
-    );
-  };
-
-  const renderIntroFourEditor = () => {
-    if (!introFourInitialData) {
-      return null;
-    }
-
-    return (
-      <IntroFourEditor
-        key={introFourEditorKey}
-        initialData={introFourInitialData}
-        onSave={handleIntroFourSave}
-        onCancel={handleIntroFourCancel}
-      />
-    );
-  };
-
-  const renderIntroFiveEditor = () => {
-    if (!introFiveInitialData) {
-      return null;
-    }
-
-    return (
-      <IntroFiveEditor
-        key={introFiveEditorKey}
-        initialData={introFiveInitialData}
-        onSave={handleIntroFiveSave}
-        onCancel={handleIntroFiveCancel}
-      />
-    );
-  };
-
-  const renderSkillOneEditor = () => {
-    console.log("📝 [renderSkillOneEditor] Called - skillOneInitialData:", skillOneInitialData);
-    
-    if (!skillOneInitialData) {
-      console.log("❌ [renderSkillOneEditor] skillOneInitialData is null/undefined, returning null");
-      return null;
-    }
-
-    console.log("✅ [renderSkillOneEditor] Rendering component");
-    return (
-      <SkillOneEditor
-        key={skillOneEditorKey}
-        initialData={skillOneInitialData}
-        onSave={handleSkillOneSave}
-        onCancel={handleSkillOneCancel}
-      />
-    );
-  };
-
-  const renderSkillTwoEditor = () => {
-    console.log("📝 [renderSkillTwoEditor] Called - skillTwoInitialData:", skillTwoInitialData);
-    
-    if (!skillTwoInitialData) {
-      console.log("❌ [renderSkillTwoEditor] skillTwoInitialData is null/undefined, returning null");
-      return null;
-    }
-
-    console.log("✅ [renderSkillTwoEditor] Rendering component");
-    return (
-      <SkillTwoEditor
-        key={skillTwoEditorKey}
-        initialData={skillTwoInitialData}
-        onSave={handleSkillTwoSave}
-        onCancel={handleSkillTwoCancel}
-      />
-    );
-  };
-
-  const renderSkillThreeEditor = () => {
-    return (
-      <SkillThreeEditor
-        key={skillThreeEditorKey}
-        initialData={createEmptySkillThreeDraft()}
-        onSave={handleSkillThreeSave}
-        onCancel={handleSkillThreeCancel}
-      />
-    );
-  };
-
-  const renderSkillDedicatedEditor = () => {
-    console.log("📝 [renderSkillDedicatedEditor] Called - selectedBlockVariantKey:", selectedBlockVariantKey);
-    console.log("  - skillOneInitialData:", skillOneInitialData);
-    console.log("  - skillTwoInitialData:", skillTwoInitialData);
-    
-    switch (selectedBlockVariantKey) {
-      case "SKILL.SKILLONE":
-        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillOne");
-        return renderSkillOneEditor();
-      case "SKILL.SKILLTWO":
-        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillTwo");
-        return renderSkillTwoEditor();
-      case "SKILL.SKILLTHREE":
-        console.log("✅ [renderSkillDedicatedEditor] Rendering SkillThree");
-        return renderSkillThreeEditor();
-      default:
-        console.log("❌ [renderSkillDedicatedEditor] No match for variant key, returning null");
-        return null;
-    }
-  };
-
-  const renderEducationOneEditor = () => {
-    if (!educationOneInitialData) {
-      return null;
-    }
-
-    return (
-      <EducationOneEditor
-        key={educationOneEditorKey}
-        initialData={educationOneInitialData}
-        initialList={educationOneListData}
-        onSave={handleEducationOneSave}
-        onSaveList={handleEducationOneListSave}
-        onCancel={handleEducationOneCancel}
-      />
-    );
-  };
-
-  const renderEducationThreeEditor = () => {
-    if (!educationThreeInitialData) {
-      return null;
-    }
-
-    return (
-      <EducationThreeEditor
-        key={educationThreeEditorKey}
-        initialData={createEmptyEducationThreeDraft()}
-        latestData={educationThreeInitialData}
-        onSave={handleEducationThreeSave}
-        onCancel={handleEducationThreeCancel}
-      />
-    );
-  };
-
-  const renderEducationTwoEditor = () => {
-    if (!educationTwoInitialData) {
-      return null;
-    }
-
-    return (
-      <EducationTwoEditor
-        key={educationTwoEditorKey}
-        initialData={educationTwoInitialData}
-        onSave={handleEducationTwoSave}
-        onCancel={handleEducationTwoCancel}
-      />
-    );
-  };
-
-  const renderExperienceOneEditor = () => {
-    if (!experienceOneInitialData) {
-      return null;
-    }
-
-    return (
-      <ExperienceOneEditor
-        key={experienceOneEditorKey}
-        initialData={experienceOneInitialData}
-        existingItems={experienceOneListData}
-        onSave={handleExperienceOneSave}
-        onCancel={handleExperienceOneCancel}
-        onDeleteItem={(index) => removeSelectedArrayItem(index)}
-      />
-    );
-  };
-
-  const renderProjectOneEditor = () => {
-    if (!projectOneInitialData) {
-      return null;
-    }
-
-    return (
-      <ProjectOneEditor
-        key={projectOneEditorKey}
-        initialData={projectOneInitialData}
-        initialList={projectOneListData}
-        onSave={handleProjectOneSave}
-        onSaveList={handleProjectOneListSave}
-        onCancel={handleProjectOneCancel}
-      />
-    );
-  };
-
-  const renderProjectTwoEditor = () => {
-    if (!projectTwoInitialData) {
-      return null;
-    }
-
-    return (
-      <ProjectTwoEditor
-        key={projectTwoEditorKey}
-        initialData={projectTwoInitialData}
-        onSave={handleProjectTwoSave}
-        onCancel={handleProjectTwoCancel}
-      />
-    );
-  };
-
-  const renderProjectThreeEditor = () => {
-    if (!projectThreeInitialData) {
-      return null;
-    }
-
-    return (
-      <ProjectThreeEditor
-        key={projectThreeEditorKey}
-        initialData={projectThreeInitialData ?? createEmptyProjectThreeDraft()}
-        onSave={handleProjectThreeSave}
-        onCancel={handleProjectThreeCancel}
-      />
-    );
-  };
-
-  const renderAwardOneEditor = () => {
-    if (!awardOneInitialData) {
-      return null;
-    }
-
-    return (
-      <AwardEditor
-        key={awardOneEditorKey}
-        initialData={awardOneInitialData}
-        initialList={awardOneListData}
-        onSave={handleAwardOneSave}
-        onSaveList={handleAwardOneListSave}
-        onCancel={handleAwardOneCancel}
-      />
-    );
-  };
-
-  const renderActivityOneEditor = () => {
-    if (!activityOneInitialData) {
-      return null;
-    }
-
-    return (
-      <ActivityOneEditor
-        key={activityOneEditorKey}
-        initialData={activityOneInitialData}
-        initialList={activityOneListData}
-        onSave={handleActivityOneSave}
-        onSaveList={handleActivityOneListSave}
-        onCancel={handleActivityOneCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoOneEditor = () => {
-    if (!otherInfoOneInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherInfoOneEditor
-        key={otherInfoOneEditorKey}
-        initialData={otherInfoOneInitialData}
-        onSave={handleOtherInfoOneSave}
-        onCancel={handleOtherInfoOneCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoTwoEditor = () => {
-    if (!otherInfoTwoInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherInfoTwoEditor
-        key={otherInfoTwoEditorKey}
-        initialData={otherInfoTwoInitialData}
-        onSave={handleOtherInfoTwoSave}
-        onCancel={handleOtherInfoTwoCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoFiveEditor = () => {
-    if (!otherInfoFiveInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherFiveEditor
-        key={otherInfoFiveEditorKey}
-        initialData={otherInfoFiveInitialData}
-        onSave={handleOtherInfoFiveSave}
-        onCancel={handleOtherInfoFiveCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoSixEditor = () => {
-    if (!otherInfoSixInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherInfoSixEditor
-        key={otherInfoSixEditorKey}
-        initialData={otherInfoSixInitialData}
-        onSave={handleOtherInfoSixSave}
-        onCancel={handleOtherInfoSixCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoSevenEditor = () => {
-    if (!otherInfoSevenInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherInfoSevenEditor
-        key={otherInfoSevenEditorKey}
-        initialData={otherInfoSevenInitialData}
-        onSave={handleOtherInfoSevenSave}
-        onCancel={handleOtherInfoSevenCancel}
-      />
-    );
-  };
-
-  const renderOtherInfoEightEditor = () => {
-    if (!otherInfoEightInitialData) {
-      return null;
-    }
-
-    return (
-      <OtherEightEditor
-        key={otherInfoEightEditorKey}
-        initialData={otherInfoEightInitialData}
-        onSave={handleOtherInfoEightSave}
-        onCancel={handleOtherInfoEightCancel}
-      />
-    );
-  };
-
-  const renderReferenceOneEditor = () => {
-    if (!referenceOneInitialData) {
-      return null;
-    }
-
-    return (
-      <ReferenceEditor
-        key={referenceOneEditorKey}
-        initialData={referenceOneInitialData}
-        onSave={handleReferenceOneSave}
-        onCancel={handleReferenceOneCancel}
-      />
-    );
-  };
-
-  const renderCertificateOneEditor = () => {
-    if (!certificateOneInitialData) {
-      return null;
-    }
-
-    return (
-      <CertificateOneEditor
-        key={certificateOneEditorKey}
-        initialData={certificateOneInitialData}
-        initialList={certificateOneListData}
-        onSave={handleCertificateOneSave}
-        onSaveList={handleCertificateOneListSave}
-        onCancel={handleCertificateOneCancel}
-      />
-    );
-  };
-
-  const renderTeachingOneEditor = () => {
-    console.log("🔷 [renderTeachingOneEditor]", {
-      teachingOneInitialData,
-      isEditingTeachingOne,
-      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
-    });
-
-    if (!teachingOneInitialData) {
-      console.log("🔴 [renderTeachingOneEditor] teachingOneInitialData is null, returning null");
-      return null;
-    }
-
-    return (
-      <TeachingOneEditor
-        key={teachingOneEditorKey}
-        initialData={teachingOneInitialData}
-        initialList={teachingOneListData}
-        onSave={handleTeachingOneSave}
-        onSaveList={handleTeachingOneListSave}
-        onCancel={handleTeachingOneCancel}
-      />
-    );
-  };
-
-  const renderTypicalCaseOneEditor = () => {
-    console.log("🟪 [renderTypicalCaseOneEditor]", {
-      typicalCaseOneInitialData,
-      isEditingTypicalCaseOne,
-      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
-    });
-
-    if (!typicalCaseOneInitialData) {
-      console.log("🔴 [renderTypicalCaseOneEditor] typicalCaseOneInitialData is null, returning null");
-      return null;
-    }
-
-    return (
-      <TypicalCaseOneEditor
-        key={typicalCaseOneEditorKey}
-        initialData={typicalCaseOneInitialData}
-        initialList={typicalCaseOneListData}
-        onSave={handleTypicalCaseOneSave}
-        onSaveList={handleTypicalCaseOneListSave}
-        onCancel={handleTypicalCaseOneCancel}
-      />
-    );
-  };
-
-  const renderResearchOneEditor = () => {
-    console.log("🟫 [renderResearchOneEditor]", {
-      researchOneInitialData,
-      isEditingResearchOne,
-      selectedBlock: selectedBlock ? { type: selectedBlock.type, variant: selectedBlock.variant } : null,
-    });
-
-    if (!researchOneInitialData) {
-      console.log("🔴 [renderResearchOneEditor] researchOneInitialData is null, returning null");
-      return null;
-    }
-
-    return (
-      <ResearchOneEditor
-        key={researchOneEditorKey}
-        initialData={researchOneInitialData}
-        initialList={researchOneListData}
-        onSave={handleResearchOneSave}
-        onSaveList={handleResearchOneListSave}
-        onCancel={handleResearchOneCancel}
-      />
-    );
-  };
-
-  const renderEditorForm = () => {
-    if (!selectedBlock) {
-      return (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-          Chọn một block để nhập nội dung.
-        </div>
-      );
-    }
-
-    const blockType = normalizeBlockType(selectedBlock.type);
-    const variant = selectedBlock.variant.toUpperCase();
-
-    console.log("📝 [renderEditorForm]", { blockType, variant });
-
-    if (blockType === "INTRO" && variant === "INTROONE") {
-      return renderIntroOneEditor();
-    }
-
-    if (blockType === "TEACHING" && variant === "TEACHINGONE") {
-      console.log("✅ [renderEditorForm] Matching TEACHING/TEACHINGONE");
-      return renderTeachingOneEditor();
-    }
-
-    if (blockType === "INTRO" && variant === "INTROTWO") {
-      return renderIntroTwoEditor();
-    }
-
-    if (blockType === "INTRO" && variant === "INTROTHREE") {
-      return renderIntroThreeEditor();
-    }
-
-    if (blockType === "INTRO" && variant === "INTROFOUR") {
-      return renderIntroFourEditor();
-    }
-
-    if (blockType === "INTRO" && variant === "INTROFIVE") {
-      return renderIntroFiveEditor();
-    }
-
-    const skillDedicatedEditor = renderSkillDedicatedEditor();
-    if (skillDedicatedEditor) {
-      return skillDedicatedEditor;
-    }
-
-    if (blockType === "EDUCATION" && variant === "EDUCATIONONE") {
-      return renderEducationOneEditor();
-    }
-
-    if (blockType === "EDUCATION" && variant === "EDUCATIONTWO") {
-      return renderEducationTwoEditor();
-    }
-
-    if (blockType === "EDUCATION" && variant === "EDUCATIONTHREE") {
-      return renderEducationThreeEditor();
-    }
-
-    if (blockType === "EXPERIMENT" && variant === "EXPERIMENTONE") {
-      return renderExperienceOneEditor();
-    }
-
-    if (blockType === "PROJECT" && variant === "PROJECTONE") {
-      return renderProjectOneEditor();
-    }
-
-    if (blockType === "PROJECT" && variant === "PROJECTTWO") {
-      return renderProjectTwoEditor();
-    }
-
-    if (blockType === "PROJECT" && variant === "PROJECTTHREE") {
-      return renderProjectThreeEditor();
-    }
-
-    if (blockType === "AWARD" && variant === "AWARDONE") {
-      return renderAwardOneEditor();
-    }
-
-    if (blockType === "ACTIVITIES" && variant === "ACTIVITYONE") {
-      return renderActivityOneEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERONE") {
-      return renderOtherInfoOneEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERTWO") {
-      return renderOtherInfoTwoEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERFIVE") {
-      return renderOtherInfoFiveEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERSIX") {
-      return renderOtherInfoSixEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHERSEVEN") {
-      return renderOtherInfoSevenEditor();
-    }
-
-    if (blockType === "OTHERINFO" && variant === "OTHEREIGHT") {
-      return renderOtherInfoEightEditor();
-    }
-
-    if (blockType === "REFERENCE" && variant === "REFERENCEONE") {
-      return renderReferenceOneEditor();
-    }
-
-    if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {
-      return renderCertificateOneEditor();
-    }
-
-    if (blockType === "TYPICALCASE" && variant === "TYPICALCASEONE") {
-      console.log("✅ [renderEditorForm] Matching TYPICALCASE/TYPICALCASEONE");
-      return renderTypicalCaseOneEditor();
-    }
-
-    if (blockType === "RESEARCH" && variant === "RESEARCHONE") {
-      console.log("✅ [renderEditorForm] Matching RESEARCH/RESEARCHONE");
-      return renderResearchOneEditor();
-    }
-
-    if (blockType === "INTRO") {
-      return renderObjectFields([
-        { key: "fullName", label: "Họ và tên" },
-        { key: "title", label: "Chức danh" },
-        { key: "description", label: "Mô tả", multiline: true },
-        { key: "avatar", label: "Avatar (URL)" },
-        { key: "email", label: "Email" },
-        { key: "phone", label: "Số điện thoại" },
-        { key: "school", label: "Trường / Đơn vị" },
-        { key: "department", label: "Khoa / Bộ môn" },
-        { key: "studyField", label: "Chuyên ngành" },
-        { key: "experience", label: "Năm kinh nghiệm" },
-        { key: "gpa", label: "GPA" },
-      ]);
-    }
-
-    if (blockType === "SKILL" && variant === "SKILLTHREE") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên kỹ năng" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({ name: "", description: "" }),
-        "Thêm kỹ năng",
-        "Chưa có mục kỹ năng nào.",
-      );
-    }
-
-    if (blockType === "SKILL") {
-      return renderArrayFields(
-        [{ key: "name", label: "Tên kỹ năng" }],
-        () => ({ name: "" }),
-        "Thêm kỹ năng",
-        "Chưa có kỹ năng nào.",
-      );
-    }
-
-    if (blockType === "EDUCATION") {
-      return renderArrayFields(
-        [
-          { key: "schoolName", label: "Trường / tổ chức" },
-          { key: "department", label: "Khoa / ngành" },
-          { key: "time", label: "Thời gian" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({ schoolName: "", department: "", time: "", description: "" }),
-        "Thêm học vấn",
-        "Chưa có mục học vấn.",
-      );
-    }
-
-    if (blockType === "EXPERIMENT") {
-      return renderArrayFields(
-        [
-          { key: "jobName", label: "Vị trí" },
-          { key: "address", label: "Công ty / địa điểm" },
-          { key: "startDate", label: "Bắt đầu" },
-          { key: "endDate", label: "Kết thúc" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({
-          jobName: "",
-          address: "",
-          startDate: "",
-          endDate: "",
-          description: "",
-        }),
-        "Thêm kinh nghiệm",
-        "Chưa có mục kinh nghiệm.",
-      );
-    }
-
-    if (blockType === "PROJECT") {
-      return renderProjectEditor();
-    }
-
-    if (blockType === "DIPLOMA") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên chứng chỉ" },
-          { key: "issuer", label: "Nơi cấp" },
-          { key: "provider", label: "Đơn vị" },
-          { key: "date", label: "Ngày cấp" },
-          { key: "link", label: "Link chứng chỉ" },
-        ],
-        () => ({ name: "", issuer: "", provider: "", date: "", link: "" }),
-        "Thêm chứng chỉ",
-        "Chưa có chứng chỉ.",
-      );
-    }
-
-    if (blockType === "AWARD") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên giải thưởng" },
-          { key: "date", label: "Thời gian" },
-          { key: "organization", label: "Tổ chức" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({ name: "", date: "", organization: "", description: "" }),
-        "Thêm giải thưởng",
-        "Chưa có giải thưởng.",
-      );
-    }
-
-    if (blockType === "ACTIVITIES") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên hoạt động" },
-          { key: "date", label: "Thời gian" },
-          { key: "description", label: "Mô tả", multiline: true },
-        ],
-        () => ({ name: "", date: "", description: "" }),
-        "Thêm hoạt động",
-        "Chưa có hoạt động.",
-      );
-    }
-
-    if (blockType === "OTHERINFO" && OTHERINFO_OBJECT_VARIANTS.has(variant)) {
-      if (variant === "OTHEREIGHT") {
-        return renderObjectFields([
-          { key: "title", label: "Tiêu đề" },
-          { key: "licenseNumber", label: "Số chứng chỉ" },
-          { key: "issuer", label: "Nơi cấp" },
-          { key: "status", label: "Trạng thái" },
-          { key: "detail", label: "Chi tiết phụ" },
-        ]);
+  // ─── Per-slot editor renderer ─────────────────────────────────────────────
+
+  /**
+   * Renders the appropriate Form Editor for a given slot.
+   * All save/cancel callbacks are scoped to the specific block for that slot.
+   */
+  const renderSlotEditor = useCallback(
+    (slot: EditorSlot) => {
+      const slotKey = getSlotKey(slot);
+      const resetKey = slotResetKeys[slotKey] ?? 0;
+      const block = findBlockForSlot(slot);
+      const blockType = slot.type;
+      const variant = (slot.variant ?? getDefaultVariant(slot.type)).toUpperCase();
+
+      // Data to pass to the editor (from existing block or defaults)
+      const rawData = block?.data ?? createDefaultBlockData(blockType, variant);
+
+      // Scoped updater: creates block if it doesn't exist, then updates data
+      const scopedUpdate = (updater: (current: unknown) => unknown) => {
+        if (block) {
+          updateBlockDataById(block.id, updater);
+        } else {
+          // Create the block first, then update
+          const newVariant = variant;
+          const newBlock: PortfolioBlock = {
+            id: allocateTempBlockId(),
+            type: blockType,
+            variant: newVariant,
+            order: blocks.length + 1,
+            data: updater(createDefaultBlockData(blockType, newVariant)),
+          };
+          setBlocks((prev) => sortAndReindexBlocks([...prev, newBlock]));
+        }
+      };
+
+      const scopedArrayRemover = (index: number) => {
+        if (!block) return;
+        updateBlockDataById(block.id, (current) => {
+          const arr = toRecordArray(current);
+          return arr.filter((_, i) => i !== index);
+        });
+      };
+
+      const handleSaveWrapper = (updatedData: unknown) => {
+        if (block) {
+          updateBlockDataById(block.id, () => updatedData);
+        } else {
+          const newBlock: PortfolioBlock = {
+            id: allocateTempBlockId(),
+            type: blockType,
+            variant,
+            order: blocks.length + 1,
+            data: updatedData,
+          };
+          setBlocks((prev) => sortAndReindexBlocks([...prev, newBlock]));
+        }
+        resetSlotKey(slotKey);
+      };
+
+      const editorKey = `${slotKey}-${block?.id ?? "new"}-${resetKey}`;
+
+      // ── INTRO variants ──────────────────────────────────────────────────
+      if (blockType === "INTRO" && variant === "INTROONE") {
+        const initialData = createIntroOneDraft(rawData, getUserInfo());
+        return (
+          <IntroOneEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: IntroOneDraft) => {
+              handleSaveWrapper({
+                fullName: draft.fullName,
+                name: draft.fullName,
+                studyField: draft.studyField,
+                email: draft.email,
+                phone: draft.phone,
+                description: draft.description,
+                avatar: draft.avatar,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
       }
 
-      return renderObjectFields([{ key: "detail", label: "Nội dung", multiline: true }]);
-    }
+      if (blockType === "INTRO" && variant === "INTROTWO") {
+        const initialData = createIntroTwoDraft(rawData, getUserInfo());
+        return (
+          <IntroTwoEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: IntroTwoDraft) => {
+              handleSaveWrapper({
+                fullName: draft.fullName,
+                name: draft.fullName,
+                position: draft.position,
+                title: draft.position,
+                yearOfStudy: draft.yearOfStudy,
+                school: draft.school,
+                studyField: draft.studyField,
+                email: draft.email,
+                phoneNumber: draft.phoneNumber,
+                phone: draft.phoneNumber,
+                avatar: draft.avatar,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
 
-    if (blockType === "OTHERINFO" && variant === "OTHERONE") {
-      return renderArrayFields(
-        [{ key: "detail", label: "Sở thích" }],
-        () => ({ detail: "" }),
-        "Thêm sở thích",
-        "Chưa có sở thích nào.",
+      if (blockType === "INTRO" && variant === "INTROTHREE") {
+        const initialData = createIntroThreeDraft(rawData, getUserInfo());
+        return (
+          <IntroThreeEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: IntroThreeDraft) => {
+              handleSaveWrapper({
+                fullName: draft.fullName,
+                name: draft.fullName,
+                school: draft.school,
+                department: draft.department,
+                studyField: draft.studyField,
+                title: draft.studyField,
+                gpa: draft.gpa,
+                avatar: draft.avatar,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "INTRO" && variant === "INTROFOUR") {
+        const initialData = createIntroFourDraft(rawData, getUserInfo());
+        return (
+          <IntroFourEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: IntroFourDraft) => {
+              handleSaveWrapper({
+                fullName: draft.fullName,
+                name: draft.fullName,
+                school: draft.school,
+                department: draft.department,
+                studyField: draft.studyField,
+                title: draft.studyField,
+                gpa: draft.gpa,
+                avatar: draft.avatar,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "INTRO" && variant === "INTROFIVE") {
+        const initialData = createIntroFiveDraft(rawData, getUserInfo());
+        return (
+          <IntroFiveEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: IntroFiveDraft) => {
+              handleSaveWrapper({
+                fullName: draft.fullName,
+                name: draft.fullName,
+                school: draft.school,
+                department: draft.department,
+                experience: draft.experience,
+                avatar: draft.avatar,
+                studyField: draft.studyField,
+                title: draft.title,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── SKILL variants ──────────────────────────────────────────────────
+      if (blockType === "SKILL" && variant === "SKILLONE") {
+        const initialData = createSkillOneDraft(rawData);
+        return (
+          <SkillOneEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: SkillOneDraft) => {
+              handleSaveWrapper(draft.skills.map((name) => ({ name })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "SKILL" && variant === "SKILLTWO") {
+        const initialData = createSkillTwoDraft(rawData);
+        return (
+          <SkillTwoEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: SkillTwoDraft) => {
+              handleSaveWrapper({
+                languages: draft.languages,
+                frameworks: draft.frameworks,
+                tools: draft.tools,
+              });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "SKILL" && variant === "SKILLTHREE") {
+        return (
+          <SkillThreeEditor
+            key={editorKey}
+            initialData={createEmptySkillThreeDraft()}
+            onSave={(draft: SkillThreeDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, { name: draft.name, description: draft.description }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── EDUCATION variants ──────────────────────────────────────────────
+      if (blockType === "EDUCATION" && variant === "EDUCATIONONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createEducationOneDraft(item))
+          : [];
+        const initialData = createEducationOneDraft(rawData);
+        return (
+          <EducationOneEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: EducationOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  schoolName: draft.schoolName,
+                  school: draft.schoolName,
+                  time: draft.time,
+                  department: draft.department,
+                  major: draft.department,
+                  certificate: draft.certificate,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: EducationOneDraft[]) => {
+              handleSaveWrapper(list.map((e) => ({
+                schoolName: e.schoolName,
+                school: e.schoolName,
+                time: e.time,
+                department: e.department,
+                major: e.department,
+                certificate: e.certificate,
+                description: e.description,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "EDUCATION" && variant === "EDUCATIONTWO") {
+        const initialData = createEducationTwoDraft(rawData);
+        return (
+          <EducationTwoEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: EducationTwoDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  time: draft.time,
+                  department: draft.department,
+                  schoolName: draft.schoolName,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "EDUCATION" && variant === "EDUCATIONTHREE") {
+        const initialData = createEducationThreeDraft(rawData);
+        return (
+          <EducationThreeEditor
+            key={editorKey}
+            initialData={createEmptyEducationThreeDraft()}
+            latestData={initialData}
+            onSave={(draft: EducationThreeDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  time: draft.time,
+                  gpa: draft.gpa,
+                  qualified: draft.qualified,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── EXPERIMENT ──────────────────────────────────────────────────────
+      if (blockType === "EXPERIMENT" && variant === "EXPERIMENTONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createExperienceOneDraft(item))
+          : [];
+        const initialData = createExperienceOneDraft(rawData);
+        return (
+          <ExperienceOneEditor
+            key={editorKey}
+            initialData={initialData}
+            existingItems={listData}
+            onSave={(draft: ExperienceOneDraft) => {
+              const { startDate, endDate } = splitExperienceOneTimeRange(draft.time);
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  jobName: draft.jobName,
+                  address: draft.address,
+                  startDate,
+                  endDate,
+                  time: draft.time,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+            onDeleteItem={scopedArrayRemover}
+          />
+        );
+      }
+
+      // ── PROJECT variants ────────────────────────────────────────────────
+      if (blockType === "PROJECT" && variant === "PROJECTONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createProjectOneDraft(item))
+          : [];
+        const initialData = createProjectOneDraft(rawData);
+
+        const buildProjectLinks = (p: ProjectOneDraft) =>
+          [
+            { type: "github", link: p.githubLink.trim() },
+            { type: "figma", link: p.figmaLink.trim() },
+            { type: "app", link: p.appLink.trim() },
+            { type: "website", link: p.websiteLink.trim() },
+          ].filter((l) => l.link.length > 0);
+
+        return (
+          <ProjectOneEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: ProjectOneDraft) => {
+              const projectLinks = buildProjectLinks(draft);
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [{
+                  ...(items[0] ?? {}),
+                  image: draft.image,
+                  name: draft.name,
+                  description: draft.description,
+                  role: draft.role,
+                  technology: draft.technology,
+                  projectLinks,
+                  links: projectLinks,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: ProjectOneDraft[]) => {
+              handleSaveWrapper(list.map((p) => {
+                const projectLinks = buildProjectLinks(p);
+                return { image: p.image, name: p.name, description: p.description, role: p.role, technology: p.technology, projectLinks, links: projectLinks };
+              }));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "PROJECT" && variant === "PROJECTTWO") {
+        const initialData = createProjectTwoDraft(rawData);
+        return (
+          <ProjectTwoEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: ProjectTwoDraft) => {
+              const normalizedLink = draft.link.trim();
+              const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  name: draft.name,
+                  action: draft.action,
+                  publisher: draft.publisher,
+                  description: draft.description,
+                  projectLinks: linkItems,
+                  links: linkItems,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "PROJECT" && variant === "PROJECTTHREE") {
+        const initialData = createProjectThreeDraft(rawData);
+        return (
+          <ProjectThreeEditor
+            key={editorKey}
+            initialData={initialData ?? createEmptyProjectThreeDraft()}
+            onSave={(draft: ProjectThreeDraft) => {
+              const normalizedLink = draft.link.trim();
+              const linkItems = normalizedLink.length > 0 ? [{ link: normalizedLink }] : [];
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  name: draft.name,
+                  action: draft.action,
+                  publisher: draft.publisher,
+                  description: draft.description,
+                  projectLinks: linkItems,
+                  links: linkItems,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── AWARD ───────────────────────────────────────────────────────────
+      if (blockType === "AWARD" && variant === "AWARDONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createAwardOneDraft(item))
+          : [];
+        const initialData = createAwardOneDraft(rawData);
+        return (
+          <AwardEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: AwardOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [{
+                  ...(items[0] ?? {}),
+                  name: draft.name,
+                  date: draft.date,
+                  time: draft.date,
+                  organization: draft.organization,
+                  issuer: draft.organization,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: AwardOneDraft[]) => {
+              handleSaveWrapper(list.map((a) => ({
+                name: a.name,
+                date: a.date,
+                time: a.date,
+                organization: a.organization,
+                issuer: a.organization,
+                description: a.description,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── ACTIVITIES ──────────────────────────────────────────────────────
+      if (blockType === "ACTIVITIES") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createActivityOneDraft(item))
+          : [];
+        const initialData = createActivityOneDraft(rawData);
+        return (
+          <ActivityOneEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: ActivityOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [{
+                  ...(items[0] ?? {}),
+                  name: draft.name,
+                  date: draft.date,
+                  time: draft.date,
+                  description: draft.description,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: ActivityOneDraft[]) => {
+              handleSaveWrapper(list.map((a) => ({
+                name: a.name,
+                date: a.date,
+                time: a.date,
+                description: a.description,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── OTHERINFO variants ──────────────────────────────────────────────
+      if (blockType === "OTHERINFO" && variant === "OTHERONE") {
+        const initialData = createOtherInfoOneDraft(rawData);
+        return (
+          <OtherInfoOneEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherInfoOneDraft) => {
+              handleSaveWrapper(draft.interests.map((name) => ({ detail: name })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "OTHERINFO" && (variant === "OTHERTWO" || variant === "OTHERTHREE" || variant === "OTHERFOUR")) {
+        const initialData = createOtherInfoTwoDraft(rawData);
+        return (
+          <OtherInfoTwoEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherInfoTwoDraft) => {
+              handleSaveWrapper({ detail: draft.detail });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "OTHERINFO" && variant === "OTHERFIVE") {
+        const initialData = createOtherFiveDraft(rawData);
+        return (
+          <OtherFiveEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherFiveDraft) => {
+              handleSaveWrapper(draft.topics.map((name) => ({ name })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "OTHERINFO" && variant === "OTHERSIX") {
+        const initialData = createOtherInfoSixDraft(rawData);
+        return (
+          <OtherInfoSixEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherInfoSixDraft) => {
+              handleSaveWrapper(draft.softSkills.map((name) => ({ name })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "OTHERINFO" && variant === "OTHERSEVEN") {
+        const initialData = createOtherSevenDraft(rawData);
+        return (
+          <OtherInfoSevenEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherSevenDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, { name: draft.name, detail: draft.detail }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      if (blockType === "OTHERINFO" && variant === "OTHEREIGHT") {
+        const initialData = createOtherEightDraft(rawData);
+        return (
+          <OtherEightEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: OtherEightDraft) => {
+              handleSaveWrapper({ ...toRecord(rawData), detail: draft.detail });
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── REFERENCE ───────────────────────────────────────────────────────
+      if (blockType === "REFERENCE" && variant === "REFERENCEONE") {
+        const initialData = createReferenceOneDraft(rawData);
+        return (
+          <ReferenceEditor
+            key={editorKey}
+            initialData={initialData}
+            onSave={(draft: ReferenceOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [{
+                  ...(items[0] ?? {}),
+                  name: draft.name,
+                  position: draft.position,
+                  mail: draft.email,
+                  email: draft.email,
+                  phone: draft.contactInfo,
+                  detail: draft.contactInfo,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── DIPLOMA ─────────────────────────────────────────────────────────
+      if (blockType === "DIPLOMA" && variant === "DIPLOMAONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createCertificateOneDraft(item))
+          : [];
+        const initialData = createCertificateOneDraft(rawData);
+        return (
+          <CertificateOneEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: CertificateOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [{
+                  ...(items[0] ?? {}),
+                  name: draft.name,
+                  issuer: draft.issuer,
+                  provider: draft.issuer,
+                  year: draft.year,
+                  date: draft.year,
+                  link: draft.link,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: CertificateOneDraft[]) => {
+              handleSaveWrapper(list.map((c) => ({
+                name: c.name,
+                issuer: c.issuer,
+                provider: c.issuer,
+                year: c.year,
+                date: c.year,
+                link: c.link,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── RESEARCH ────────────────────────────────────────────────────────
+      if (blockType === "RESEARCH" && variant === "RESEARCHONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createResearchOneDraft(item))
+          : [];
+        const initialData = createResearchOneDraft(rawData);
+        return (
+          <ResearchOneEditor
+            key={editorKey}
+            initialData={initialData}
+            initialList={listData}
+            onSave={(draft: ResearchOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  name: draft.title,
+                  time: draft.date,
+                  description: draft.conference,
+                  link: draft.link,
+                  conference: draft.conference,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: ResearchOneDraft[]) => {
+              handleSaveWrapper(list.map((r) => ({
+                name: r.title,
+                time: r.date,
+                description: r.conference,
+                link: r.link,
+                conference: r.conference,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── TEACHING ────────────────────────────────────────────────────────
+      if (blockType === "TEACHING" && variant === "TEACHINGONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => {
+              if (item && typeof item === "object") {
+                const r = item as Record<string, unknown>;
+                return { subject: toText(r.subject), teachingplace: toText(r.teachingplace) };
+              }
+              return createEmptyTeachingOneDraft();
+            })
+          : [];
+        return (
+          <TeachingOneEditor
+            key={editorKey}
+            initialData={createEmptyTeachingOneDraft()}
+            initialList={listData}
+            onSave={(draft: TeachingOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, { subject: draft.subject, teachingplace: draft.teachingplace }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: TeachingOneDraft[]) => {
+              handleSaveWrapper(list.map((t) => ({ subject: t.subject, teachingplace: t.teachingplace })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // ── TYPICALCASE ─────────────────────────────────────────────────────
+      if (blockType === "TYPICALCASE" && variant === "TYPICALCASEONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => {
+              if (item && typeof item === "object") {
+                const r = item as Record<string, unknown>;
+                return {
+                  patient: toText(r.patient),
+                  age: toText(r.age),
+                  caseName: toText(r.caseName),
+                  stage: toText(r.stage),
+                  regiment: toText(r.regiment),
+                };
+              }
+              return createEmptyTypicalCaseOneDraft();
+            })
+          : [];
+        return (
+          <TypicalCaseOneEditor
+            key={editorKey}
+            initialData={createEmptyTypicalCaseOneDraft()}
+            initialList={listData}
+            onSave={(draft: TypicalCaseOneDraft) => {
+              scopedUpdate((current) => {
+                const items = toRecordArray(current);
+                return [...items, {
+                  patient: draft.patient,
+                  age: draft.age,
+                  caseName: draft.caseName,
+                  stage: draft.stage,
+                  regiment: draft.regiment,
+                }];
+              });
+              resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: TypicalCaseOneDraft[]) => {
+              handleSaveWrapper(list.map((c) => ({
+                patient: c.patient,
+                age: c.age,
+                caseName: c.caseName,
+                stage: c.stage,
+                regiment: c.regiment,
+              })));
+            }}
+            onCancel={() => {}}
+          />
+        );
+      }
+
+      // Fallback: no dedicated editor
+      return (
+        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+          Block này chưa có form cấu hình.
+        </p>
       );
-    }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [blocks, slotResetKeys, getUserInfo, findBlockForSlot, updateBlockDataById, resetSlotKey],
+  );
 
-    if (blockType === "OTHERINFO" && (variant === "OTHERFIVE" || variant === "OTHERSIX")) {
-      return renderArrayFields(
-        [{ key: "name", label: "Nội dung" }],
-        () => ({ name: "" }),
-        "Thêm mục",
-        "Chưa có mục thông tin.",
-      );
-    }
-
-    if (blockType === "OTHERINFO") {
-      return renderArrayFields(
-        [{ key: "detail", label: "Nội dung" }],
-        () => ({ detail: "" }),
-        "Thêm nội dung",
-        "Chưa có nội dung.",
-      );
-    }
-
-    if (blockType === "REFERENCE") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Họ tên" },
-          { key: "position", label: "Chức vụ" },
-          { key: "mail", label: "Email" },
-          { key: "phone", label: "Điện thoại" },
-        ],
-        () => ({ name: "", position: "", mail: "", phone: "" }),
-        "Thêm người tham chiếu",
-        "Chưa có người tham chiếu.",
-      );
-    }
-
-    if (blockType === "RESEARCH") {
-      return renderArrayFields(
-        [
-          { key: "name", label: "Tên công bố" },
-          { key: "time", label: "Năm" },
-          { key: "description", label: "Mô tả", multiline: true },
-          { key: "link", label: "Link công bố" },
-        ],
-        () => ({ name: "", time: "", description: "", link: "" }),
-        "Thêm công bố",
-        "Chưa có công bố.",
-      );
-    }
-
-    if (blockType === "TEACHING") {
-      return renderArrayFields(
-        [
-          { key: "subject", label: "Môn học" },
-          { key: "teachingplace", label: "Nơi giảng dạy" },
-        ],
-        () => ({ subject: "", teachingplace: "" }),
-        "Thêm mục giảng dạy",
-        "Chưa có mục giảng dạy.",
-      );
-    }
-
-    if (blockType === "TYPICALCASE") {
-      return renderArrayFields(
-        [
-          { key: "patient", label: "Bệnh nhân" },
-          { key: "age", label: "Tuổi" },
-          { key: "caseName", label: "Tên ca" },
-          { key: "stage", label: "Giai đoạn", multiline: true },
-          { key: "regiment", label: "Phác đồ", multiline: true },
-        ],
-        () => ({ patient: "", age: "", caseName: "", stage: "", regiment: "" }),
-        "Thêm case",
-        "Chưa có case điển hình.",
-      );
-    }
-
-    return (
-      <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-500">
-        Block này chưa có form cấu hình.
-      </p>
-    );
-  };
+  // ─── Loading state ───────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -4105,594 +1742,407 @@ export default function CreatePortfolio() {
   const blockInfoForVariantSelector =
     selectedBlockTypeForVariant ? getBlockInfo(selectedBlockTypeForVariant) : null;
 
+  // ─── JSX ─────────────────────────────────────────────────────────────────
+
   return (
     <>
-    <div className="min-h-[calc(100vh-56px)] bg-slate-100">
-      <div className="border-b border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto flex w-full items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-              title="Quay lại"
-            >
-              <ArrowLeft size={20} />
-            </button>
-
-            <div>
-              
+      <div className="min-h-[calc(100vh-56px)] bg-slate-100">
+        {/* Top bar */}
+        <div className="border-b border-slate-200 bg-white px-4 py-3">
+          <div className="mx-auto flex w-full items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                title="Quay lại"
+              >
+                <ArrowLeft size={20} />
+              </button>
               <h1 className="text-lg font-bold text-slate-900">
                 {isEditMode ? "Chỉnh sửa hồ sơ" : "Tạo hồ sơ"}
               </h1>
             </div>
-          </div>
 
-          <div className="flex flex-1 items-center gap-2 min-w-0">
-            <input
-              value={portfolioName}
-              onChange={(event) => setPortfolioName(event.target.value)}
-              className="h-10 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
-              placeholder="Tên hồ sơ"
-            />
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 whitespace-nowrap"
-            >
-              <Save size={16} /> {saving ? "Đang lưu..." : "Lưu hồ sơ"}
-            </button>
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <input
+                value={portfolioName}
+                onChange={(event) => setPortfolioName(event.target.value)}
+                className="h-10 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
+                placeholder="Tên hồ sơ"
+              />
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSave}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 whitespace-nowrap"
+              >
+                <Save size={16} /> {saving ? "Đang lưu..." : "Lưu hồ sơ"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mx-auto w-full px-3 py-4">
-        {error && (
-          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        <div className="mx-auto w-full px-3 py-4">
+          {error && (
+            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-        <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
-          <aside className="rounded-2xl border border-slate-200 bg-white">
-            <div className="flex border-b border-slate-200">
-              {!isEditMode && (
+          <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+            {/* ── Left sidebar: template / component catalog ───────────── */}
+            <aside className="rounded-2xl border border-slate-200 bg-white">
+              <div className="flex border-b border-slate-200">
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("template")}
+                    className={cn(
+                      "flex-1 px-3 py-2.5 text-sm font-semibold transition-colors",
+                      activeTab === "template"
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-slate-500 hover:bg-slate-50",
+                    )}
+                  >
+                    Thiết kế mẫu
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setActiveTab("template")}
+                  onClick={() => setActiveTab("component")}
                   className={cn(
-                    "flex-1 px-3 py-2.5 text-sm font-semibold transition-colors",
-                    activeTab === "template"
+                    `${isEditMode ? "w-full" : "flex-1"} px-3 py-2.5 text-sm font-semibold transition-colors`,
+                    activeTab === "component"
                       ? "bg-blue-50 text-blue-600"
                       : "text-slate-500 hover:bg-slate-50",
                   )}
                 >
-                  Thiết kế mẫu
+                  Thành phần
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setActiveTab("component")}
-                className={cn(
-                  `${isEditMode ? "w-full" : "flex-1"} px-3 py-2.5 text-sm font-semibold transition-colors`,
-                  activeTab === "component"
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-slate-500 hover:bg-slate-50",
+              </div>
+
+              <div className="max-h-[calc(100vh-220px)] overflow-y-auto p-3">
+                {!isEditMode && activeTab === "template" && (
+                  <div className="space-y-3">
+                    {templates.map((template) => (
+                      <button
+                        key={template.portfolioId}
+                        type="button"
+                        onClick={() => applyTemplate(template)}
+                        className={cn(
+                          "w-full overflow-hidden rounded-xl border text-left transition-colors",
+                          activeTemplateId === template.portfolioId
+                            ? "border-blue-400 bg-blue-50"
+                            : "border-slate-200 hover:border-blue-300",
+                        )}
+                      >
+                        <img
+                          src={TemplatePreviewImage}
+                          alt={getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
+                          className="h-44 w-full object-cover"
+                        />
+                        <div className="px-3 py-2">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
+                          </p>
+                          <p className="text-xs text-slate-500">{template.blocks.length} block(s)</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              >
-                Thành phần
-              </button>
-            </div>
 
-            <div className="max-h-[calc(100vh-220px)] overflow-y-auto p-3">
-              {!isEditMode && activeTab === "template" && (
-                <div className="space-y-3">
-                  {templates.map((template) => (
-                    <button
-                      key={template.portfolioId}
-                      type="button"
-                      onClick={() => applyTemplate(template)}
-                      className={cn(
-                        "w-full overflow-hidden rounded-xl border text-left transition-colors",
-                        activeTemplateId === template.portfolioId
-                          ? "border-blue-400 bg-blue-50"
-                          : "border-slate-200 hover:border-blue-300",
-                      )}
-                    >
-                      <img
-                        src={TemplatePreviewImage}
-                        alt={getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
-                        className="h-44 w-full object-cover"
-                      />
-                      <div className="px-3 py-2">
-                        <p className="text-sm font-semibold text-slate-800">
-                          {getTemplateName(template.portfolioId, templates, TEMPLATE_DISPLAY_NAMES)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {template.blocks.length} block(s)
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                {activeTab === "component" && (
+                  <div className="space-y-2">
+                    {getOrderedBlockCatalog().map((blockItem) => {
+                      const isAllowed =
+                        isEditMode || !activeTemplateId || allowedBlockTypes.has(blockItem.type);
+                      const BlockIcon = blockItem.icon;
 
-              {activeTab === "component" && (
-                <div className="space-y-2">
-                  {getOrderedBlockCatalog().map((blockItem) => {
-                    // In create mode with template, filter to allowed block types
-                    const isAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has(blockItem.type);
-                    const BlockIcon = blockItem.icon;
-                    
-                    return (
-                      <div key={blockItem.type}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (blockItem.type === "OTHERINFO") {
-                              addBlockFromCatalog("OTHERINFO", "OTHERONE");
-                            } else {
-                              setSelectedBlockTypeForVariant(blockItem.type);
-                              setShowVariantSelector(true);
-                            }
-                          }}
-                          disabled={!isAllowed}
-                          className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                            isAllowed
-                              ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                              : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                          }`}
-                          title={!isAllowed ? `Loại block này không được hỗ trợ bởi template ${getTemplateName(activeTemplateId ?? 0, templates, TEMPLATE_DISPLAY_NAMES)}` : ""}
-                        >
-                          <div className="mt-0.5 rounded-lg bg-slate-100 p-1.5 text-slate-600">
-                            <BlockIcon size={16} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800">{blockItem.label}</p>
-                            <p className="mt-0.5 text-xs text-slate-500">{blockItem.description}</p>
-                          </div>
-                        </button>
-                        
-                        {/* Add specific OTHERINFO variants after certain blocks */}
-                        {blockItem.type === "REFERENCE" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERONE");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Sở thích cá nhân"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-indigo-100 p-1.5 text-indigo-600">
-                                <Lightbulb size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Sở thích cá nhân</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Tag các hoạt động yêu thích</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERTWO");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Mục tiêu nghề nghiệp"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-blue-100 p-1.5 text-blue-600">
-                                <Briefcase size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Mục tiêu nghề nghiệp</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Mục tiêu dài hạn mô tả chi tiết</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERTHREE");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Tầm nhìn và động lực"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-purple-100 p-1.5 text-purple-600">
-                                <Target size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Tầm nhìn và động lực</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Tầm nhìn dài hạn và động lực</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERFIVE");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Lĩnh vực nghiên cứu"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-purple-100 p-1.5 text-purple-600">
-                                <Lightbulb size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Lĩnh vực nghiên cứu</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Các lĩnh vực chuyên môn</p>
-                              </div>
-                            </button>
-                          </>
-                        )}
-                        
-                        {blockItem.type === "RESEARCH" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERSIX");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Kỹ năng mềm"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-cyan-100 p-1.5 text-cyan-600">
-                                <Users size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Kỹ năng mềm</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Kỹ năng giao tiếp, lãnh đạo...</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                                if (!isAllowed2) return;
-                                addBlockFromCatalog("OTHERINFO", "OTHERSEVEN");
-                              }}
-                              disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
-                              className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                                (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
-                                  ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
-                                  : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
-                              }`}
-                              title="Tài liệu bổ sung"
-                            >
-                              <div className="mt-0.5 rounded-lg bg-cyan-100 p-1.5 text-cyan-600">
-                                <FileText size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800">Tài liệu bổ sung</p>
-                                <p className="mt-0.5 text-xs text-slate-500">Link, tài liệu tham khảo...</p>
-                              </div>
-                            </button>
-                          </>
-                        )}
-                        
-                        {blockItem.type === "TYPICALCASE" && (
+                      return (
+                        <div key={blockItem.type}>
                           <button
                             type="button"
                             onClick={() => {
-                              const isAllowed2 = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
-                              if (!isAllowed2) return;
-                              addBlockFromCatalog("OTHERINFO", "OTHEREIGHT");
+                              if (blockItem.type === "OTHERINFO") {
+                                addBlockFromCatalog("OTHERINFO", "OTHERONE");
+                              } else {
+                                setSelectedBlockTypeForVariant(blockItem.type);
+                                setShowVariantSelector(true);
+                              }
                             }}
-                            disabled={!isAllowed || (isEditMode === false && !!activeTemplateId && !allowedBlockTypes.has("OTHERINFO")) ? true : false}
+                            disabled={!isAllowed}
                             className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
-                              (isAllowed && (isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO")))
+                              isAllowed
                                 ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
                                 : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
                             }`}
-                            title="Giấy phép hành nghề"
                           >
-                            <div className="mt-0.5 rounded-lg bg-orange-100 p-1.5 text-orange-600">
-                              <ScrollText size={16} />
+                            <div className="mt-0.5 rounded-lg bg-slate-100 p-1.5 text-slate-600">
+                              <BlockIcon size={16} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800">Giấy phép hành nghề</p>
-                              <p className="mt-0.5 text-xs text-slate-500">Số hiệu, nơi cấp, ngày cấp...</p>
+                              <p className="text-sm font-semibold text-slate-800">{blockItem.label}</p>
+                              <p className="mt-0.5 text-xs text-slate-500">{blockItem.description}</p>
                             </div>
                           </button>
-                        )}
+
+                          {blockItem.type === "REFERENCE" && (
+                            <>
+                              {[
+                                { variant: "OTHERONE", icon: Lightbulb, color: "indigo", label: "Sở thích cá nhân", desc: "Tag các hoạt động yêu thích" },
+                                { variant: "OTHERTWO", icon: Briefcase, color: "blue", label: "Mục tiêu nghề nghiệp", desc: "Mục tiêu dài hạn mô tả chi tiết" },
+                                { variant: "OTHERTHREE", icon: Target, color: "purple", label: "Tầm nhìn và động lực", desc: "Tầm nhìn dài hạn và động lực" },
+                                { variant: "OTHERFIVE", icon: Lightbulb, color: "purple", label: "Lĩnh vực nghiên cứu", desc: "Các lĩnh vực chuyên môn" },
+                              ].map(({ variant, icon: Icon, color, label, desc }) => {
+                                const otherAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                return (
+                                  <button
+                                    key={variant}
+                                    type="button"
+                                    onClick={() => otherAllowed && addBlockFromCatalog("OTHERINFO", variant)}
+                                    disabled={!otherAllowed}
+                                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                      otherAllowed
+                                        ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                        : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                                    }`}
+                                  >
+                                    <div className={`mt-0.5 rounded-lg bg-${color}-100 p-1.5 text-${color}-600`}>
+                                      <Icon size={16} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-slate-800">{label}</p>
+                                      <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+
+                          {blockItem.type === "RESEARCH" && (
+                            <>
+                              {[
+                                { variant: "OTHERSIX", icon: Users, color: "cyan", label: "Kỹ năng mềm", desc: "Kỹ năng giao tiếp, lãnh đạo..." },
+                                { variant: "OTHERSEVEN", icon: FileText, color: "cyan", label: "Tài liệu bổ sung", desc: "Link, tài liệu tham khảo..." },
+                              ].map(({ variant, icon: Icon, color, label, desc }) => {
+                                const otherAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                                return (
+                                  <button
+                                    key={variant}
+                                    type="button"
+                                    onClick={() => otherAllowed && addBlockFromCatalog("OTHERINFO", variant)}
+                                    disabled={!otherAllowed}
+                                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                      otherAllowed
+                                        ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                        : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                                    }`}
+                                  >
+                                    <div className={`mt-0.5 rounded-lg bg-${color}-100 p-1.5 text-${color}-600`}>
+                                      <Icon size={16} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-slate-800">{label}</p>
+                                      <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </>
+                          )}
+
+                          {blockItem.type === "TYPICALCASE" && (
+                            (() => {
+                              const otherAllowed = isEditMode || !activeTemplateId || allowedBlockTypes.has("OTHERINFO");
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => otherAllowed && addBlockFromCatalog("OTHERINFO", "OTHEREIGHT")}
+                                  disabled={!otherAllowed}
+                                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                                    otherAllowed
+                                      ? "border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                                      : "border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed"
+                                  }`}
+                                >
+                                  <div className="mt-0.5 rounded-lg bg-orange-100 p-1.5 text-orange-600">
+                                    <ScrollText size={16} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800">Giấy phép hành nghề</p>
+                                    <p className="mt-0.5 text-xs text-slate-500">Số hiệu, nơi cấp, ngày cấp...</p>
+                                  </div>
+                                </button>
+                              );
+                            })()
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </aside>
+
+            {/* ── Center: preview ──────────────────────────────────────── */}
+            <main className="rounded-2xl border border-slate-200 bg-white p-4">
+              {activeTab === "template" ? (
+                <>
+                  {activeTemplateId === null ? (
+                    <div className="flex min-h-[70vh] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+                      <div className="max-w-sm px-6">
+                        <h2 className="text-lg font-bold text-slate-700">Chọn template</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Bấm chọn một template ở bên trái để xem thông tin chi tiết.
+                        </p>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <h2 className="text-lg font-bold text-slate-900">
+                          {getTemplateName(activeTemplateId, templates, TEMPLATE_DISPLAY_NAMES)}
+                        </h2>
+                        <p className="mt-2 text-sm text-slate-600">
+                          Loại block được hỗ trợ ({allowedBlockTypes.size}):
+                        </p>
+                        <ul className="mt-3 space-y-2">
+                          {Array.from(allowedBlockTypes).map((blockType) => (
+                            <li
+                              key={blockType}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                            >
+                              <span className="font-semibold text-slate-700">
+                                {BLOCK_LABELS[blockType] || blockType}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("component")}
+                        className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                      >
+                        Chỉnh sửa template này
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {blocks.length === 0 ? (
+                    <div className="flex min-h-[70vh] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+                      <div className="max-w-sm px-6">
+                        <h2 className="text-lg font-bold text-slate-700">Portfolio đang trống</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Chọn một template ở bên trái hoặc thêm block thủ công trong tab Thành phần để bắt đầu.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mx-auto max-w-2xl">
+                      <PortfolioRenderer blocks={blocks} />
+                    </div>
+                  )}
+                </>
+              )}
+            </main>
+
+            {/* ── Right sidebar: accordion editors ────────────────────── */}
+            <aside className="rounded-2xl border border-slate-200 bg-slate-50">
+              {/* Header */}
+              <div className="border-b border-slate-200 bg-white px-3 py-2.5 rounded-t-2xl">
+                <h2 className="text-sm font-bold text-slate-900">Chỉnh sửa nội dung</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {editorSlotPreset !== "default"
+                    ? `${editorSlots.length} mục theo template`
+                    : "Mở từng mục để nhập liệu"}
+                </p>
+              </div>
+
+              {/* Blocks added outside of template slots (edit mode) */}
+              {isEditMode && blocks.length > 0 && (
+                <div className="border-b border-slate-200 bg-white px-3 py-2">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Blocks hiện tại ({blocks.length})
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    {blocks.map((block) => {
+                      const blockInfo = getBlockInfo(normalizeBlockType(block.type));
+                      const BlockIcon = blockInfo?.icon;
+                      return (
+                        <div
+                          key={block.id}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {BlockIcon && <BlockIcon size={13} className="text-slate-500 shrink-0" />}
+                            <span className="font-semibold text-slate-700 truncate">
+                              {blockInfo?.label || block.type}
+                            </span>
+                            <span className="text-[10px] text-slate-400 truncate">
+                              {block.variant}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBlock(block.id)}
+                            className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
-            </div>
-          </aside>
 
-          <main className="rounded-2xl border border-slate-200 bg-white p-4">
-            {activeTab === "template" ? (
-              <>
-                {activeTemplateId === null ? (
-                  <div className="flex min-h-[70vh] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
-                    <div className="max-w-sm px-6">
-                      <h2 className="text-lg font-bold text-slate-700">Chọn template</h2>
-                      <p className="mt-2 text-sm text-slate-500">
-                        Bấm chọn một template ở bên trái để xem thông tin chi tiết.
-                      </p>
-                    </div>
+              {/* Accordion editors */}
+              <div className="max-h-[calc(100vh-180px)] overflow-y-auto p-3 space-y-2">
+                {editorSlots.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-center">
+                    <p className="text-sm text-slate-500">
+                      Chọn một template để bắt đầu chỉnh sửa.
+                    </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <h2 className="text-lg font-bold text-slate-900">
-                        {getTemplateName(
-                          activeTemplateId,
-                          templates,
-                          TEMPLATE_DISPLAY_NAMES,
-                        )}
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-600">
-                        Loại block được hỗ trợ ({allowedBlockTypes.size}):
-                      </p>
-                      <ul className="mt-3 space-y-2">
-                        {Array.from(allowedBlockTypes).map((blockType) => (
-                          <li
-                            key={blockType}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                          >
-                            <span className="font-semibold text-slate-700">
-                              {BLOCK_LABELS[blockType] || blockType}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("component")}
-                      className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-                    >
-                      Chỉnh sửa template này
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {blocks.length === 0 ? (
-                  <div className="flex min-h-[70vh] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
-                    <div className="max-w-sm px-6">
-                      <h2 className="text-lg font-bold text-slate-700">Portfolio đang trống</h2>
-                      <p className="mt-2 text-sm text-slate-500">
-                        Chọn một template ở bên trái hoặc thêm block thủ công trong tab Thành phần để bắt đầu.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mx-auto max-w-2xl">
-                    <PortfolioRenderer blocks={blocks} />
-                  </div>
-                )}
-              </>
-            )}
-          </main>
-
-          <aside
-            className={cn(
-              "rounded-2xl border border-slate-200 p-3",
-              isUsingDedicatedEditor ? "bg-[#EFF6FF]" : "bg-white",
-            )}
-          >
-            <div className={cn("mb-3", isUsingDedicatedEditor && "hidden")}>
-              <h2 className="text-sm font-bold text-slate-900">Chỉnh sửa block</h2>
-              <p className="text-xs text-slate-500">
-                Chỉ hiển thị form chỉnh sửa cho các block đã hỗ trợ editor riêng.
-              </p>
-            </div>
-
-            {/* List of added blocks */}
-            {activeTab === "component" && blocks.length > 0 && !isUsingDedicatedEditor && (
-              <div className={cn("mb-4 pb-4 border-b border-slate-200")}>
-                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Các block đã thêm ({blocks.length})
-                </h3>
-                <div className="space-y-1.5">
-                  {blocks.map((block) => {
-                    const blockInfo = getBlockInfo(normalizeBlockType(block.type));
-                    const BlockIcon = blockInfo?.icon;
-                    const variantInfo = blockInfo?.variants.find(
-                      (v) => v.variant === block.variant.toUpperCase()
-                    );
+                  editorSlots.map((slot, index) => {
+                    const slotKey = getSlotKey(slot);
+                    const hasBlock = Boolean(findBlockForSlot(slot));
 
                     return (
-                      <div
-                        key={block.id}
-                        className={cn(
-                          "flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs transition-colors cursor-pointer",
-                          selectedBlockId === block.id
-                            ? "border-blue-400 bg-blue-50"
-                            : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50"
-                        )}
-                        onClick={() => {
-                          setSelectedBlockId(block.id);
-                          setActiveEditorBlockType(normalizeBlockType(block.type) as ExtendedEditorBlockType);
-                          setActiveEditorBlockVariant(block.variant.toUpperCase());
-                          setShowBlockSelector(false);
-                        }}
+                      <AccordionItem
+                        key={slotKey}
+                        title={slot.label}
+                        hasData={hasBlock}
+                        defaultOpen={index === 0}
                       >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {BlockIcon && (
-                            <BlockIcon size={14} className="text-slate-600 shrink-0" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-800 truncate">
-                              {blockInfo?.label || block.type}
-                            </p>
-                            {variantInfo && (
-                              <p className="text-[10px] text-slate-500 truncate">
-                                {variantInfo.label}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteBlock(block.id);
-                          }}
-                          className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                          title="Xóa block này"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                        {renderSlotEditor(slot)}
+                      </AccordionItem>
                     );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className={cn("mb-3 grid grid-cols-3 gap-2", isUsingDedicatedEditor && "hidden")}>
-              {editorSlots.map((slot) => {
-                const slotVariant = slot.variant?.toUpperCase();
-                const hasBlock = blocks.some(
-                  (block) =>
-                    normalizeBlockType(block.type) === slot.type
-                    && (!slotVariant || block.variant.toUpperCase() === slotVariant),
-                );
-
-                const isActiveSlot =
-                  activeEditorBlockType === slot.type
-                  && ((slotVariant ?? null) === activeEditorBlockVariant);
-
-                return (
-                  <button
-                    key={`${slot.type}.${slotVariant ?? "default"}`}
-                    type="button"
-                    onClick={() => {
-                      setActiveEditorBlockType(slot.type);
-                      setActiveEditorBlockVariant(slotVariant ?? null);
-                      const targetBlockId = blocks.find(
-                        (block) =>
-                          normalizeBlockType(block.type) === slot.type
-                          && (!slotVariant || block.variant.toUpperCase() === slotVariant),
-                      )?.id;
-
-                      if (targetBlockId) {
-                        setSelectedBlockId(targetBlockId);
-                        setShowBlockSelector(false);
-                      } else {
-                        setSelectedBlockId(null);
-                        setShowBlockSelector(true);
-                      }
-                    }}
-                    className={cn(
-                      "rounded-xl border px-2 py-2 text-xs font-semibold transition-colors",
-                      isActiveSlot
-                        ? "border-blue-400 bg-blue-50 text-blue-700"
-                        : "border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50",
-                    )}
-                  >
-                    <div>{slot.label}</div>
-                    <div className={cn("mt-0.5 text-[10px]", hasBlock ? "text-emerald-600" : "text-slate-400")}>
-                      {hasBlock ? "Đã có" : "Chưa có"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {!activeEditorBlock && (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4">
-                <p className="text-sm font-semibold text-slate-700">
-                  Chưa có block {activeEditorLabel}.
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Bạn có thể thêm từ tab Thành phần hoặc bấm nút bên dưới.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => addBlockFromCatalog(activeEditorBlockType, activeEditorBlockVariant ?? undefined)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                >
-                  <Plus size={14} /> Thêm {activeEditorLabel}
-                </button>
-              </div>
-            )}
-
-            {activeEditorBlock && (
-              <div className={cn(!isUsingDedicatedEditor && "max-h-[calc(100vh-320px)] overflow-y-auto pr-1")}>
-                {!isUsingDedicatedEditor && (
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Thông tin {activeEditorLabel}
-                    </h3>
-                    {selectedBlock && (
-                      <select
-                        value={selectedBlock.variant.toUpperCase()}
-                        onChange={(event) => updateSelectedVariant(event.target.value)}
-                        disabled={isTemplateBasedEditorSlots && Boolean(activeEditorBlockVariant)}
-                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 outline-none focus:border-blue-400"
-                      >
-                        {((isTemplateBasedEditorSlots && activeEditorBlockVariant)
-                          ? [activeEditorBlockVariant]
-                          : (BLOCK_VARIANTS[normalizeBlockType(selectedBlock.type)] ?? [selectedBlock.variant])).map((variantOption) => (
-                          <option key={variantOption} value={variantOption}>
-                            {variantOption}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                  })
                 )}
-
-                {isUsingDedicatedEditor ? <div className="-mx-3 -mb-3">{renderEditorForm()}</div> : renderEditorForm()}
               </div>
-            )}
-          </aside>
+            </aside>
+          </div>
         </div>
       </div>
-    </div>
 
-    {showVariantSelector && blockInfoForVariantSelector && (
-      <VariantSelector
-        blockInfo={blockInfoForVariantSelector}
-        onSelectVariant={handleVariantSelect}
-        onClose={() => {
-          setShowVariantSelector(false);
-          setSelectedBlockTypeForVariant(null);
-        }}
-      />
-    )}
-  </>
+      {showVariantSelector && blockInfoForVariantSelector && (
+        <VariantSelector
+          blockInfo={blockInfoForVariantSelector}
+          onSelectVariant={handleVariantSelect}
+          onClose={() => {
+            setShowVariantSelector(false);
+            setSelectedBlockTypeForVariant(null);
+          }}
+        />
+      )}
+    </>
   );
 }

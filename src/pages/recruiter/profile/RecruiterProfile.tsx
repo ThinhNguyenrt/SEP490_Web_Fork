@@ -11,6 +11,7 @@ import {
   MapPin,
   FileText,
   Briefcase,
+  History,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -50,20 +51,25 @@ export default function RecruiterProfile() {
         console.log("📡 Fetching company profile...");
         const profile = await profileService.fetchCompanyProfile(accessToken);
         console.log("✅ Profile loaded:", profile);
-        
+
         // Ensure profile has avatar and coverImage, with fallbacks
         const enrichedProfile = {
           ...profile,
-          avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=company",
-          coverImage: profile.coverImage || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
+          avatar:
+            profile.avatar ||
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=company",
+          coverImage:
+            profile.coverImage ||
+            "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
         };
-        
+
         setCompanyProfile(enrichedProfile);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Failed to load profile";
+        const errorMsg =
+          error instanceof Error ? error.message : "Failed to load profile";
         console.error("❌ Error loading profile:", errorMsg);
         notify.error(errorMsg);
-        
+
         // Set default profile on error so UI doesn't break
         setCompanyProfile({
           id: 0,
@@ -71,7 +77,8 @@ export default function RecruiterProfile() {
           companyName: "Company",
           activityField: "Công nghệ",
           avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=company",
-          coverImage: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
+          coverImage:
+            "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000",
           taxIdentification: 0,
           address: "Vietnam",
           description: "Company description",
@@ -83,11 +90,16 @@ export default function RecruiterProfile() {
   }, [accessToken]);
 
   const displayName = companyProfile?.companyName || "Company";
-  const displayAvatar = companyProfile?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=company";
-  const displayCoverImage = companyProfile?.coverImage || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000";
+  const displayAvatar =
+    companyProfile?.avatar ||
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=company";
+  const displayCoverImage =
+    companyProfile?.coverImage ||
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000";
   const displayActivityField = companyProfile?.activityField || "Công nghệ";
   const displayAddress = companyProfile?.address || "Vietnam";
-  const displayDescription = companyProfile?.description || "Company description";
+  const displayDescription =
+    companyProfile?.description || "Company description";
 
   const handleProfileUpdated = (updatedProfile: Partial<Company>) => {
     console.log("🔄 Profile updated, refreshing display...");
@@ -123,6 +135,9 @@ export default function RecruiterProfile() {
   const handleInterestClick = () => {
     navigate("/company-saved");
   };
+  const handleTransactionHistoryClick = () => {
+    navigate("/subscription-history");
+  };
 
   const handleSupportCenterClick = () => {
     navigate("/support-center");
@@ -149,7 +164,10 @@ export default function RecruiterProfile() {
       {/* CỘT TRÁI - Company Introduction */}
       <div className="lg:col-span-3 space-y-6">
         <Card className="overflow-hidden border-2 border-slate-200 shadow-sm rounded-2xl bg-white">
-          <div className="h-32 bg-cover bg-center relative border-b-2 border-slate-200" style={{backgroundImage: `url('${displayCoverImage}')`}}>
+          <div
+            className="h-32 bg-cover bg-center relative border-b-2 border-slate-200"
+            style={{ backgroundImage: `url('${displayCoverImage}')` }}
+          >
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
               <Avatar className="h-20 w-20 border-4 border-white shadow-md">
                 <AvatarImage src={displayAvatar} />
@@ -221,6 +239,12 @@ export default function RecruiterProfile() {
             title="Quan tâm"
             desc="Danh sách đã lưu"
             onClick={handleInterestClick}
+          />
+          <ServiceCard
+            icon={<History className="text-blue-600" />}
+            title="Lịch sử giao dịch"
+            desc="Danh sách đã xem"
+            onClick={handleTransactionHistoryClick}
           />
         </div>
 

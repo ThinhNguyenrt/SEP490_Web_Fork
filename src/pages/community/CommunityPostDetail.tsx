@@ -311,7 +311,7 @@ export default function CommunityPostDetail() {
       </div>
 
       {/* Input bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-50 border-t border-gray-100 px-4 py-3 sm:px-8">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-100 px-4 sm:px-8">
         <div className="max-w-2xl mx-auto bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
           {replyTarget && (
             <div className="flex items-center justify-between mb-2 px-2 text-xs">

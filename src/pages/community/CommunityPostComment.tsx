@@ -144,14 +144,12 @@ const CommentItem = ({
     }
   };
   return (
-    <div
-      className="flex gap-3 mb-2 group"
-      onClick={() => handleViewUserProfile(author.id, author.role)}
-    >
+    <div className="flex gap-3 mb-2 group">
       <img
         src={author.avatar || "/default-avatar.png"}
         className="w-10 h-10 rounded-full z-10 bg-white object-cover shadow-sm"
         alt={author.name}
+        onClick={() => handleViewUserProfile(author.id, author.role)}
       />
 
       <div className="flex-1">

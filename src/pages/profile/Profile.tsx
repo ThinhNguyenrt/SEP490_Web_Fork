@@ -9,6 +9,7 @@ import {
   Key,
   LogOut,
   Briefcase,
+  History,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,6 +92,9 @@ export default function ProfilePage() {
   const handleSavedClick = () => {
     navigate("/talent-saved");
   };
+  const handleTransactionHistoryClick = () => {
+    navigate("/subscription-history");
+  };
 
   const handleSupportCenterClick = () => {
     navigate("/support-center");
@@ -150,6 +154,12 @@ export default function ProfilePage() {
             title="Quan tâm"
             desc="Danh sách đã lưu"
             onClick={handleSavedClick}
+          />
+          <ServiceCard
+            icon={<History className="text-blue-600" />}
+            title="Lịch sử giao dịch"
+            desc="Danh sách đã xem"
+            onClick={handleTransactionHistoryClick}
           />
         </div>
 

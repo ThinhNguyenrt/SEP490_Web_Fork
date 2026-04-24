@@ -45,7 +45,7 @@ export function Header() {
     { icon: Home, label: "Trang chủ", href: homeHref, requireAuth: true },
     {
       icon: Crown,
-      label: "Gói cước",
+      label: "Gói dịch vụ",
       href: "/subscription",
       requireAuth: true,
     },

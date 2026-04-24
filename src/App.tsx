@@ -13,6 +13,7 @@ import { useAppSelector } from "./store/hook";
 import { notify } from "./lib/toast";
 import { useUserProfile } from "./hook/useUserProfile";
 import { useTokenExpirationCheck } from "./hook/useTokenExpirationCheck";
+import SubscriptionManagementPage from "./pages/subscription/SubscriptionManagementPage";
 
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
 const LoginPage = lazy(() => import("./pages/login/Login"));
@@ -181,6 +182,7 @@ function AppContent() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/ranking" element={<PortfolioRanking />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription-history" element={<SubscriptionManagementPage />} />
           <Route path="/profile/:userId" element={<OtherTalentProfilePage />} />
           <Route
             path="/recruiter-profile/:userId"

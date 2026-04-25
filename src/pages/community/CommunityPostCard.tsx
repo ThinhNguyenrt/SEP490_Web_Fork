@@ -272,6 +272,50 @@ export const CommunityPostCard: React.FC<PostProps> = ({
       return;
     }
   };
+  // Thêm state để quản lý Modal báo cáo
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportData, setReportData] = useState({
+    reason: "spam",
+    description: "",
+  });
+
+  // Hàm gọi API báo cáo
+  const handleReportPost = async () => {
+    if (!reportData.description.trim()) {
+      notify.error("Vui lòng nhập mô tả chi tiết");
+      return;
+    }
+
+    try {
+      setIsActionLoading(true);
+      const response = await fetch(
+        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(reportData),
+        },
+      );
+
+      if (response.status === 400) {
+        notify.error("Bạn đã báo cáo bài viết này trước đó");
+      } else if (response.ok) {
+        notify.success("Đã gửi báo cáo thành công");
+        setIsReportModalOpen(false);
+        setReportData({ reason: "spam", description: "" }); // Reset form
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      notify.error("Không thể gửi báo cáo lúc này");
+    } finally {
+      setIsActionLoading(false);
+      setShowDropdown(false);
+    }
+  };
   return (
     <article className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-2">
       <div className="p-4">
@@ -317,7 +361,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
                   {/* Option 1: Luôn hiển thị */}
                   <button
                     onClick={() => {
-                      notify.info("Đã gửi báo cáo bài viết");
+                      setIsReportModalOpen(true); // Mở modal thay vì gửi ngay
                       setShowDropdown(false);
                     }}
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer"
@@ -397,6 +441,74 @@ export const CommunityPostCard: React.FC<PostProps> = ({
           <Reply size={18} className="rotate-180" />
         </button>
       </div>
+      {/* Modal báo cáo bài viết */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                Báo cáo bài viết
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Lý do vi phạm
+                  </label>
+                  <select
+                    value={reportData.reason}
+                    onChange={(e) =>
+                      setReportData({ ...reportData, reason: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                  >
+                    <option value="spam">Spam / Nội dung rác</option>
+                    <option value="harassment">Quấy rối / Đả kích</option>
+                    <option value="hate_speech">Ngôn từ thù ghét</option>
+                    <option value="inappropriate">
+                      Nội dung không phù hợp
+                    </option>
+                    <option value="other">Lý do khác</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mô tả chi tiết
+                  </label>
+                  <textarea
+                    value={reportData.description}
+                    onChange={(e) =>
+                      setReportData({
+                        ...reportData,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Vui lòng cung cấp thêm chi tiết về vi phạm..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm h-32 resize-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="flex-1 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleReportPost}
+                  disabled={isActionLoading}
+                  className="flex-1 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-colors shadow-lg shadow-red-200 cursor-pointer disabled:opacity-50"
+                >
+                  {isActionLoading ? "Đang gửi..." : "Gửi báo cáo"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 };

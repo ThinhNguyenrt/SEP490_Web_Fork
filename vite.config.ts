@@ -12,29 +12,34 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/applications": {
-        target: "https://application-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://application-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/api/follows": {
-        target: "https://portfolio-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://portfolio-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/api/portfolio": {
-        target: "https://portfolio-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://portfolio-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/api": {
-        target: "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/user-profile-api": {
-        target: "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io",
+        target: "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/user-profile-api/, "/api"),
+        rewrite: (path) => path.replace(/^\/user-profile-api/, ""),
+      },
+      "/hubs": {
+        target: "https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io",
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

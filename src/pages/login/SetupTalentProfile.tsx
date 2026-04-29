@@ -74,7 +74,7 @@ const SetupTalentProfile = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee",
+        "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Employee",
         {
           method: "POST",
           headers: {

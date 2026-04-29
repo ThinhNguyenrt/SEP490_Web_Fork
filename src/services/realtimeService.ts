@@ -63,11 +63,11 @@ class RealtimeService {
   public initConnection(accessToken: string) {
     if (this.notifyConnection || this.chatConnection) return;
 
-    const BASE_GATEWAY_URL =
-      "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    // Use proxy URLs in development, full URLs in production
+    const chatHubUrl = `/hubs/chat`;
+    const notifyHubUrl = `/hubs/realtime`;
 
     // 1. Khởi tạo Chat Connection (Cho Chat Service)
-    const chatHubUrl = `${BASE_GATEWAY_URL}/hubs/chat`;
     this.chatConnection = new signalR.HubConnectionBuilder()
       .withUrl(chatHubUrl, {
         accessTokenFactory: () => accessToken,
@@ -78,7 +78,6 @@ class RealtimeService {
       .build();
 
     // 2. Khởi tạo Notify Connection (Cho Realtime Service)
-    const notifyHubUrl = `${BASE_GATEWAY_URL}/hubs/realtime`;
     this.notifyConnection = new signalR.HubConnectionBuilder()
       .withUrl(notifyHubUrl, {
         accessTokenFactory: () => accessToken,

@@ -72,7 +72,7 @@ const CreatePostModal = ({
       });
 
       // 3. Gọi API
-      const response = await fetch("https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts", {
+      const response = await fetch("https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,

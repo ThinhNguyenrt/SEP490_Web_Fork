@@ -16,7 +16,7 @@ const CommunityNotification = () => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetch(
-        "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/unread-count",
+        "https://notification-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/notifications/unread-count",
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         },

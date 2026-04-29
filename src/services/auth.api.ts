@@ -12,7 +12,7 @@ export const authAPI = {
       const timeoutId = setTimeout(() => {
         console.warn("⏱️ Login request timeout sau 30 giây");
         controller.abort();
-      }, 10000); // 30 giây timeout
+      }, 60000); // 30 giây timeout
 
       const response = await fetch(buildApiUrl(API_BASE_URLS.gateway, API_ENDPOINTS.auth.login), {
         method: "POST",

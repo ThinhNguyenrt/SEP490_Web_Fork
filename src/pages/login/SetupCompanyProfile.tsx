@@ -90,7 +90,7 @@ const SetupCompanyProfile = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company`,
+        `/user-profile-api/Company`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -101,12 +101,21 @@ const SetupCompanyProfile = () => {
       if (response.ok) {
         // 1. Lấy dữ liệu mới từ response
         const checkResponse = await fetch(
-          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/by-user/${user?.id}`,
+          `/user-profile-api/Company/by-user/${user?.id}`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          },
         );
+
+        if (!checkResponse.ok) {
+          console.error("Get company failed:", checkResponse.status);
+          notify.error("Không thể lấy thông tin công ty.");
+          return;
+        }
+
         const companyData = await checkResponse.json();
 
         // 3. Cập nhật vào Redux
-        // Chúng ta lấy field 'id' từ API (là 12) và gán nó vào 'companyId' trong Redux
         dispatch(
           updateUserInfo({
             companyId: companyData.id,
@@ -115,9 +124,12 @@ const SetupCompanyProfile = () => {
         notify.success("Thiết lập hồ sơ công ty thành công!");
         navigate("/recruiter-home");
       } else {
-        notify.error("Không thể lưu thông tin công ty. Vui lòng kiểm tra lại.");
+        const errorText = await response.text();
+        console.error("Create company failed:", response.status, errorText);
+        notify.error(`Lỗi: ${response.status}. Vui lòng kiểm tra lại.`);
       }
     } catch (error) {
+      console.error("Setup profile error:", error);
       notify.error("Lỗi kết nối máy chủ");
     } finally {
       setLoading(false);

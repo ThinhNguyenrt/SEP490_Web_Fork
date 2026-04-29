@@ -20,9 +20,9 @@ import { Entitlements, SubscriptionHistoryItem } from "@/types/subscription";
 
 // Base URLs từ Gateway của bạn
 const SUB_SERVICE_URL =
-  "https://subscription-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+  "https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
 const PAY_SERVICE_URL =
-  "https://payment-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+  "https://payment-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
 const PAGE_SIZE = 5;
 
 export default function SubscriptionManagementPage() {

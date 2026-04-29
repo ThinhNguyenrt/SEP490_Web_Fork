@@ -27,7 +27,7 @@ export default function CommunityPost() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts?pageSize=${PAGE_SIZE}&cursor=${currentCursor || ""}`,
+        `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts?pageSize=${PAGE_SIZE}&cursor=${currentCursor || ""}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

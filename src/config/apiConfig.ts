@@ -56,42 +56,49 @@ export const API_BASE_URLS = {
   // Main API Gateway - Authentication and general APIs
   gateway: getBaseUrl(
     "VITE_API_BASE_URL",
-    "https://api-gateway.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
 
   // User Profile Service - Talent and company profiles
   userProfile: getBaseUrl(
     "VITE_USER_PROFILE_API_BASE_URL",
-    "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/user-profile-api"
   ),
 
   // Company Service - Job posts
   company: getBaseUrl(
     "VITE_COMPANY_API_BASE_URL",
-    "https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://company-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
 
   // Application Service - Job applications
   application: getBaseUrl(
     "VITE_APPLICATION_API_BASE_URL",
-    "https://application-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://application-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
 
   // Connection Service - Talent-Recruiter connections
   connection: getBaseUrl(
     "VITE_CONNECTION_API_BASE_URL",
-    "https://connection-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://connection-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
 
   // Portfolio Service - Portfolio and rankings
   portfolio: getBaseUrl(
     "VITE_PORTFOLIO_API_BASE_URL",
-    "https://portfolio-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api",
+    "https://portfolio-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
+    "/api"
+  ),
+
+  // Notification Service - System and user notifications
+  notification: getBaseUrl(
+    "VITE_NOTIFICATION_API_BASE_URL",
+    "https://notification-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
 } as const;
@@ -161,6 +168,15 @@ export const API_ENDPOINTS = {
   compliment: {
     submit: "/compliment",
     list: (portfolioId: number) => `/compliment/${portfolioId}`,
+  },
+
+  // Notification Endpoints
+  notification: {
+    system: "/notifcations/system",
+    list: "/notifications",
+    unreadCount: "/notifications/unread-count",
+    markAsRead: (id: number) => `/notifications/${id}/read`,
+    markAllAsRead: "/notifications/read-all",
   },
 } as const;
 

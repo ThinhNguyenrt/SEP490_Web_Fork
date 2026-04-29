@@ -40,6 +40,7 @@ export default defineConfig({
         target: "https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io",
         changeOrigin: true,
         ws: true,
+        rewrite: (path) => path, // Keep /hubs/chat as is
       },
     },
   },

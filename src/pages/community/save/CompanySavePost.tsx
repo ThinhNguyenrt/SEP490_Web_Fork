@@ -618,7 +618,7 @@ const CompanySavePost = () => {
     const fetchCompanySavePostsData = async () => {
       try {
         const response = await fetch(
-          `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
+          `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/saved`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

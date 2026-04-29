@@ -47,7 +47,7 @@ export default function OtherCompanyProfilePage() {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/by-user/${userId}`,
+          `https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Company/by-user/${userId}`,
         );
         const data = await res.json();
         setProfile(data);

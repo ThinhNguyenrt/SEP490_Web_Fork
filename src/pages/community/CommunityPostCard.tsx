@@ -167,7 +167,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   const handleUnfavoriteAction = async () => {
     try {
       const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`,
+        `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/${id}/favorite`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -208,7 +208,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   const handleSaveAction = async () => {
     try {
       const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
+        `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -225,7 +225,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
   const handleUnsaveAction = async () => {
     try {
       const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
+        `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/${id}/save`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -289,7 +289,7 @@ export const CommunityPostCard: React.FC<PostProps> = ({
     try {
       setIsActionLoading(true);
       const response = await fetch(
-        `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/${id}/report`,
+        `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/${id}/report`,
         {
           method: "POST",
           headers: {

@@ -4,127 +4,100 @@ import { formatTimeAgo } from "@/utils/FormatTime";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  fetchCommunityNotifications,
+  fetchUnreadCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/services/notification.api";
+import { useRealtimeNotifications } from "@/hook/useRealtimeNotifications";
 
 const CommunityNotification = () => {
-  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+  const [communityNotifications, setCommunityNotifications] = useState<UserNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
-  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const navigate = useNavigate();
   const { accessToken } = useAppSelector((state) => state.auth);
-  const fetchUnreadCount = useCallback(async () => {
+  const observerTarget = useRef(null);
+
+  // Setup real-time listeners for community notifications
+  useRealtimeNotifications(() => {}, setCommunityNotifications);
+
+  const fetchUnreadCountData = useCallback(async () => {
     try {
-      const response = await fetch(
-        "https://notification-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/notifications/unread-count",
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-      );
-      const data = await response.json();
-      setUnreadCount(data.count || 0);
+      const count = await fetchUnreadCount(accessToken ?? undefined);
+      setUnreadCount(count);
     } catch (error) {
-      console.error("Lỗi fetch unread count:", error);
+      console.error("Error fetching unread count:", error);
     }
   }, [accessToken]);
-  const fetchNotifications = useCallback(
-    async (cursor?: number) => {
+  const fetchNotificationsData = useCallback(
+    async (cursor?: string | null) => {
       if (loading) return;
 
       setLoading(true);
       try {
-        const url = new URL(
-          "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications",
-          window.location.origin,
-        );
-        url.searchParams.append("limit", "5");
-        if (cursor) {
-          url.searchParams.append("cursor", cursor.toString());
-        }
+        const data = await fetchCommunityNotifications(cursor, 5, accessToken ?? undefined);
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        const data = await response.json();
-
-        // Giả sử API trả về cấu hình: { items: [...], nextCursor: number | null }
-        const newItems = data.items || [];
-
-        setNotifications((prev) =>
-          cursor ? [...prev, ...newItems] : newItems,
+        // Append new items if cursor exists, otherwise replace
+        setCommunityNotifications((prev) =>
+          cursor ? [...prev, ...data.items] : data.items
         );
         setNextCursor(data.nextCursor);
-        setHasMore(!!data.nextCursor); // Nếu nextCursor null/undefined thì hết data
-        console.log("data: ", data.items);
+        setHasMore(data.hasMore && !!data.nextCursor);
+        console.log("Community notifications loaded:", data.items);
       } catch (error) {
-        console.error("Lỗi khi fetch notifications:", error);
+        console.error("Error fetching community notifications:", error);
       } finally {
         setLoading(false);
       }
     },
-    [accessToken, loading],
+    [accessToken, loading]
   );
   const handleMarkAsRead = async (id: number, isRead: boolean) => {
     if (isRead) return;
 
     try {
-      const response = await fetch(
-        `https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/${id}/read`,
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-      );
+      await markNotificationAsRead(id, accessToken ?? undefined);
 
-      if (response.ok) {
-        // Cập nhật UI local
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+      // Cập nhật UI local
+      setCommunityNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("Lỗi khi đánh dấu đã đọc:", error);
+      console.error("Error marking notification as read:", error);
     }
   };
+
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0) return;
 
     try {
-      const response = await fetch(
-        "https://notification-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/notifications/read-all",
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-      );
+      await markAllNotificationsAsRead(accessToken ?? undefined);
 
-      if (response.ok) {
-        // Cập nhật UI local
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        setUnreadCount(0);
-      }
+      // Cập nhật UI local
+      setCommunityNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
     } catch (error) {
-      console.error("Lỗi khi đánh dấu tất cả đã đọc:", error);
+      console.error("Error marking all notifications as read:", error);
     }
   };
   useEffect(() => {
     if (accessToken) {
-      fetchNotifications();
-      fetchUnreadCount();
+      fetchNotificationsData();
+      fetchUnreadCountData();
     }
-  }, [accessToken]);
-  const observerTarget = useRef(null);
+  }, [accessToken, fetchNotificationsData, fetchUnreadCountData]);
 
-  // Dùng useCallback để hàm không bị khởi tạo lại vô ích
+  // Infinite scroll observer
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loading && nextCursor) {
-      fetchNotifications(nextCursor);
+      fetchNotificationsData(nextCursor);
     }
-  }, [hasMore, loading, nextCursor, fetchNotifications]);
+  }, [hasMore, loading, nextCursor, fetchNotificationsData]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -168,7 +141,7 @@ const CommunityNotification = () => {
         </button>
       </div>
       <div className="space-y-3">
-        {notifications.map((notif) => (
+        {communityNotifications.map((notif) => (
           <div
             key={notif.id}
             onClick={() =>
@@ -240,7 +213,7 @@ const CommunityNotification = () => {
         ) : (
           hasMore && (
             <button
-              onClick={() => nextCursor && fetchNotifications(nextCursor)}
+              onClick={() => nextCursor && fetchNotificationsData(nextCursor)}
               className="px-6 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all"
             >
               Xem thêm thông báo
@@ -259,7 +232,7 @@ const CommunityNotification = () => {
           </div>
         ) : (
           !hasMore &&
-          notifications.length > 0 && (
+          communityNotifications.length > 0 && (
             <p className="text-center text-gray-400 py-4 text-xs">
               Bạn đã xem hết tất cả thông báo.
             </p>
@@ -267,7 +240,7 @@ const CommunityNotification = () => {
         )}
       </div>
 
-      {!loading && notifications.length === 0 && (
+      {!loading && communityNotifications.length === 0 && (
         <p className="text-center text-gray-400 py-10">
           Không có thông báo nào.
         </p>

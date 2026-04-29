@@ -547,6 +547,9 @@ export const createCompanyPost = async (
     // Add authorization header if token is provided
     if (accessToken) {
       headers["Authorization"] = `Bearer ${accessToken}`;
+      console.log("✅ Authorization header set with token length:", accessToken.length);
+    } else {
+      console.warn("⚠️ No access token provided - request will be unauthenticated");
     }
 
     // Build FormData for multipart/form-data request

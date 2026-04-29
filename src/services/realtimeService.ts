@@ -54,18 +54,47 @@ export interface RoomUpdatedDto {
   unreadCount: number;
 }
 
+export interface NotificationDto {
+  notificationId: number;
+  userId: string;
+  title: string;
+  content: string;
+  type: string;
+  category?: "system" | "community";
+  objectId?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 class RealtimeService {
   private notifyConnection: signalR.HubConnection | null = null;
   private chatConnection: signalR.HubConnection | null = null;
   private watchingPostIds = new Set<string>();
 
+  // Public getter for notifyConnection (for setting up event listeners externally)
+  public getNotifyConnection(): signalR.HubConnection | null {
+    return this.notifyConnection;
+  }
+
   // Khởi tạo kết nối
   public initConnection(accessToken: string) {
     if (this.notifyConnection || this.chatConnection) return;
 
+    // Determine hub URLs based on environment
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
     // Use proxy URLs in development, full URLs in production
-    const chatHubUrl = `/hubs/chat`;
-    const notifyHubUrl = `/hubs/realtime`;
+    const chatHubUrl = isDev 
+      ? `/hubs/chat`
+      : `https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/chat`;
+    
+    const notifyHubUrl = isDev 
+      ? `/hubs/realtime`
+      : `https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/realtime`;
+
+    console.log(`🔌 [RealtimeService] Initializing connections in ${isDev ? 'DEV' : 'PROD'} mode`);
+    console.log(`📡 Chat Hub URL: ${chatHubUrl}`);
+    console.log(`📡 Notify Hub URL: ${notifyHubUrl}`);
 
     // 1. Khởi tạo Chat Connection (Cho Chat Service)
     this.chatConnection = new signalR.HubConnectionBuilder()
@@ -74,7 +103,7 @@ class RealtimeService {
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Information)
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     // 2. Khởi tạo Notify Connection (Cho Realtime Service)
@@ -84,7 +113,7 @@ class RealtimeService {
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Information)
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
     this.setupEventHandlers();
@@ -132,11 +161,34 @@ class RealtimeService {
         new CustomEvent("realtime-favorite", { detail: data }),
       );
     });
-    this.notifyConnection.on("ReceiveNotification", (event: NotificationEvent) => {
-      console.log("🔔 New notification:", event);
+    // System notifications
+    this.notifyConnection.on("ReceiveSystemNotification", (event: NotificationDto) => {
+      console.log("🔔 [SystemNotification] New system notification:", event);
       window.dispatchEvent(
-        new CustomEvent("realtime-notification", { detail: event }),
+        new CustomEvent("realtime-system-notification", { detail: event }),
       );
+    });
+
+    // Community notifications
+    this.notifyConnection.on("ReceiveCommunityNotification", (event: NotificationDto) => {
+      console.log("🔔 [CommunityNotification] New community notification:", event);
+      window.dispatchEvent(
+        new CustomEvent("realtime-community-notification", { detail: event }),
+      );
+    });
+
+    // Fallback generic notification (backward compatibility)
+    this.notifyConnection.on("ReceiveNotification", (event: NotificationDto) => {
+      console.log("🔔 [Fallback] New notification:", event);
+      if (event.category === "community") {
+        window.dispatchEvent(
+          new CustomEvent("realtime-community-notification", { detail: event }),
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("realtime-system-notification", { detail: event }),
+        );
+      }
     });
   }
 
@@ -157,9 +209,27 @@ class RealtimeService {
         await Promise.all(promises);
         console.log("🚀 SignalR Connected (Chat + Notify)");
       }
-    } catch (err) {
-      console.error("❌ Connection failed:", err);
-      setTimeout(() => this.start(), 5000);
+    } catch (err: any) {
+      // Check if error is due to service being unavailable (e.g., Container App stopped)
+      const errorMsg = err?.message || err?.toString() || "Unknown error";
+      const isServiceUnavailable = 
+        errorMsg.includes("404") || 
+        errorMsg.includes("Container App is stopped") ||
+        errorMsg.includes("does not exist") ||
+        errorMsg.includes("cannot resolve host");
+
+      if (isServiceUnavailable) {
+        console.warn(
+          "⚠️ SignalR service unavailable (backend may be stopped). Will retry in 30s...",
+          errorMsg.substring(0, 100),
+        );
+        // Retry after 30 seconds instead of 5
+        setTimeout(() => this.start(), 30000);
+      } else {
+        console.error("❌ SignalR connection failed:", err);
+        // Retry sooner for other errors
+        setTimeout(() => this.start(), 5000);
+      }
     }
   }
 

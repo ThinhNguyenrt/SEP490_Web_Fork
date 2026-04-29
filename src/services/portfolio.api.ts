@@ -1224,6 +1224,17 @@ const normalizePortfolioBlocks = (blocks: PortfolioBlock[]): PortfolioBlock[] =>
 const normalizeMainPortfolioItem = (
   item: any,
 ): PortfolioMainBlockItem => {
+  // Debug: Log input structure
+  console.log(`📦 [normalizeMainPortfolioItem] Input item structure:`, {
+    portfolioId: item?.portfolioId,
+    employeeId: item?.employeeId,
+    portfolioName: item?.portfolioName,
+    blocksType: typeof item?.blocks,
+    blocksIsArray: Array.isArray(item?.blocks),
+    blocksLength: Array.isArray(item?.blocks) ? item.blocks.length : 'N/A',
+    blocksFirstItem: Array.isArray(item?.blocks) ? item.blocks[0] : item?.blocks,
+  });
+
   // Handle API response format (blocks is array)
   if (Array.isArray(item.blocks)) {
     // Find INTRO block for display
@@ -1235,6 +1246,8 @@ const normalizeMainPortfolioItem = (
       isMain: item.isMain,
       isPublic: item.isPublic,
       status: item.status,
+      introBlockType: introBlock?.type,
+      introBlockDataKeys: Object.keys(introBlock?.data || {}),
     });
 
     return {
@@ -1262,6 +1275,7 @@ const normalizeMainPortfolioItem = (
 
   // Handle old format (blocks is single object)
   if (item.blocks && item.blocks.type) {
+    console.log(`📦 [normalizeMainPortfolioItem] Using old single-object blocks format`);
     return {
       ...item,
       blocks: {
@@ -1271,7 +1285,36 @@ const normalizeMainPortfolioItem = (
     };
   }
 
-  return item;
+  // Fallback: if no blocks, create empty structure to prevent errors
+  console.warn(`⚠️ [normalizeMainPortfolioItem] No valid blocks found, using fallback structure`);
+  console.warn(`⚠️ Item data:`, {
+    portfolioId: item?.portfolioId,
+    portfolioName: item?.portfolioName,
+    blocksStructure: item?.blocks,
+  });
+
+  return {
+    portfolioId: item?.portfolioId || 0,
+    employeeId: item?.employeeId || 0,
+    userId: item?.employeeId || item?.userId || 0,
+    portfolioName: item?.portfolioName || "Hồ sơ không có tên",
+    status: item?.status || "draft",
+    isMain: item?.isMain || false,
+    isPublic: item?.isPublic || false,
+    createdAt: item?.createdAt || new Date().toISOString(),
+    updatedAt: item?.updatedAt || new Date().toISOString(),
+    portfolio: {
+      name: item?.portfolioName || "Hồ sơ",
+      status: item?.category ? 1 : 0,
+    },
+    blocks: {
+      id: 0,
+      type: "INTRO",
+      variant: "",
+      order: 0,
+      data: normalizeIntroData(item?.blocks?.data || {}),
+    },
+  };
 };
 
 export const fetchPortfolio = async (userId: number, portfolioId: number) => {
@@ -2149,7 +2192,7 @@ export const fetchPortfoliosByEmployeeId = async (
       Authorization: `Bearer ${accessToken}`,
     };
 
-    const fullUrl = `${API_BASE_URL}/portfolio/employee/${employeeId}`;
+    const fullUrl = `${API_BASE_URL}/portfolio/me`;
     console.log("📡 Making request to:", fullUrl);
 
     const response = await fetch(fullUrl, {
@@ -2205,7 +2248,10 @@ export const fetchPortfoliosByEmployeeId = async (
     // Normalize the response data
     if (Array.isArray(data)) {
       console.log("📦 Response is array, normalizing", data.length, "items");
-      const normalized = data.map((item) => normalizeMainPortfolioItem(item));
+      const normalized = data.map((item) => {
+        console.log("📦 [Normalization] Raw item:", item);
+        return normalizeMainPortfolioItem(item);
+      });
       console.log("✅ Normalized result count:", normalized.length);
       return normalized;
     }
@@ -2213,11 +2259,20 @@ export const fetchPortfoliosByEmployeeId = async (
     // If data is wrapped in a response object
     if (data && Array.isArray(data.data)) {
       console.log("📦 Response has data.data array, normalizing", data.data.length, "items");
-      const normalized = data.data.map((item: any) =>
-        normalizeMainPortfolioItem(item),
-      );
+      const normalized = data.data.map((item: any) => {
+        console.log("📦 [Normalization] Raw item:", item);
+        return normalizeMainPortfolioItem(item);
+      });
       console.log("✅ Normalized result count:", normalized.length);
       return normalized;
+    }
+
+    // Check for single object response
+    if (data && !Array.isArray(data) && data.portfolioId) {
+      console.log("📦 Response is single portfolio object, treating as array");
+      const normalized = normalizeMainPortfolioItem(data);
+      console.log("✅ Normalized single portfolio");
+      return [normalized];
     }
 
     console.warn("⚠️ Unexpected response format for fetchPortfoliosByEmployeeId");
@@ -2225,6 +2280,31 @@ export const fetchPortfoliosByEmployeeId = async (
     console.warn("⚠️ data type:", typeof data);
     console.warn("⚠️ Is array?:", Array.isArray(data));
     console.warn("⚠️ Has data.data?:", data?.data);
+    
+    // Try fallback: fetch from /api/portfolio/me endpoint
+    console.log("📡 Trying fallback endpoint: /api/portfolio/me");
+    try {
+      const fallbackResponse = await fetch(`${API_BASE_URL}/portfolio/me`, {
+        method: "GET",
+        headers: headers,
+        credentials: "include",
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackText = await fallbackResponse.text();
+        const fallbackData = fallbackText ? JSON.parse(fallbackText) : null;
+        console.log("📦 Fallback response:", fallbackData);
+        
+        if (Array.isArray(fallbackData)) {
+          const normalized = fallbackData.map((item) => normalizeMainPortfolioItem(item));
+          console.log("✅ Fallback: Normalized", normalized.length, "portfolios");
+          return normalized;
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn("⚠️ Fallback endpoint also failed:", fallbackErr);
+    }
+    
     return [];
   } catch (error) {
     if (

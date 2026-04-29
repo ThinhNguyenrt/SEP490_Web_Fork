@@ -21,7 +21,7 @@ export const OthersJobPost = ({ companyId }: { companyId: number }) => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/company/${companyId}?limit=10`,
+          `https://company-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/company-posts/company/${companyId}?limit=10`,
         );
         const data = await response.json();
         // Dựa trên Swagger, data thường nằm trong data.items hoặc data trực tiếp

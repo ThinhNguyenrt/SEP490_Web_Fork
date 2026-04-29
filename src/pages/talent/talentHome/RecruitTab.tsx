@@ -51,7 +51,7 @@ export default function RecruitTab() {
         if (accessToken) {
           try {
             const savedResponse = await fetch(
-              `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
+              `https://company-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
               {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,

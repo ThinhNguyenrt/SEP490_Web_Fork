@@ -87,7 +87,7 @@ const SetupTalentProfile = () => {
       if (response.ok) {
         // 1. Lấy dữ liệu mới từ response
         const checkResponse = await fetch(
-          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee/by-user/${user?.id}`,
+          `https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Employee/by-user/${user?.id}`,
         );
         const employeeData = await checkResponse.json();
 

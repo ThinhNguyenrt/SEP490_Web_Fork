@@ -25,7 +25,7 @@ export default function TalentSavePost() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
+        `https://company-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/company-posts/saved`,
         {
           // Thay endpoint thực tế của bạn
           headers: {

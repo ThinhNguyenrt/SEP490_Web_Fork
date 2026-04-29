@@ -11,7 +11,7 @@ const SubscriptionPage = () => {
   const fetchPlans = async () => {
     try {
       const res = await fetch(
-        `https://subscription-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Plans`,
+        `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Plans`,
       );
       if (res.ok) {
         const data: SubscriptionPlan[] = await res.json();

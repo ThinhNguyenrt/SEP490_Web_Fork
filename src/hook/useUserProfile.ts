@@ -33,7 +33,7 @@ export const useUserProfile = () => {
     if (!profileEndpoint) return;
 
     setIsLoading(true);
-    const baseUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    const baseUrl = "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
 
     try {
       // Chạy song song cả 2 API để tối ưu thời gian
@@ -41,8 +41,12 @@ export const useUserProfile = () => {
         fetch(`${baseUrl}/${profileEndpoint}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         }),
-        fetch(`https://subscription-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Subscriptions/current`, {
+        // Wrap subscription fetch để handle errors gracefully
+        fetch(`https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Subscriptions/current`, {
           headers: { Authorization: `Bearer ${accessToken}` },
+        }).catch((err) => {
+          console.warn("⚠️ Subscription service unavailable:", err.message);
+          return new Response(JSON.stringify({}), { status: 200 }); // Return empty response on error
         })
       ]);
 
@@ -56,8 +60,12 @@ export const useUserProfile = () => {
 
       // Xử lý dữ liệu Subscription
       if (subRes.ok) {
-        const subData = await subRes.json();
-        planName = subData?.planName || "";
+        try {
+          const subData = await subRes.json();
+          planName = subData?.planName || "";
+        } catch (e) {
+          console.warn("⚠️ Failed to parse subscription data");
+        }
       }
 
       // Map data dựa trên role và gán planName

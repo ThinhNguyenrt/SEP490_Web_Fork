@@ -10,7 +10,7 @@ export const OthersPortfolio = ({ userId }: { userId: string }) => {
     const fetchPortfolios = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Portfolio/user/${userId}`);
+        const res = await fetch(`https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Portfolio/user/${userId}`);
         const data = await res.json();
         setPortfolios(data.items || data || []);
       } catch (error) {

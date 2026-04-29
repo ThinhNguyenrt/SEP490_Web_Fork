@@ -36,7 +36,7 @@ export const CompanyTab = ({
     setDeletingId(postId); // Hiệu ứng UX: Đang xử lý
     try {
       const response = await fetch(
-        `https://company-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/company-posts/${postId}/save`,
+        `https://company-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/company-posts/${postId}/save`,
         {
           method: "DELETE",
           headers: {

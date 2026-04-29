@@ -328,7 +328,7 @@ export const fetchCompanyProfile = async (accessToken: string): Promise<Company>
     }, 30000);
 
     // Use the userprofile-service URL for company profile
-    const apiBaseUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    const apiBaseUrl = "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
     const fullUrl = `${apiBaseUrl}/api/Company/me`;
     console.log("📡 Making request to:", fullUrl);
 
@@ -464,7 +464,7 @@ export const updateCompanyProfile = async (
       controller.abort();
     }, 30000);
 
-    const apiBaseUrl = "https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io";
+    const apiBaseUrl = "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
     const fullUrl = `${apiBaseUrl}/api/Company/${companyId}`;
     console.log("📡 Making request to:", fullUrl);
 

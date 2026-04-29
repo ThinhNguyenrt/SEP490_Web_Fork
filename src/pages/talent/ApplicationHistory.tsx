@@ -131,7 +131,7 @@ export default function ApplicationHistory() {
           try {
             // Fetch company details to get userId
             const res = await fetch(
-              `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Company/${app.company.companyId}`,
+              `https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Company/${app.company.companyId}`,
               {
                 headers: { Authorization: `Bearer ${token}` }
               }

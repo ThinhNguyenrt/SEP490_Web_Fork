@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
 import { createCompanyPost } from "@/services/company.api";
 import CustomLoading from "@/components/Loading/Loading";
+import { useTokenExpirationCheck } from "@/hook/useTokenExpirationCheck";
 
 type EmploymentType = "fulltime" | "parttime";
 
@@ -46,6 +47,9 @@ export default function CreateRecruitmentPost() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { accessToken } = useAppSelector((state) => state.auth);
+  
+  // Auto-refresh token if expired/expiring
+  useTokenExpirationCheck();
 
   const [formData, setFormData] = useState<RecruitmentFormData>(initialFormData);
   const [bannerFileName, setBannerFileName] = useState<string>("");
@@ -129,6 +133,16 @@ export default function CreateRecruitmentPost() {
     if (!validateForm()) {
       return;
     }
+
+    // Check if token exists
+    if (!accessToken) {
+      console.error("❌ No access token found. User may not be authenticated.");
+      setError("Vui lòng đăng nhập lại để tiếp tục.");
+      return;
+    }
+
+    console.log("🔐 Access token available:", !!accessToken);
+    console.log("🔐 Token length:", accessToken.length);
 
     try {
       setIsLoading(true);

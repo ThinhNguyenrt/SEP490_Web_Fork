@@ -42,7 +42,7 @@ export default function OtherTalentProfilePage() {
       if (!userId) return;
       try {
         const res = await fetch(
-          `https://userprofile-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/Employee/by-user/${userId}`,
+          `https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Employee/by-user/${userId}`,
         );
         const data = await res.json();
         setProfile(data);

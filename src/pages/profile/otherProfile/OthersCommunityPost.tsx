@@ -13,7 +13,7 @@ export const OthersCommunityPost = ({ userId }: { userId: string }) => {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://community-service.grayforest-11aba44e.southeastasia.azurecontainerapps.io/api/community/posts/user/${userId}`,
+          `https://community-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/community/posts/user/${userId}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

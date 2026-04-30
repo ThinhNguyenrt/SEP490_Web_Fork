@@ -2,9 +2,10 @@
 import { useAppSelector } from "@/store/hook";
 import { UserNotification } from "@/types/notification";
 import { formatTimeAgo } from "@/utils/FormatTime";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { fetchSystemNotifications } from "@/services/notification.api";
+import { useNavigate } from "react-router-dom";
+import { fetchSystemNotifications, markNotificationAsRead } from "@/services/notification.api";
 import { useRealtimeNotifications } from "@/hook/useRealtimeNotifications";
 
 const SystemNotification = () => {
@@ -13,10 +14,61 @@ const SystemNotification = () => {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const { accessToken } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
   const observerTarget = useRef(null);
 
   // Setup real-time listeners for system notifications
   useRealtimeNotifications(setSystemNotifications, () => {});
+
+  const handleMarkAsRead = async (id: number, isRead: boolean) => {
+    if (isRead) return;
+
+    try {
+      await markNotificationAsRead(id, accessToken ?? undefined);
+
+      // Cập nhật UI local
+      setSystemNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const handleNotificationClick = (notif: UserNotification) => {
+    handleMarkAsRead(notif.id, notif.isRead);
+
+    // Navigate based on notification type
+    let navigationPath = "";
+    switch (notif.type) {
+      case "CONNECTION_REQUEST_SENT":
+      case "CONNECTION_ACCEPTED":
+      case "CONNECTION_REJECTED":
+        navigationPath = `/connection`;
+        break;
+      case "APPLICATION_APPROVED":
+      case "APPLICATION_REJECTED":
+        navigationPath = `/talent/application/${notif.objectId}`;
+        break;
+      case "JOB_INVITATION":
+        navigationPath = `/talent/job/${notif.objectId}`;
+        break;
+      case "PORTFOLIO_APPROVED":
+      case "PORTFOLIO_REPORTED":
+        navigationPath = `/portfolio/${notif.objectId}`;
+        break;
+      case "POST_APPROVED":
+      case "PROFILE_VIEWED":
+        navigationPath = `/profile/${notif.actor?.id}`;
+        break;
+      default:
+        navigationPath = `/notification`;
+    }
+
+    if (navigationPath) {
+      navigate(navigationPath);
+    }
+  };
 
   const fetchNotifs = useCallback(
     async (cursor?: string | null) => {
@@ -37,7 +89,7 @@ const SystemNotification = () => {
         setLoading(false);
       }
     },
-    [accessToken, loading]
+    [accessToken]
   );
 
   // Initial fetch
@@ -95,60 +147,60 @@ const SystemNotification = () => {
   }
 
   return (
-    <div className="space-y-4">
-      {systemNotifications.map((notif) => (
-        <div
-          key={notif.id}
-          className="bg-white p-6 rounded-xl shadow-sm border border-blue-50 max-w-2xl transform transition-hover hover:scale-[1.01]"
-        >
-          <p className="text-gray-700 text-center mb-6 leading-relaxed">
-            {notif.content || notif.title}
-          </p>
-          <div className="flex flex-col items-center gap-4">
+    <div className="max-w-2xl mx-auto space-y-3">
+      <div className="space-y-3">
+        {systemNotifications.map((notif) => (
+          <div
+            key={notif.id}
+            onClick={() => handleNotificationClick(notif)}
+            className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 transition-all cursor-pointer group ${
+              notif.isRead
+                ? "border-gray-100 opacity-80"
+                : "border-blue-100 bg-blue-50/10 shadow-blue-50"
+            } hover:border-blue-400/50 hover:shadow-md`}
+          >
             {/* Avatar / Icon Section */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                <img
-                  alt={notif.actor?.name || notif.company?.name}
-                  className="w-12 h-12 object-cover rounded-full"
-                  src={
-                    notif.actor?.avatar ||
-                    notif.company?.avatar ||
-                    "/user_placeholder.png"
-                  }
-                />
-                {/* Company badge */}
-                {(notif.actor?.Role === "COMPANY" ||
-                  notif.company?.role === "COMPANY") && (
-                  <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4">
-                    <img
-                      src="/blue-tick-company.png"
-                      alt="Verified"
-                      className="w-5 h-5 bg-white rounded-full border-2 border-white"
-                    />
-                  </div>
-                )}
-              </div>
+            <div className="relative inline-block shrink-0">
+              <img
+                alt={notif.actor?.name || notif.company?.name}
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
+                src={
+                  notif.actor?.avatar ||
+                  notif.company?.avatar ||
+                  "/user_placeholder.png"
+                }
+              />
+              {(notif.actor?.Role === "COMPANY" ||
+                notif.company?.role === "COMPANY") && (
+                <div className="absolute bottom-0 right-0 transform translate-x-1/4 translate-y-1/4 z-10">
+                  <img
+                    src="/blue-tick-company.png"
+                    alt="Verified"
+                    className="w-5 h-5 bg-white rounded-full border-2 border-white"
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Name / Company Name */}
-            <h3 className="text-xl font-bold text-gray-900">
-              {notif.actor?.name || notif.company?.name}
-            </h3>
+            {/* Content Section */}
+            <div className="flex-grow">
+              <p className="text-gray-900 text-sm font-semibold leading-snug">
+                {notif.title}
+              </p>
+              <p className="text-gray-600 text-sm leading-snug mt-1">
+                {notif.content}
+              </p>
+              <span className="text-xs text-gray-500 mt-2 block">
+                {formatTimeAgo(notif.createdAt)}
+              </span>
+            </div>
 
-            {/* Time */}
-            <span className="text-xs text-gray-500">
-              {formatTimeAgo(notif.createdAt)}
-            </span>
-
-            {/* Action Button */}
-            <button className="mt-2 px-8 py-2.5 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-2">
-              <MessageSquare size={18} />
-              Bắt đầu trò chuyện
-            </button>
+            {!notif.isRead && (
+              <span className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0"></span>
+            )}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* Loading & Load More Section */}
       <div className="py-4 flex justify-center">

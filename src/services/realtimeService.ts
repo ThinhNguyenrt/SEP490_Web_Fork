@@ -76,6 +76,22 @@ class RealtimeService {
     return this.notifyConnection;
   }
 
+  // Get connection status for debugging and UI feedback
+  public getConnectionStatus() {
+    return {
+      chat: {
+        state: this.chatConnection?.state,
+        isConnected: this.chatConnection?.state === signalR.HubConnectionState.Connected,
+        stateLabel: this.chatConnection ? signalR.HubConnectionState[this.chatConnection.state] : 'Not initialized',
+      },
+      notify: {
+        state: this.notifyConnection?.state,
+        isConnected: this.notifyConnection?.state === signalR.HubConnectionState.Connected,
+        stateLabel: this.notifyConnection ? signalR.HubConnectionState[this.notifyConnection.state] : 'Not initialized',
+      },
+    };
+  }
+
   // Khởi tạo kết nối
   public initConnection(accessToken: string) {
     if (this.notifyConnection || this.chatConnection) return;
@@ -294,11 +310,19 @@ class RealtimeService {
   /**
    * Send a message via SignalR (NOT REST API)
    * Hệ thống sẽ tự động lưu DB và broadcast
+   * With automatic retry if connection is not ready
    */
-  async sendMessage(roomId: number, content: string) {
+  async sendMessage(roomId: number, content: string, retryCount: number = 0, maxRetries: number = 3): Promise<void> {
     if (this.chatConnection?.state !== signalR.HubConnectionState.Connected) {
-      console.error("❌ Chat connection not ready");
-      throw new Error("Chat connection not ready");
+      if (retryCount < maxRetries) {
+        console.warn(`⏳ Chat connection not ready, retrying SendMessage (${retryCount + 1}/${maxRetries})...`);
+        // Wait 1.5 seconds and retry
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return this.sendMessage(roomId, content, retryCount + 1, maxRetries);
+      } else {
+        console.error("❌ Chat connection not ready after max retries");
+        throw new Error("Chat connection not ready - unable to send message. Please check your connection.");
+      }
     }
 
     try {

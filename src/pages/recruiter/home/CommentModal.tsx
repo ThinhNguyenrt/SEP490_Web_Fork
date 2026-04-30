@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { X, MessageSquare, Star } from "lucide-react";
+import { X, MessageSquare, Star, CheckSquare2, Square } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { complimentService } from "@/services/compliment.api";
+import { portfolioService, CriteriaItem } from "@/services/portfolio.api";
 import { RootState } from "@/store";
 
 interface RatingData {
   id: number | null;
   score: number;
   content: string;
+  selectedCriteria: number[]; // Array of criteria IDs
 }
 
 interface CommentModalProps {
@@ -29,11 +31,38 @@ const CommentModal = ({
     id: null,
     score: 0,
     content: "",
+    selectedCriteria: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [criteria, setCriteria] = useState<CriteriaItem[]>([]);
+  const [loadingCriteria, setLoadingCriteria] = useState(false);
 
   console.log("🎨 CommentModal render - isOpen:", isOpen, "portfolioId:", portfolioId);
+
+  // Load criteria from API
+  const loadCriteria = useCallback(async () => {
+    if (!accessToken) {
+      console.log("⚠️ No access token, skipping criteria load");
+      return;
+    }
+    
+    try {
+      setLoadingCriteria(true);
+      console.log("📡 Loading criteria... Token available:", !!accessToken);
+      const criteriaList = await portfolioService.fetchCriteria(accessToken);
+      console.log("📡 fetchCriteria returned:", criteriaList);
+      setCriteria(criteriaList || []);
+      console.log("✅ Criteria loaded successfully. Count:", criteriaList?.length || 0);
+    } catch (err) {
+      console.error("❌ Error loading criteria:", err);
+      console.error("❌ Error details:", err instanceof Error ? err.message : String(err));
+      // Don't show error to user, just continue without criteria
+      setCriteria([]);
+    } finally {
+      setLoadingCriteria(false);
+    }
+  }, [accessToken]);
 
   const loadExistingRating = useCallback(async () => {
     try {
@@ -43,6 +72,7 @@ const CommentModal = ({
           id: null,
           score: 0,
           content: "",
+          selectedCriteria: [],
         });
         return;
       }
@@ -59,10 +89,12 @@ const CommentModal = ({
         const newScore = typeof data.score === 'number' ? data.score : Number(data.score);
         console.log("🔢 Parsed score:", newScore);
         
+        // Parse criteria from content will be done after criteria loads
         setRatingData({
           id: data.id,
           score: newScore,
           content: data.content || "",
+          selectedCriteria: [], // Will be updated after criteria loads
         });
         console.log("💾 State set with score:", newScore, "content:", data.content);
         setLoadError(null);
@@ -72,6 +104,7 @@ const CommentModal = ({
           id: null,
           score: 0,
           content: "",
+          selectedCriteria: [],
         });
         setLoadError(null);
       }
@@ -83,6 +116,7 @@ const CommentModal = ({
         id: null,
         score: 0,
         content: "",
+        selectedCriteria: [],
       });
     } finally {
       setIsLoading(false);
@@ -92,8 +126,9 @@ const CommentModal = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      // Load existing rating if available
+      // Load criteria and existing rating if available
       setLoadError(null);
+      loadCriteria();
       loadExistingRating();
     } else {
       document.body.style.overflow = "unset";
@@ -102,22 +137,35 @@ const CommentModal = ({
         id: null,
         score: 0,
         content: "",
+        selectedCriteria: [],
       });
       setLoadError(null);
     }
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, portfolioId, loadExistingRating]);
+  }, [isOpen, portfolioId, loadExistingRating, loadCriteria]);
 
-  // Debug: Log state changes
+  // Parse criteria from loaded rating content after criteria is available
   useEffect(() => {
-    console.log("🎯 RatingData state changed:", ratingData);
-  }, [ratingData]);
-
-  useEffect(() => {
-    console.log("⏳ Loading state changed:", isLoading);
-  }, [isLoading]);
+    if (criteria.length > 0 && ratingData.content && ratingData.selectedCriteria.length === 0) {
+      console.log("🔄 Parsing criteria from loaded content...");
+      const criteriaNames = ratingData.content.split("\n").filter(name => name.trim());
+      console.log("📋 Parsed criteria names:", criteriaNames);
+      
+      const selectedCriteriaIds = criteria
+        .filter(c => criteriaNames.some(name => name.trim() === c.name))
+        .map(c => c.id);
+      
+      if (selectedCriteriaIds.length > 0) {
+        console.log("📍 Selected criteria IDs:", selectedCriteriaIds);
+        setRatingData(prev => ({
+          ...prev,
+          selectedCriteria: selectedCriteriaIds,
+        }));
+      }
+    }
+  }, [criteria]);
 
   const handleSubmit = async () => {
     if (!accessToken) {
@@ -137,10 +185,28 @@ const CommentModal = ({
 
     setIsLoading(true);
     try {
+      // Build criteria text: combine selected criteria names with newline separator
+      let contentToSave = ratingData.content;
+      if (ratingData.selectedCriteria.length > 0) {
+        const selectedCriteriaNames = criteria
+          .filter(c => ratingData.selectedCriteria.includes(c.id))
+          .map(c => c.name);
+        
+        console.log("✅ Selected criteria names:", selectedCriteriaNames);
+        
+        // Combine user comment with criteria (criteria first, then comment)
+        contentToSave = selectedCriteriaNames.join("\n");
+        if (ratingData.content.trim()) {
+          contentToSave += "\n" + ratingData.content;
+        }
+        
+        console.log("📝 Final content to save:", contentToSave);
+      }
+
       if (ratingData.id) {
         // Update existing rating
         await complimentService.updateCompliment(ratingData.id, {
-          content: ratingData.content,
+          content: contentToSave,
           score: ratingData.score,
         }, accessToken);
         notify.success("Cập nhật nhận xét thành công!");
@@ -148,7 +214,7 @@ const CommentModal = ({
         // Create new rating
         await complimentService.submitCompliment({
           portfolioId,
-          content: ratingData.content,
+          content: contentToSave,
           score: ratingData.score,
         }, accessToken);
         notify.success("Gửi nhận xét thành công!");
@@ -163,6 +229,18 @@ const CommentModal = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleCriteria = (criteriaId: number) => {
+    setRatingData((prev) => {
+      const isSelected = prev.selectedCriteria.includes(criteriaId);
+      return {
+        ...prev,
+        selectedCriteria: isSelected
+          ? prev.selectedCriteria.filter(id => id !== criteriaId)
+          : [...prev.selectedCriteria, criteriaId],
+      };
+    });
   };
 
 
@@ -199,7 +277,7 @@ const CommentModal = ({
 
           {/* Body */}
           <div className="p-6 space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-            {/* Loading Spinner */}
+            {/* Loading Spinner for Rating */}
             {isLoading && (
               <div className="flex justify-center items-center py-12">
                 <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
@@ -272,6 +350,45 @@ const CommentModal = ({
                   <p className="text-xs text-gray-500 mt-1">
                     Tối đa 1000 ký tự
                   </p>
+                </div>
+
+                {/* Criteria Selection */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Tiêu chí đánh giá
+                  </label>
+                  {loadingCriteria ? (
+                    <div className="flex justify-center items-center py-6">
+                      <div className="w-5 h-5 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                      <span className="ml-2 text-sm text-gray-500">Đang tải tiêu chí...</span>
+                    </div>
+                  ) : criteria.length > 0 ? (
+                    <div className="space-y-2">
+                      {criteria.map((criteriaItem) => {
+                        const isSelected = ratingData.selectedCriteria.includes(criteriaItem.id);
+                        return (
+                          <button
+                            key={criteriaItem.id}
+                            onClick={() => toggleCriteria(criteriaItem.id)}
+                            disabled={isLoading}
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                          >
+                            {isSelected ? (
+                              <CheckSquare2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            )}
+                            <span className={`text-sm ${isSelected ? "font-semibold text-blue-600" : "text-gray-700"}`}>
+                              {criteriaItem.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Không có tiêu chí nào</p>
+                  )}
                 </div>
               </>
             )}

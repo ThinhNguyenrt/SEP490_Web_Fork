@@ -42,10 +42,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/user-profile-api/, ""),
       },
       "/hubs": {
-        target: "https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io",
+        target: "https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs",
         changeOrigin: true,
         ws: true,
-        rewrite: (path) => path, // Keep /hubs/chat as is
+        rewrite: (path) => path.replace(/^\/hubs/, ""), // Strip /hubs prefix
+        logLevel: "info",
       },
     },
   },

@@ -102,11 +102,11 @@ class RealtimeService {
     // Use proxy URLs in development, full URLs in production
     const chatHubUrl = isDev 
       ? `/hubs/chat`
-      : `https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/chat`;
+      : `https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/chat`;
     
     const notifyHubUrl = isDev 
       ? `/hubs/realtime`
-      : `https://api-gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/realtime`;
+      : `https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/hubs/realtime`;
 
     console.log(`🔌 [RealtimeService] Initializing connections in ${isDev ? 'DEV' : 'PROD'} mode`);
     console.log(`📡 Chat Hub URL: ${chatHubUrl}`);
@@ -117,9 +117,10 @@ class RealtimeService {
       .withUrl(chatHubUrl, {
         accessTokenFactory: () => accessToken,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+        withCredentials: true,
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.Information)
       .build();
 
     // 2. Khởi tạo Notify Connection (Cho Realtime Service)
@@ -127,9 +128,10 @@ class RealtimeService {
       .withUrl(notifyHubUrl, {
         accessTokenFactory: () => accessToken,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+        withCredentials: true,
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.Information)
       .build();
 
     this.setupEventHandlers();
@@ -137,6 +139,34 @@ class RealtimeService {
 
   private setupEventHandlers() {
     if (!this.notifyConnection || !this.chatConnection) return;
+
+    // ===== CHAT CONNECTION STATE HANDLERS =====
+    this.chatConnection.onclose((error?: Error) => {
+      console.warn("🔌 Chat connection closed:", error?.message || "No error message");
+    });
+
+    this.chatConnection.onreconnected((connectionId?: string) => {
+      console.log("✅ Chat connection reconnected:", connectionId);
+      window.dispatchEvent(new CustomEvent("realtime-connection-ready"));
+    });
+
+    this.chatConnection.onreconnecting((error?: Error) => {
+      console.warn("🔄 Chat connection reconnecting...", error?.message || "");
+    });
+
+    // ===== NOTIFY CONNECTION STATE HANDLERS =====
+    this.notifyConnection.onclose((error?: Error) => {
+      console.warn("🔌 Notify connection closed:", error?.message || "No error message");
+    });
+
+    this.notifyConnection.onreconnected((connectionId?: string) => {
+      console.log("✅ Notify connection reconnected:", connectionId);
+      window.dispatchEvent(new CustomEvent("realtime-connection-ready"));
+    });
+
+    this.notifyConnection.onreconnecting((error?: Error) => {
+      console.warn("🔄 Notify connection reconnecting...", error?.message || "");
+    });
 
     // ===== CHAT HUB EVENT HANDLERS =====
     this.chatConnection.on("ReceiveMessage", (messageDto: MessageDto) => {
@@ -214,29 +244,36 @@ class RealtimeService {
       const promises = [];
 
       if (this.chatConnection?.state === signalR.HubConnectionState.Disconnected) {
+        console.log("📡 Starting chat connection...");
         promises.push(this.chatConnection.start());
       }
 
       if (this.notifyConnection?.state === signalR.HubConnectionState.Disconnected) {
+        console.log("📡 Starting notify connection...");
         promises.push(this.notifyConnection.start());
       }
 
       if (promises.length > 0) {
         await Promise.all(promises);
         console.log("🚀 SignalR Connected (Chat + Notify)");
+        // Dispatch event to notify listeners
+        window.dispatchEvent(new CustomEvent("realtime-connection-ready"));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Check if error is due to service being unavailable (e.g., Container App stopped)
-      const errorMsg = err?.message || err?.toString() || "Unknown error";
+      const errorMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : String(err));
+      console.error("❌ SignalR connection error:", errorMsg);
+      
       const isServiceUnavailable = 
         errorMsg.includes("404") || 
         errorMsg.includes("Container App is stopped") ||
         errorMsg.includes("does not exist") ||
-        errorMsg.includes("cannot resolve host");
+        errorMsg.includes("cannot resolve host") ||
+        errorMsg.includes("ECONNREFUSED");
 
       if (isServiceUnavailable) {
         console.warn(
-          "⚠️ SignalR service unavailable (backend may be stopped). Will retry in 30s...",
+          "⚠️ SignalR service unavailable (backend may be stopped or proxy not working). Will retry in 30s...",
           errorMsg.substring(0, 100),
         );
         // Retry after 30 seconds instead of 5
@@ -312,16 +349,28 @@ class RealtimeService {
    * Hệ thống sẽ tự động lưu DB và broadcast
    * With automatic retry if connection is not ready
    */
-  async sendMessage(roomId: number, content: string, retryCount: number = 0, maxRetries: number = 3): Promise<void> {
+  async sendMessage(roomId: number, content: string, retryCount: number = 0, maxRetries: number = 5): Promise<void> {
+    const connectionState = this.chatConnection?.state;
+    const stateLabel = connectionState !== undefined && connectionState !== null 
+      ? signalR.HubConnectionState[connectionState] 
+      : 'Unknown';
+    console.log(`📊 Connection state: ${stateLabel}, Retry: ${retryCount}/${maxRetries}`);
+    
     if (this.chatConnection?.state !== signalR.HubConnectionState.Connected) {
       if (retryCount < maxRetries) {
-        console.warn(`⏳ Chat connection not ready, retrying SendMessage (${retryCount + 1}/${maxRetries})...`);
-        // Wait 1.5 seconds and retry
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const waitTime = 2000 + (retryCount * 500); // Increase wait time
+        const currentStateLabel = this.chatConnection?.state !== undefined && this.chatConnection?.state !== null
+          ? signalR.HubConnectionState[this.chatConnection?.state]
+          : 'Unknown';
+        console.warn(`⏳ Chat connection not ready (${currentStateLabel}), retrying SendMessage (${retryCount + 1}/${maxRetries}) in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
         return this.sendMessage(roomId, content, retryCount + 1, maxRetries);
       } else {
-        console.error("❌ Chat connection not ready after max retries");
-        throw new Error("Chat connection not ready - unable to send message. Please check your connection.");
+        const finalState = this.chatConnection?.state !== undefined && this.chatConnection?.state !== null
+          ? signalR.HubConnectionState[this.chatConnection?.state]
+          : 'Unknown';
+        console.error(`❌ Chat connection not ready after ${maxRetries} retries. Final state: ${finalState}`);
+        throw new Error(`Kết nối chat không sẵn sàng (${finalState}). Vui lòng kiểm tra kết nối và thử lại.`);
       }
     }
 
@@ -329,7 +378,7 @@ class RealtimeService {
       console.log(`💬 Sending message to room ${roomId}`);
       await this.chatConnection.invoke("SendMessage", roomId, content);
       console.log("✅ Message sent via SignalR");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("❌ SendMessage failed:", err);
       throw err;
     }

@@ -162,7 +162,7 @@ const SystemNotification = () => {
             {/* Avatar / Icon Section */}
             <div className="relative inline-block shrink-0">
               <img
-                alt={notif.actor?.name || notif.company?.name}
+                alt={notif.actor?.name || notif.company?.name || "Notification"}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
                 src={
                   notif.actor?.avatar ||

@@ -172,7 +172,7 @@ export const API_ENDPOINTS = {
 
   // Notification Endpoints
   notification: {
-    system: "/notifcations/system",
+    system: "/notifications/system",
     list: "/notifications",
     unreadCount: "/notifications/unread-count",
     markAsRead: (id: number) => `/notifications/${id}/read`,

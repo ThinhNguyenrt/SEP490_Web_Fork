@@ -18,11 +18,11 @@ export type NotificationType =
   | "POST_MENTIONED";
 export type UserNotification = {
   id: number;
-  userId: number;
+  userId: number | string;
   title: string;
   content: string;
   type: NotificationType;
-  objectId?: number;
+  objectId?: number | string;
   createdAt: string;
   isRead: boolean;
 
@@ -32,7 +32,7 @@ export type UserNotification = {
     avatar: string;
     Role: string;
   };
-  company: {
+  company?: {
     id: number;
     name: string;
     avatar: string;

@@ -1,9 +1,13 @@
 export type NotificationType =
   | "CONNECTION_ACCEPTED"
   | "CONNECTION_REJECTED"
+  | "CONNECTION_REQUEST_SENT"
   | "PROFILE_VIEWED"
   | "JOB_INVITATION"
   | "PORTFOLIO_APPROVED"
+  | "APPLICATION_APPROVED"
+  | "APPLICATION_REJECTED"
+  | "POST_APPROVED"
   | "SYSTEM_ANNOUNCEMENT"
   | "COMMUNITY_POST_REPORTED"
   | "PORTFOLIO_REPORTED"
@@ -14,11 +18,11 @@ export type NotificationType =
   | "POST_MENTIONED";
 export type UserNotification = {
   id: number;
-  userId: number;
+  userId: number | string;
   title: string;
   content: string;
   type: NotificationType;
-  objectId?: number;
+  objectId?: number | string;
   createdAt: string;
   isRead: boolean;
 
@@ -28,7 +32,7 @@ export type UserNotification = {
     avatar: string;
     Role: string;
   };
-  company: {
+  company?: {
     id: number;
     name: string;
     avatar: string;

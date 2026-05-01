@@ -85,12 +85,19 @@ const CommunityNotification = () => {
       console.error("Error marking all notifications as read:", error);
     }
   };
+
+  const handleNotificationClick = (notif: UserNotification) => {
+    handleMarkAsRead(notif.id, notif.isRead);
+    // Community notifications navigate to community posts
+    navigate(`/community/${notif.objectId}`);
+  };
+
   useEffect(() => {
     if (accessToken) {
       fetchNotificationsData();
       fetchUnreadCountData();
     }
-  }, [accessToken, fetchNotificationsData, fetchUnreadCountData]);
+  }, [accessToken]);
 
   // Infinite scroll observer
   const handleLoadMore = useCallback(() => {
@@ -144,11 +151,7 @@ const CommunityNotification = () => {
         {communityNotifications.map((notif) => (
           <div
             key={notif.id}
-            onClick={() =>
-              handleMarkAsRead(notif.id, notif.isRead).then(() =>
-                navigate(`/community/${notif.objectId}`),
-              )
-            }
+            onClick={() => handleNotificationClick(notif)}
             className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 transition-all cursor-pointer group ${
               notif.isRead
                 ? "border-gray-100 opacity-80"
@@ -181,17 +184,13 @@ const CommunityNotification = () => {
 
             {/* Content Section */}
             <div className="flex-grow">
-              <p className="text-gray-700 text-sm leading-snug">
-                {/* {notif.actor?.name && (
-                  <span className="font-bold text-gray-900 mr-1">
-                    {notif.actor.name}
-                  </span>
-                )} */}
-                <span className="font-bold text-gray-900 mr-1">
-                  {notif.content}
-                </span>
+              <p className="text-gray-900 text-sm font-semibold leading-snug">
+                {notif.title}
               </p>
-              <span className="text-xs text-gray-500 mt-1 block">
+              <p className="text-gray-600 text-sm leading-snug mt-1">
+                {notif.content}
+              </p>
+              <span className="text-xs text-gray-500 mt-2 block">
                 {formatTimeAgo(notif.createdAt)}
               </span>
             </div>

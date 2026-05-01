@@ -165,6 +165,13 @@ export type TypicalCaseItem = {
   regiment: string;
 };
 
+export type CriteriaItem = {
+  id: number;
+  name: string;
+  kind: string;
+  isActive: boolean;
+};
+
 export const PORTFOLIO_MOCK: PortfolioResponse[] = [
   {
     portfolioId: 12,
@@ -3587,6 +3594,63 @@ export const togglePublicPortfolio = async (
   }
 };
 
+// Fetch evaluation criteria from API
+export const fetchCriteria = async (accessToken: string): Promise<CriteriaItem[]> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+    const endpoint = `${API_BASE_URL}/criteria`;
+    
+    console.log("📡 [fetchCriteria] Fetching from:", endpoint);
+    
+    if (!accessToken) {
+      console.error("❌ No access token provided!");
+      throw new Error("Access token is missing. Please login again.");
+    }
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    console.log("📡 [fetchCriteria] Response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.message || `Failed to fetch criteria (${response.status})`;
+      console.error("❌ [fetchCriteria] Failed:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log("✅ [fetchCriteria] Success, received:", data);
+    
+    // Ensure we return an array
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
+    return [];
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      console.error("❌ CORS Error or Network Error:", error);
+      throw new Error(
+        "Cannot connect to server. Please check your internet connection.",
+      );
+    }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Network error. Please check your connection");
+  }
+};
+
 export const portfolioService = {
   fetchPortfolio,
   fetchPortfolioById,
@@ -3619,4 +3683,5 @@ export const portfolioService = {
   convertFieldNamesFromKeys,
   followPortfolio,
   fetchSavedPortfolios,
+  fetchCriteria,
 };

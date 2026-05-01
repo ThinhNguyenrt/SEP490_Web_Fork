@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, ArrowLeft, Loader2, CheckCheck, Check } from "lucide-react";
+import { Send, ArrowLeft, Loader2, CheckCheck, Check, AlertCircle, Wifi } from "lucide-react";
 import profileIcon from "../../assets/myWeb/profile1 1.png";
 import searchIcon from "../../assets/myWeb/magnifying-glass 1.png";
 import blockIcon from "../../assets/myWeb/block 1.png";
 import deleteIcon from "../../assets/myWeb/delete 1.png";
 import defaultCoverImage from "../../assets/testImage/coverImagee.png";
 import { notify } from "@/lib/toast";
+import { useRealtimeConnectionStatus } from "@/hook/useRealtimeConnectionStatus";
 
 interface Message {
   id: number;
@@ -48,6 +49,7 @@ export default function ChatDetails({
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const connectionStatus = useRealtimeConnectionStatus();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -138,7 +140,7 @@ export default function ChatDetails({
                       
                       {/* Read Status Indicator */}
                       {isOwnMessage && (
-                        <div className="flex-shrink-0 text-xs">
+                        <div className="shrink-0 text-xs">
                           <span className={isRead ? "text-black font-medium" : "text-gray-400 font-medium"}>
                             {isRead ? "Đã đọc" : "Đã gửi"}
                           </span>
@@ -157,25 +159,48 @@ export default function ChatDetails({
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Connection Status Alert */}
+        {!connectionStatus.chatReady && (
+          <div className="px-6 py-3 bg-yellow-50 border-b border-yellow-200 flex items-center gap-2">
+            <AlertCircle size={16} className="text-yellow-600 shrink-0" />
+            <span className="text-xs text-yellow-700">
+              Đang kết nối... ({connectionStatus.chatState})
+            </span>
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="px-6 py-4 border-t border-gray-200 bg-white">
           <div className="flex items-center gap-3">
             <input
               type="text"
-              placeholder="Tin nhắn..."
+              placeholder={connectionStatus.chatReady ? "Tin nhắn..." : "Đang kết nối..."}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              onKeyPress={(e) => e.key === "Enter" && connectionStatus.chatReady && handleSendMessage()}
+              disabled={!connectionStatus.chatReady}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSendMessage}
-              disabled={sending || !newMessage.trim()}
-              className="bg-blue-500 text-white p-2.5 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              disabled={sending || !newMessage.trim() || !connectionStatus.chatReady}
+              className="bg-blue-500 text-white p-2.5 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative"
+              title={!connectionStatus.chatReady ? `Kết nối: ${connectionStatus.chatState}` : "Gửi tin nhắn"}
             >
-              {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+              {sending ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : connectionStatus.chatReady ? (
+                <Send size={20} />
+              ) : (
+                <Wifi size={20} className="animate-pulse" />
+              )}
             </button>
           </div>
+          {!connectionStatus.chatReady && (
+            <p className="text-xs text-gray-500 mt-2">
+              Vui lòng chờ cho đến khi kết nối được thiết lập...
+            </p>
+          )}
         </div>
       </div>
 

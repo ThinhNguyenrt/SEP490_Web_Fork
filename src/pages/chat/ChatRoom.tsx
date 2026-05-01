@@ -27,6 +27,7 @@ interface Conversation {
   description?: string;
   connectionRole?: string;
   isVerified?: boolean;  // Whether the connection is a verified recruiter
+  connectionStatus?: string; // MATCHED, BLOCK, STORED, PENDING
 }
 
 // Local Storage helpers
@@ -251,6 +252,25 @@ export default function ChatRoom() {
     }
 
     try {
+      // Fetch connection status
+      if (user?.id) {
+        console.log(`🔍 Fetching connection between ${user.id} and ${conversation.connectionId}`);
+        const connection = await connectionService.getConnectionBetweenUsers(
+          user.id,
+          conversation.connectionId,
+          accessToken
+        );
+        
+        if (connection) {
+          console.log("✅ Connection status fetched:", connection.status);
+          // Update the selected conversation with connection status
+          setSelectedConversation(prev => ({
+            ...prev!,
+            connectionStatus: connection.status as string,
+          }));
+        }
+      }
+
       console.log(`📡 Fetching messages for room ${conversation.messageRoomId}`);
       
       // Call API to fetch messages
@@ -496,11 +516,17 @@ export default function ChatRoom() {
               description: "",
               connectionRole: selectedConversation.connectionRole,
               messageRoomId: selectedConversation.messageRoomId,
+              connectionStatus: selectedConversation.connectionStatus,
             }}
             messages={messages}
             onSendMessage={handleSendMessage}
             onBack={handleBack}
             currentUserId={user?.id}
+            accessToken={accessToken}
+            onBlockConversation={() => {
+              // Reload the conversation to update its status
+              handleSelectConversation(selectedConversation);
+            }}
           />
         ) : (
           /* Default View */

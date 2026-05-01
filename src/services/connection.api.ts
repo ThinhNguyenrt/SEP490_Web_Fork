@@ -229,6 +229,23 @@ export const acceptConnection = async (
 };
 
 /**
+ * Block a connection/conversation
+ * @param connectionId - ID of the connection to block
+ * @param accessToken - User's access token
+ * @returns Updated connection object
+ */
+export const blockConnection = async (
+  connectionId: number,
+  accessToken: string
+): Promise<Connection> => {
+  return updateConnectionStatus(
+    connectionId,
+    ConnectionStatus.BLOCK,
+    accessToken
+  );
+};
+
+/**
  * Room Summary Interface
  */
 export interface RoomSummary {
@@ -483,6 +500,7 @@ export const connectionService = {
   updateConnectionStatus,
   acceptConnection,
   rejectConnection,
+  blockConnection,
   getRoomSummaries,
   getMessages,
   sendMessage,

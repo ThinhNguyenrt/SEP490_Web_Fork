@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { realtimeService } from "@/services/realtimeService";
-import * as signalR from "@microsoft/signalr";
 
 interface ConnectionStatus {
   chatReady: boolean;

@@ -46,7 +46,6 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
         rewrite: (path) => path.replace(/^\/hubs/, ""), // Strip /hubs prefix
-        logLevel: "info",
       },
     },
   },

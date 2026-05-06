@@ -1,15 +1,19 @@
-
 import { useAppSelector } from "@/store/hook";
 import { UserNotification } from "@/types/notification";
 import { formatTimeAgo } from "@/utils/FormatTime";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchSystemNotifications, markNotificationAsRead } from "@/services/notification.api";
+import {
+  fetchSystemNotifications,
+  markNotificationAsRead,
+} from "@/services/notification.api";
 import { useRealtimeNotifications } from "@/hook/useRealtimeNotifications";
 
 const SystemNotification = () => {
-  const [systemNotifications, setSystemNotifications] = useState<UserNotification[]>([]);
+  const [systemNotifications, setSystemNotifications] = useState<
+    UserNotification[]
+  >([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -28,7 +32,7 @@ const SystemNotification = () => {
 
       // Cập nhật UI local
       setSystemNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -58,6 +62,8 @@ const SystemNotification = () => {
         navigationPath = `/portfolio/${notif.objectId}`;
         break;
       case "POST_APPROVED":
+        navigationPath = `/community/${notif.objectId}`;
+        break;
       case "PROFILE_VIEWED":
         navigationPath = `/profile/${notif.actor?.id}`;
         break;
@@ -76,10 +82,16 @@ const SystemNotification = () => {
 
       setLoading(true);
       try {
-        const data = await fetchSystemNotifications(cursor, 10, accessToken ?? undefined);
+        const data = await fetchSystemNotifications(
+          cursor,
+          10,
+          accessToken ?? undefined,
+        );
 
         // Append new items if cursor exists, otherwise replace
-        setSystemNotifications((prev) => (cursor ? [...prev, ...data.items] : data.items));
+        setSystemNotifications((prev) =>
+          cursor ? [...prev, ...data.items] : data.items,
+        );
         setNextCursor(data.nextCursor);
         setHasMore(data.hasMore && !!data.nextCursor);
         console.log("System notifications loaded:", data.items);
@@ -89,7 +101,7 @@ const SystemNotification = () => {
         setLoading(false);
       }
     },
-    [accessToken]
+    [accessToken],
   );
 
   // Initial fetch
@@ -116,7 +128,7 @@ const SystemNotification = () => {
       {
         threshold: 0.1,
         rootMargin: "100px",
-      }
+      },
     );
 
     if (observerTarget.current) {

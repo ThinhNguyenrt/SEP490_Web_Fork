@@ -33,21 +33,25 @@ export const useUserProfile = () => {
     if (!profileEndpoint) return;
 
     setIsLoading(true);
-    const baseUrl = "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
+    const baseUrl =
+      "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io";
 
     try {
       // Chạy song song cả 2 API để tối ưu thời gian
       const [profileRes, subRes] = await Promise.all([
         fetch(`${baseUrl}/${profileEndpoint}`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `${accessToken}` },
         }),
         // Wrap subscription fetch để handle errors gracefully
-        fetch(`https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Subscriptions/current`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }).catch((err) => {
+        fetch(
+          `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Subscriptions/current`,
+          {
+            headers: { Authorization: `${accessToken}` },
+          },
+        ).catch((err) => {
           console.warn("⚠️ Subscription service unavailable:", err.message);
           return new Response(JSON.stringify({}), { status: 200 }); // Return empty response on error
-        })
+        }),
       ]);
 
       let profileData = {} as any;
@@ -74,11 +78,15 @@ export const useUserProfile = () => {
           displayName: profileData.fullName || profileData.name || "N/A",
           avatar: profileData.avatar,
           coverImage: profileData.coverImage,
-          planName: planName, 
+          planName: planName,
         });
       } else {
         setProfile({
-          displayName: profileData.companyName || profileData.name || profileData.fullName || "N/A",
+          displayName:
+            profileData.companyName ||
+            profileData.name ||
+            profileData.fullName ||
+            "N/A",
           avatar: profileData.avatar,
           coverImage: profileData.coverImage,
           activityField: profileData.activityField,

@@ -12,10 +12,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isPro = plan.name === "Pro";
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const { accessToken, user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const { profile } = useUserProfile();
   const isCurrentPlan = profile?.planName === plan.name;
+  console.log("Current User:", user);
   const handlePayment = async () => {
     // 1. Kiểm tra gói Free
     if (plan.price === 0) {
@@ -48,35 +49,42 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     setIsLoading(true);
 
     try {
+      console.log("token", accessToken);
       // BƯỚC 3: Tạo Subscription Pending
-      const subscribeRes = await fetch(`${BASE_URL}/subscriptions/subscribe`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      const subscribeRes = await fetch(
+        `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Subscriptions/subscribe`,
+        {
+          method: "POST",
+          headers: {
+            // Thêm chữ Bearer và một dấu cách ở đây
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json", // Nên thêm dòng này nếu gửi kèm body JSON
+          },
+          body: JSON.stringify({ planId: plan.id, autoRenew: true }),
         },
-        body: JSON.stringify({ planId: plan.id, autoRenew: true }),
-      });
+      );
 
       if (!subscribeRes.ok) {
-        const errorData = await subscribeRes.json();
-        throw new Error(errorData.message || "Không thể tạo gói đăng ký");
+        throw new Error("Không thể tạo gói đăng ký");
       }
 
       const subscription = await subscribeRes.json();
 
       // BƯỚC 4: Tạo Payment Link
-      const paymentRes = await fetch(`${BASE_URL}/payments/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      const paymentRes = await fetch(
+        `https://payment-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/payments/create`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            planId: plan.id,
+            subscriptionId: subscription.id,
+          }),
         },
-        body: JSON.stringify({
-          planId: plan.id,
-          subscriptionId: subscription.id,
-        }),
-      });
+      );
 
       if (!paymentRes.ok) {
         throw new Error("Không thể tạo liên kết thanh toán");

@@ -708,7 +708,7 @@ export default function CreatePortfolio() {
   blocks.forEach(block => {
     const isAlreadyInSlots = baseSlots.some(slot => 
       slot.type === normalizeBlockType(block.type) && 
-      slot.variant?.toUpperCase() === block.variant.toUpperCase()
+      (!slot.variant || slot.variant?.toUpperCase() === block.variant.toUpperCase())
     );
 
     if (!isAlreadyInSlots) {
@@ -926,7 +926,7 @@ export default function CreatePortfolio() {
       const resetKey = slotResetKeys[slotKey] ?? 0;
       const block = findBlockForSlot(slot);
       const blockType = slot.type;
-      const variant = (slot.variant ?? getDefaultVariant(slot.type)).toUpperCase();
+      const variant = (slot.variant ?? block?.variant ?? getDefaultVariant(slot.type)).toUpperCase();
 
       // Data to pass to the editor (from existing block or defaults)
       const rawData = block?.data ?? createDefaultBlockData(blockType, variant);

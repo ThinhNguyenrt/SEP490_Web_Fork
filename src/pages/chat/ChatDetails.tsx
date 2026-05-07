@@ -7,7 +7,7 @@ import deleteIcon from "../../assets/myWeb/delete 1.png";
 import defaultCoverImage from "../../assets/testImage/coverImagee.png";
 import { notify } from "@/lib/toast";
 import { useRealtimeConnectionStatus } from "@/hook/useRealtimeConnectionStatus";
-import { blockConnection } from "@/services/connection.api";
+import { blockConnection, unblockConnection } from "@/services/connection.api";
 
 interface Message {
   id: number;
@@ -38,7 +38,7 @@ interface ChatDetailsProps {
   onSendMessage: (content: string) => Promise<void>;
   onBack: () => void;
   currentUserId?: number;
-  accessToken?: string;
+  accessToken?: string | null;
   onBlockConversation?: () => void;
 }
 
@@ -54,6 +54,7 @@ export default function ChatDetails({
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [unblocking, setUnblocking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const connectionStatus = useRealtimeConnectionStatus();
   
@@ -67,6 +68,11 @@ export default function ChatDetails({
   }, [messages]);
 
   const handleSendMessage = async () => {
+    if (isConversationBlocked) {
+      notify.error("Không thể gửi tin nhắn. Cuộc trò chuyện đã bị chặn.");
+      return;
+    }
+
     if (newMessage.trim()) {
       try {
         setSending(true);
@@ -102,6 +108,29 @@ export default function ChatDetails({
       notify.error(errorMsg);
     } finally {
       setBlocking(false);
+    }
+  };
+
+  const handleUnblockConversation = async () => {
+    if (!accessToken) {
+      notify.error("Không có token để thực hiện thao tác này");
+      return;
+    }
+
+    try {
+      setUnblocking(true);
+      await unblockConnection(conversation.connectionId, accessToken);
+      notify.success("Đã bỏ chặn cuộc trò chuyện");
+      // Refresh to update conversation status
+      if (onBlockConversation) {
+        onBlockConversation();
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Không thể bỏ chặn cuộc trò chuyện";
+      console.error("❌ Error unblocking conversation:", errorMsg);
+      notify.error(errorMsg);
+    } finally {
+      setUnblocking(false);
     }
   };
 
@@ -203,9 +232,9 @@ export default function ChatDetails({
         {/* Input Area */}
         <div className="px-6 py-4 border-t border-gray-200 bg-white">
           {isConversationBlocked ? (
-            <div className="text-center py-3 bg-red-50 border border-red-200 rounded-lg pointer-events-none">
+            <div className="text-center py-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600 font-medium">
-                Cuộc trò chuyện này đã bị chặn. Bạn chỉ có thể xem tin nhắn cũ.
+                Cuộc trò chuyện này đã bị chặn. Hãy bỏ chặn để gửi tin nhắn.
               </p>
             </div>
           ) : (
@@ -216,15 +245,15 @@ export default function ChatDetails({
                   placeholder={connectionStatus.chatReady ? "Tin nhắn..." : "Đang kết nối..."}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && connectionStatus.chatReady && handleSendMessage()}
-                  disabled={!connectionStatus.chatReady}
+                  onKeyPress={(e) => e.key === "Enter" && connectionStatus.chatReady && !isConversationBlocked && handleSendMessage()}
+                  disabled={!connectionStatus.chatReady || isConversationBlocked}
                   className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed pointer-events-auto"
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={sending || !newMessage.trim() || !connectionStatus.chatReady}
+                  disabled={sending || !newMessage.trim() || !connectionStatus.chatReady || isConversationBlocked}
                   className="bg-blue-500 text-white p-2.5 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center relative"
-                  title={!connectionStatus.chatReady ? `Kết nối: ${connectionStatus.chatState}` : "Gửi tin nhắn"}
+                  title={!connectionStatus.chatReady ? `Kết nối: ${connectionStatus.chatState}` : isConversationBlocked ? "Cuộc trò chuyện bị chặn" : "Gửi tin nhắn"}
                 >
                   {sending ? (
                     <Loader2 size={20} className="animate-spin" />
@@ -334,19 +363,32 @@ export default function ChatDetails({
 
           {/* Second Group: Block & Delete */}
           <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-            {/* Block Conversation */}
-            <button 
-              onClick={handleBlockConversation}
-              disabled={blocking || isConversationBlocked}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={isConversationBlocked ? "Cuộc trò chuyện đã bị chặn" : ""}
-            >
-              <img src={blockIcon} alt="Block" className="w-5 h-5" />
-              <span className="text-sm font-medium text-[#FF4848]">
-                {isConversationBlocked ? "Đã chặn" : "Chặn cuộc trò chuyện"}
-              </span>
-              {blocking && <Loader2 size={16} className="animate-spin ml-auto" />}
-            </button>
+            {/* Block/Unblock Conversation */}
+            {isConversationBlocked ? (
+              <button 
+                onClick={handleUnblockConversation}
+                disabled={unblocking}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <img src={blockIcon} alt="Unblock" className="w-5 h-5" />
+                <span className="text-sm font-medium text-green-600">
+                  Bỏ chặn cuộc trò chuyện
+                </span>
+                {unblocking && <Loader2 size={16} className="animate-spin ml-auto" />}
+              </button>
+            ) : (
+              <button 
+                onClick={handleBlockConversation}
+                disabled={blocking || isConversationBlocked}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <img src={blockIcon} alt="Block" className="w-5 h-5" />
+                <span className="text-sm font-medium text-[#FF4848]">
+                  Chặn cuộc trò chuyện
+                </span>
+                {blocking && <Loader2 size={16} className="animate-spin ml-auto" />}
+              </button>
+            )}
 
             {/* Divider */}
             <div className="border-t border-gray-200"></div>

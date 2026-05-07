@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { UserPlus, Check, X, Loader2, AlertCircle } from "lucide-react";
+import { UserPlus, Check,  Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/toast";
 import { connectionService } from "@/services/connection.api";
@@ -144,29 +144,6 @@ export default function ConnectionButton({
   };
 
   // Handle rejecting connection request
-  const handleReject = async () => {
-    if (!connection || !accessToken) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const updatedConnection = await connectionService.rejectConnection(
-        connection.id,
-        accessToken
-      );
-
-      setConnection(updatedConnection);
-      notify.success("Yêu cầu kết nối đã bị từ chối");
-      onConnectionStatusChange?.(updatedConnection);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Không thể từ chối yêu cầu";
-      setError(errorMsg);
-      notify.error(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Don't render button if viewing own profile or checking
   if (currentUserId === targetUserId || checking) {
@@ -257,14 +234,6 @@ export default function ConnectionButton({
             size="sm"
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          </Button>
-          <Button
-            onClick={handleReject}
-            disabled={loading}
-            className="h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white px-2 text-xs font-semibold"
-            size="sm"
-          >
-            {loading ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
           </Button>
         </div>
       );

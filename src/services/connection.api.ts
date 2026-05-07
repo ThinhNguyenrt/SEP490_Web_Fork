@@ -194,22 +194,6 @@ export const updateConnectionStatus = async (
   }
 };
 
-/**
- * Reject a connection request
- * @param connectionId - ID of the connection to reject
- * @param accessToken - User's access token
- * @returns Updated connection object
- */
-export const rejectConnection = async (
-  connectionId: number,
-  accessToken: string
-): Promise<Connection> => {
-  return updateConnectionStatus(
-    connectionId,
-    ConnectionStatus.REJECTED,
-    accessToken
-  );
-};
 
 /**
  * Accept a connection request (sets status to MATCHED)
@@ -241,6 +225,23 @@ export const blockConnection = async (
   return updateConnectionStatus(
     connectionId,
     ConnectionStatus.BLOCK,
+    accessToken
+  );
+};
+
+/**
+ * Unblock a connection/conversation
+ * @param connectionId - ID of the connection to unblock
+ * @param accessToken - User's access token
+ * @returns Updated connection object
+ */
+export const unblockConnection = async (
+  connectionId: number,
+  accessToken: string
+): Promise<Connection> => {
+  return updateConnectionStatus(
+    connectionId,
+    ConnectionStatus.MATCHED,
     accessToken
   );
 };
@@ -499,8 +500,8 @@ export const connectionService = {
   getConnectionBetweenUsers,
   updateConnectionStatus,
   acceptConnection,
-  rejectConnection,
   blockConnection,
+  unblockConnection,
   getRoomSummaries,
   getMessages,
   sendMessage,

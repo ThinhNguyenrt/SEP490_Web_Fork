@@ -401,7 +401,9 @@ export default function ApplicationHistory() {
                             {/* Message + Connection buttons - show for all applications with company */}
                             {app.company?.userId && (
                               <div className="flex gap-2">
-                                <button className="h-8 rounded-xl border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100 transition-all">
+                                <button 
+                                  onClick={() => navigate('/chat')}
+                                  className="h-8 rounded-xl border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-600 hover:bg-blue-100 transition-all">
                                   Nhắn tin
                                 </button>
                                 <ConnectionButton
@@ -502,7 +504,9 @@ export default function ApplicationHistory() {
                     <div className="space-y-3 pt-4">
                       {selectedApplication.company?.userId && (
                         <div className="flex gap-3">
-                          <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer">
+                          <button 
+                            onClick={() => navigate('/chat')}
+                            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer">
                             Nhắn tin
                           </button>
                           <ConnectionButton

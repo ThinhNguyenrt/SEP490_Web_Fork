@@ -17,6 +17,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const { profile } = useUserProfile();
   const isCurrentPlan = profile?.planName === plan.name;
   console.log("Current User:", user);
+
   const handlePayment = async () => {
     // 1. Kiểm tra gói Free
     if (plan.price === 0) {
@@ -31,7 +32,6 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     }
 
     // --- CHIẾN THUẬT MỞ TAB CHỜ ---
-    // Mở ngay một tab trống để trình duyệt hiểu đây là hành động trực tiếp từ user click
     const paymentWindow = window.open("", "_blank");
     if (paymentWindow) {
       paymentWindow.document.write(`
@@ -56,9 +56,8 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         {
           method: "POST",
           headers: {
-            // Thêm chữ Bearer và một dấu cách ở đây
             Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json", // Nên thêm dòng này nếu gửi kèm body JSON
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ planId: plan.id, autoRenew: true }),
         },
@@ -94,16 +93,13 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       if (paymentData.paymentUrl && paymentWindow) {
         // BƯỚC 5: CẬP NHẬT TAB VÀ ĐIỀU HƯỚNG
-        // Gán URL thật cho tab đang chờ
         paymentWindow.location.href = paymentData.paymentUrl;
 
-        // Lưu thông tin để trang ResultPage đối soát
         localStorage.setItem("pending_payment_id", paymentData.paymentId);
         localStorage.setItem("pending_order_code", paymentData.orderCode);
 
         notify.success("Đang mở trang thanh toán...");
 
-        // Chuyển TAB HIỆN TẠI sang trang kết quả (Polling)
         navigate(
           `/payment/result?paymentId=${paymentData.paymentId}&orderCode=${paymentData.orderCode}`,
         );
@@ -113,124 +109,140 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
       }
     } catch (error: any) {
       console.error("Payment Error:", error);
-      paymentWindow?.close(); // Đóng tab nếu gặp lỗi để tránh treo tab trắng
+      paymentWindow?.close();
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
     } finally {
       setIsLoading(false);
     }
   };
+  const handleEnumPlanName = (name: string) => {
+    switch (name) {
+      case "Free":
+        return "Gói Miễn Phí";
+      case "Pro":
+        return "Gói Pro";
+      case "Premium":
+        return "Gói Premium";
+      default:
+        return name;
+    }
+  };
   return (
     <div
       className={cn(
-        "relative p-4 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full",
+        "relative p-6 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full justify-between",
         isPro
-          ? "border-blue-500 shadow-2xl scale-105 z-10"
-          : "border-slate-100 shadow-sm",
+          ? "border-blue-500 shadow-2xl md:scale-105 z-10" // Chỉ scale mượt trên desktop, tránh lỗi tràn viền mobile
+          : "border-slate-100 shadow-sm hover:border-slate-200",
         isLoading && "opacity-70 pointer-events-none",
       )}
     >
-      {/* Badge phổ biến */}
-      {isPro && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/40">
-          Phổ biến nhất
+      {/* Group trên: Bao bọc Content để chừa Button tự nhảy xuống đáy Card */}
+      <div className="flex flex-col flex-1 w-full">
+        {/* Badge phổ biến */}
+        {isPro && (
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/40 whitespace-nowrap">
+            Phổ biến nhất
+          </div>
+        )}
+
+        {/* Header & Price */}
+        <div className="text-center mb-6">
+          <div
+            className={cn(
+              "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4",
+              plan.name === "Free"
+                ? "bg-slate-100 text-slate-400"
+                : isPro
+                  ? "bg-blue-50 text-blue-600"
+                  : "bg-yellow-50 text-yellow-600",
+            )}
+          >
+            {plan.name === "Free" ? (
+              <Star size={32} />
+            ) : plan.name === "Pro" ? (
+              <Zap size={32} />
+            ) : (
+              <Crown size={32} />
+            )}
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">
+            {handleEnumPlanName(plan.name)}
+          </h3>
+          <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest min-h-[32px]">
+            {plan.description}
+          </p>
         </div>
-      )}
 
-      {/* Header & Price */}
-      <div className="text-center mb-8">
-        <div
-          className={cn(
-            "w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6",
-            plan.name === "Free"
-              ? "bg-slate-100 text-slate-400"
-              : isPro
-                ? "bg-blue-50 text-blue-600"
-                : "bg-yellow-50 text-yellow-600",
-          )}
-        >
-          {plan.name === "Free" ? (
-            <Star size={32} />
-          ) : isPro ? (
-            <Zap size={32} />
-          ) : (
-            <Crown size={32} />
-          )}
+        {/* Khối hiển thị Giá Tiền (đã format dấu chấm phân tách phần nghìn) */}
+        <div className="flex items-baseline justify-center gap-1 mb-8 text-center">
+          <span className="text-4xl font-black text-slate-900">
+            {plan.price.toLocaleString("vi-VN") + " đ"}
+          </span>
+          <span className="text-slate-400 font-bold text-xs">/tháng</span>
         </div>
-        <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">
-          {plan.name}
-        </h3>
-        <p className="text-slate-400 text-[11px] font-bold mt-2 uppercase tracking-widest">
-          {plan.description}
-        </p>
-      </div>
 
-      <div className="flex items-baseline justify-center gap-1 mb-10 text-center">
-        <span className="text-5xl font-black text-slate-900">
-          {plan.price + " đ"}
-        </span>
-        <span className="text-slate-400 font-bold text-sm">/tháng</span>
-      </div>
-
-      {/* Features List */}
-      <div className="flex-1 space-y-1 mb-10">
-        {plan.features.map((feature) => {
-          const isNotAvailable = feature.value === "false";
-          return (
-            <div key={feature.featureKey} className="flex items-start gap-3">
-              <div
-                className={cn(
-                  "shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
-                  isNotAvailable
-                    ? "bg-slate-50 text-slate-300"
-                    : "bg-blue-50 text-blue-500",
-                )}
-              >
-                <Check size={12} strokeWidth={4} />
-              </div>
-              <div className="flex flex-col">
-                <span
+        {/* Features List */}
+        <div className="flex-1 space-y-3 mb-8">
+          {plan.features.map((feature) => {
+            const isNotAvailable = feature.value === "false";
+            return (
+              <div key={feature.featureKey} className="flex items-start gap-3">
+                <div
                   className={cn(
-                    "text-sm font-bold transition-colors",
+                    "shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
                     isNotAvailable
-                      ? "text-slate-300 line-through"
-                      : "text-slate-700",
+                      ? "bg-slate-50 text-slate-300"
+                      : "bg-blue-50 text-blue-500",
                   )}
                 >
-                  {feature.featureName}
-                </span>
-                {!isNotAvailable && (
-                  <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">
-                    {feature.type === "Boolean"
-                      ? feature.value === "true"
-                        ? "Có"
-                        : "Không"
-                      : feature.value === "-1"
-                        ? "Vô hạn"
-                        : feature.value}
+                  <Check size={12} strokeWidth={4} />
+                </div>
+                <div className="flex flex-col">
+                  <span
+                    className={cn(
+                      "text-sm font-bold transition-colors",
+                      isNotAvailable
+                        ? "text-slate-300 line-through"
+                        : "text-slate-700",
+                    )}
+                  >
+                    {feature.featureName}
                   </span>
-                )}
+                  {!isNotAvailable && (
+                    <span className="text-[11px] text-blue-500 font-black uppercase tracking-tighter">
+                      {feature.type === "Boolean"
+                        ? feature.value === "true"
+                          ? "Có"
+                          : "Không"
+                        : feature.value === "-1"
+                          ? "Vô hạn"
+                          : feature.value}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Action Button */}
+      {/* Action Button - Đã được fix căn giữa icon Loader2 */}
       <button
         onClick={handlePayment}
-        disabled={isLoading || isCurrentPlan} // Không cho bấm nếu là gói hiện tại
+        disabled={isLoading || isCurrentPlan}
         className={cn(
-          "w-full py-3 rounded-[1.5rem] font-black text-sm transition-all",
+          "w-full py-3.5 rounded-[1.5rem] font-black text-sm transition-all flex items-center justify-center gap-2",
           isCurrentPlan
-            ? "bg-emerald-100 text-emerald-600 cursor-default border-2 border-emerald-200" // Style cho gói hiện tại
+            ? "bg-emerald-100 text-emerald-600 cursor-default border-2 border-emerald-200"
             : isPro
-              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
               : "bg-slate-900 hover:bg-black text-white",
           isLoading && "opacity-50 cursor-wait",
         )}
       >
         {isLoading ? (
-          <Loader2 className="animate-spin" />
+          <Loader2 className="animate-spin" size={18} />
         ) : isCurrentPlan ? (
           "GÓI BẠN ĐANG DÙNG"
         ) : (

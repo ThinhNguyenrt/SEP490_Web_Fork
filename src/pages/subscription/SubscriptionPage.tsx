@@ -44,8 +44,9 @@ const SubscriptionPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto pt-11 px-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="max-w-7xl mx-auto pt-10 px-4">
+      {/* Thay md:grid-cols-2 thành md:grid-cols-3 và thêm items-stretch */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
         {plans.map((plan) => (
           <PlanCard key={plan.id} plan={plan} />
         ))}

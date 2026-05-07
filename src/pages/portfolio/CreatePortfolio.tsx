@@ -599,6 +599,7 @@ export default function CreatePortfolio() {
 
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   const [selectedBlockTypeForVariant, setSelectedBlockTypeForVariant] = useState<string | null>(null);
+  const [hasStartedEditing, setHasStartedEditing] = useState(isEditMode);
 
   const allocateTempBlockId = (): number => {
     const nextId = nextTempBlockIdRef.current;
@@ -672,6 +673,7 @@ export default function CreatePortfolio() {
         setSelectedBlockId(null);
         setPortfolioName("Hồ sơ mới");
         setAllowedBlockTypes(new Set());
+        setHasStartedEditing(false);
       } catch (initializationError) {
         const message =
           initializationError instanceof Error
@@ -706,7 +708,7 @@ export default function CreatePortfolio() {
   blocks.forEach(block => {
     const isAlreadyInSlots = baseSlots.some(slot => 
       slot.type === normalizeBlockType(block.type) && 
-      slot.variant?.toUpperCase() === block.variant.toUpperCase()
+      (!slot.variant || slot.variant?.toUpperCase() === block.variant.toUpperCase())
     );
 
     if (!isAlreadyInSlots) {
@@ -780,7 +782,8 @@ export default function CreatePortfolio() {
 
     setBlocks((prevBlocks) => sortAndReindexBlocks([...prevBlocks, newBlock]));
     setSelectedBlockId(newBlock.id);
-    setActiveTab("component");
+    setHasStartedEditing(true); // Mark that editing has started
+    setActiveTab("component"); // Auto-switch to component tab
   };
 
   const handleSave = async () => {
@@ -854,6 +857,7 @@ export default function CreatePortfolio() {
     setAllowedBlockTypes(blockTypes);
     setBlocks([]);
     setActiveTemplateId(template.portfolioId);
+    setHasStartedEditing(true);
 
     const selectedTemplateIndex = templates.findIndex((item) => item.portfolioId === template.portfolioId);
     const templateVariants = new Set(template.blocks.map((block) => block.variant.toUpperCase()));
@@ -900,7 +904,7 @@ export default function CreatePortfolio() {
 
     setSelectedBlockId(null);
     setShowBlockSelector(true);
-    setActiveTab("component");
+    setActiveTab("component"); // Auto-switch to component tab when template is selected
   };
 
   const handleVariantSelect = (variant: string) => {
@@ -922,7 +926,7 @@ export default function CreatePortfolio() {
       const resetKey = slotResetKeys[slotKey] ?? 0;
       const block = findBlockForSlot(slot);
       const blockType = slot.type;
-      const variant = (slot.variant ?? getDefaultVariant(slot.type)).toUpperCase();
+      const variant = (slot.variant ?? block?.variant ?? getDefaultVariant(slot.type)).toUpperCase();
 
       // Data to pass to the editor (from existing block or defaults)
       const rawData = block?.data ?? createDefaultBlockData(blockType, variant);
@@ -2104,10 +2108,17 @@ export default function CreatePortfolio() {
 
               {/* Accordion editors */}
               <div className="max-h-[calc(100vh-180px)] overflow-y-auto p-3 space-y-2">
-                {editorSlots.length === 0 ? (
+                {!hasStartedEditing ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-center">
+                    <p className="text-sm font-medium text-slate-600 mb-1">Bắt đầu tạo hồ sơ</p>
+                    <p className="text-sm text-slate-500">
+                      Chọn một template ở tab <span className="font-semibold">"Thiết kế mẫu"</span> hoặc thêm thành phần từ tab <span className="font-semibold">"Thành phần"</span>
+                    </p>
+                  </div>
+                ) : editorSlots.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-center">
                     <p className="text-sm text-slate-500">
-                      Chọn một template để bắt đầu chỉnh sửa.
+                      Không có thành phần nào. Thêm thành phần từ tab bên trái.
                     </p>
                   </div>
                 ) : (

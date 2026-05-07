@@ -40,7 +40,8 @@ export default function CommunityPostDetail() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+  const API_BASE_URL =
+    "https://gateway.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api";
 
   // --- 1. LOGIC REALTIME (SIGNALR) ---
   useEffect(() => {
@@ -149,6 +150,11 @@ export default function CommunityPostDetail() {
 
       const commentsFetch = fetch(
         `${API_BASE_URL}/community/posts/${id}/comments`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, // Thêm Token cho bài viết
+          },
+        },
       );
 
       // 2. Chạy song song cả hai

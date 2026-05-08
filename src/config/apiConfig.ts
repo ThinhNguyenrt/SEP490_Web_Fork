@@ -155,6 +155,7 @@ export const API_ENDPOINTS = {
     create: "/portfolio",
     update: (id: number) => `/portfolio/${id}`,
     follows: "/follows",
+    criteria: "/criteria",
   },
 
   // User Profile Endpoints

@@ -3597,8 +3597,7 @@ export const togglePublicPortfolio = async (
 // Fetch evaluation criteria from API
 export const fetchCriteria = async (accessToken: string): Promise<CriteriaItem[]> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
-    const endpoint = `${API_BASE_URL}/criteria`;
+    const endpoint = buildApiUrl(API_BASE_URLS.portfolio, API_ENDPOINTS.portfolio.criteria);
     
     console.log("📡 [fetchCriteria] Fetching from:", endpoint);
     

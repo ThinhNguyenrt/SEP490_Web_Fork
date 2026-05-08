@@ -137,7 +137,9 @@ export default function OtherTalentProfilePage() {
             </div>
 
             <div className="flex gap-3 relative z-0">
-              <button className="flex-1 lg:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer">
+              <button 
+                onClick={() => navigate('/chat')}
+                className="flex-1 lg:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer">
                 Nhắn tin
               </button>
               <ConnectionButton 

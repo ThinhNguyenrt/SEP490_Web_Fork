@@ -138,7 +138,9 @@ export default function OtherCompanyProfilePage() {
               </div>
 
               <div className="flex gap-3 w-full lg:w-auto">
-                <button className="flex-1 lg:flex-none px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
+                <button 
+                  onClick={() => navigate('/chat')}
+                  className="flex-1 lg:flex-none px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
                   Nhắn tin
                 </button>
                 <ConnectionButton 

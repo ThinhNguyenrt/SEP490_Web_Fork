@@ -25,7 +25,7 @@ const SetupCompanyProfile = () => {
   const [taxId, setTaxId] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
-
+  const BASE_URL = "https://userprofile-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api";
   // 2. State lưu file & preview
   const [avatar, setAvatar] = useState<{ file: File | null; preview: string }>({
     file: null,
@@ -90,7 +90,7 @@ const SetupCompanyProfile = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `/user-profile-api/Company`,
+        `${BASE_URL}/user-profile-api/Company`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -101,7 +101,7 @@ const SetupCompanyProfile = () => {
       if (response.ok) {
         // 1. Lấy dữ liệu mới từ response
         const checkResponse = await fetch(
-          `/user-profile-api/Company/by-user/${user?.id}`,
+          `${BASE_URL}/user-profile-api/Company/by-user/${user?.id}`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           },

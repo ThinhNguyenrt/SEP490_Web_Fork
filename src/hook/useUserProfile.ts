@@ -46,7 +46,7 @@ export const useUserProfile = () => {
         fetch(
           `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Subscriptions/current`,
           {
-            headers: { Authorization: `${accessToken}` },
+            headers: { Authorization: `Bearer ${accessToken}` },
           },
         ).catch((err) => {
           console.warn("⚠️ Subscription service unavailable:", err.message);

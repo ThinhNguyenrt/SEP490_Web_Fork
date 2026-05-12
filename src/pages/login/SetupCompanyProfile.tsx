@@ -90,7 +90,7 @@ const SetupCompanyProfile = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${BASE_URL}/user-profile-api/Company`,
+        `${BASE_URL}/Company`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -101,7 +101,7 @@ const SetupCompanyProfile = () => {
       if (response.ok) {
         // 1. Lấy dữ liệu mới từ response
         const checkResponse = await fetch(
-          `${BASE_URL}/user-profile-api/Company/by-user/${user?.id}`,
+          `${BASE_URL}/Company/by-user/${user?.id}`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           },

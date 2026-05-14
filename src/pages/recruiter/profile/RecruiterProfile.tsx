@@ -218,8 +218,8 @@ export default function RecruiterProfile() {
         <div className="grid grid-cols-2 gap-4">
           <ServiceCard
             icon={<FileText className="text-blue-600" />}
-            title="Quản lý hồ sơ"
-            desc="Cập nhật hồ sơ của bạn"
+            title="Quản lý bài đăng tuyển dụng"
+            desc="Cập nhật bài đăng tuyển dụng của bạn"
             onClick={handlePortfolioClick}
           />
           <ServiceCard

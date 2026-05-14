@@ -4,7 +4,6 @@ import {
   Banknote,
   Clock,
   MoreVertical,
-  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -502,39 +501,7 @@ export default function ApplicationManagement() {
               </CardContent>
             </Card>
           </section>
-
-          {/* Right: Interview schedule */}
-          <section className="xl:col-span-3 xl:self-start">
-            <Card className="border border-slate-200 bg-white shadow-sm">
-              <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-slate-100 pb-4">
-                <CardTitle className="text-lg text-slate-800">Lịch phỏng vấn</CardTitle>
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-blue-500 hover:text-blue-700"
-                >
-                  Xem tất cả
-                </button>
-              </CardHeader>
-              <CardContent className="space-y-5 pt-5">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    Chưa có lịch phỏng vấn
-                  </p>
-                  <p className="text-sm font-medium text-slate-500">
-                    Lịch phỏng vấn sẽ hiển thị ở đây khi bạn tạo
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3 text-sm font-semibold text-slate-500 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-                >
-                  <Plus size={15} />
-                  Thêm lịch mới
-                </button>
-              </CardContent>
-            </Card>
-          </section>
+         
         </div>
 
         {/* Modal for updating status */}

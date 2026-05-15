@@ -6,6 +6,7 @@ import {
   Library,
   Crown,
   Zap,
+  Beaker,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,12 @@ export function Header() {
       requireAuth: true,
     },
     {
+      icon: Beaker,
+      label: "Thử thách",
+      href: user?.role === 2 ? "/challenge-management" : "/talent-challenge",
+      requireAuth: true,
+    },
+    {
       icon: Bell,
       label: "Thông báo",
       href: "/notification",
@@ -67,7 +74,8 @@ export function Header() {
   const visibleNavItems = allNavItems.filter((item) => {
     if (isLoggedIn) {
       // Nếu đã login: Ẩn các tab có hideOnLogin, hiện các tab còn lại (alwaysShow hoặc requireAuth)
-      return !item.hideOnLogin;
+      if (item.hideOnLogin) return false;
+      return true;
     }
     // Nếu chưa login: Chỉ hiện các tab KHÔNG yêu cầu auth (Giới thiệu & Gói cước)
     return !item.requireAuth;
@@ -97,7 +105,12 @@ export function Header() {
             location.pathname === item.href ||
             (item.label === "Trang chủ" &&
               (location.pathname === "/talent-home" ||
-                location.pathname === "/recruiter-home"));
+                location.pathname === "/recruiter-home")) ||
+            (item.label === "Thử thách" &&
+              (location.pathname === "/challenge-management" ||
+                location.pathname.startsWith("/challenge-management/") ||
+                location.pathname === "/talent-challenge" ||
+                location.pathname.startsWith("/talent-challenge/")));
 
           return (
             <Link

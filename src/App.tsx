@@ -104,6 +104,15 @@ const SubscriptionPage = lazy(
   () => import("./pages/subscription/SubscriptionPage"),
 );
 const PaymentResultPage = lazy(() => import("./pages/payment/ResultPage"));
+const ChallengeManagementPage = lazy(
+  () => import("./pages/challenge/ChallengeManagement"),
+);
+const ChallengeTalentPage = lazy(
+  () => import("./pages/challenge/ChallengeTalent"),
+);
+const ChallengeDetailTalentPage = lazy(
+  () => import("./pages/challenge/ChallengeDetailTalent"),
+);
 function AppContent() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
@@ -226,6 +235,18 @@ function AppContent() {
           <Route
             path="/recruitment-management/:postId"
             element={<RecruitmentDetails />}
+          />
+          <Route
+            path="/challenge-management"
+            element={<ChallengeManagementPage />}
+          />
+          <Route
+            path="/talent-challenge"
+            element={<ChallengeTalentPage />}
+          />
+          <Route
+            path="/talent-challenge/:challengeId"
+            element={<ChallengeDetailTalentPage />}
           />
           <Route
             path="/portfolioManagement"

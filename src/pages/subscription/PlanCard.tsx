@@ -5,15 +5,11 @@ import { useAppSelector } from "@/store/hook";
 import { SubscriptionPlan } from "@/types/subscription";
 import { Check, Crown, Loader2, Star, Zap } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-// const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isPro = plan.name === "Pro";
   const { accessToken, user } = useAppSelector((state) => state.auth);
-  const navigate = useNavigate();
   const { profile } = useUserProfile();
   const isCurrentPlan = profile?.planName === plan.name;
   console.log("Current User:", user);
@@ -29,21 +25,6 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
     if (!accessToken) {
       notify.error("Vui lòng đăng nhập để thực hiện thanh toán");
       return;
-    }
-
-    // --- CHIẾN THUẬT MỞ TAB CHỜ ---
-    const paymentWindow = window.open("", "_blank");
-    if (paymentWindow) {
-      paymentWindow.document.write(`
-      <html>
-        <head><title>Đang kết nối...</title></head>
-        <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
-          <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite;"></div>
-          <p style="margin-top: 20px; color: #64748b;">Đang chuyển hướng đến cổng thanh toán PayOS...</p>
-          <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-        </body>
-      </html>
-    `);
     }
 
     setIsLoading(true);
@@ -91,30 +72,23 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
 
       const paymentData = await paymentRes.json();
 
-      if (paymentData.paymentUrl && paymentWindow) {
-        // BƯỚC 5: CẬP NHẬT TAB VÀ ĐIỀU HƯỚNG
-        paymentWindow.location.href = paymentData.paymentUrl;
+      if (paymentData.paymentUrl) {
+        // Lưu thông tin đối soát phòng hờ (nếu cần dùng ở luồng khác)
+        // localStorage.setItem("pending_payment_id", paymentData.paymentId);
+        // localStorage.setItem("pending_order_code", paymentData.orderCode);
 
-        localStorage.setItem("pending_payment_id", paymentData.paymentId);
-        localStorage.setItem("pending_order_code", paymentData.orderCode);
-
-        notify.success("Đang mở trang thanh toán...");
-
-        navigate(
-          `/payment/result?paymentId=${paymentData.paymentId}&orderCode=${paymentData.orderCode}`,
-        );
+        // BƯỚC 5: ĐIỀU HƯỚNG TRỰC TIẾP TRÊN TAB HIỆN TẠI ĐẾN PAYOS
+        window.location.href = paymentData.paymentUrl;
       } else {
-        paymentWindow?.close();
         throw new Error("Dữ liệu thanh toán không hợp lệ");
       }
     } catch (error: any) {
       console.error("Payment Error:", error);
-      paymentWindow?.close();
       notify.error(error.message || "Đã xảy ra lỗi trong quá trình kết nối");
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Chỉ tắt loading khi có lỗi, nếu thành công thì để trang tự chuyển hướng sang PayOS
     }
   };
+
   const handleEnumPlanName = (name: string) => {
     switch (name) {
       case "Free":
@@ -127,17 +101,17 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         return name;
     }
   };
+
   return (
     <div
       className={cn(
-        "relative p-6 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full justify-between",
+        "relative p-4 rounded-[2rem] border-2 transition-all duration-500 bg-white flex flex-col h-full justify-between",
         isPro
-          ? "border-blue-500 shadow-2xl md:scale-105 z-10" // Chỉ scale mượt trên desktop, tránh lỗi tràn viền mobile
+          ? "border-blue-500 shadow-2xl md:scale-105 z-10"
           : "border-slate-100 shadow-sm hover:border-slate-200",
         isLoading && "opacity-70 pointer-events-none",
       )}
     >
-      {/* Group trên: Bao bọc Content để chừa Button tự nhảy xuống đáy Card */}
       <div className="flex flex-col flex-1 w-full">
         {/* Badge phổ biến */}
         {isPro && (
@@ -174,7 +148,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
           </p>
         </div>
 
-        {/* Khối hiển thị Giá Tiền (đã format dấu chấm phân tách phần nghìn) */}
+        {/* Khối hiển thị Giá Tiền */}
         <div className="flex items-baseline justify-center gap-1 mb-8 text-center">
           <span className="text-4xl font-black text-slate-900">
             {plan.price.toLocaleString("vi-VN") + " đ"}
@@ -227,7 +201,7 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         </div>
       </div>
 
-      {/* Action Button - Đã được fix căn giữa icon Loader2 */}
+      {/* Action Button */}
       <button
         onClick={handlePayment}
         disabled={isLoading || isCurrentPlan}
@@ -242,7 +216,10 @@ const PlanCard = ({ plan }: { plan: SubscriptionPlan }) => {
         )}
       >
         {isLoading ? (
-          <Loader2 className="animate-spin" size={18} />
+          <>
+            <Loader2 className="animate-spin" size={18} />
+            <span>ĐANG KẾT NỐI...</span>
+          </>
         ) : isCurrentPlan ? (
           "GÓI BẠN ĐANG DÙNG"
         ) : (

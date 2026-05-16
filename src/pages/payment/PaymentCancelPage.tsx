@@ -15,7 +15,7 @@ export default function PaymentCancelPage() {
           
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate("/pricing")} // Đường dẫn tới trang chọn gói của bạn
+              onClick={() => navigate("/subscription")} // Đường dẫn tới trang chọn gói của bạn
               className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-black transition-all"
             >
               THỬ THANH TOÁN LẠI

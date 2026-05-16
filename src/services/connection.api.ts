@@ -306,6 +306,16 @@ export interface SendMessageRequest {
 }
 
 /**
+ * Room Status Interface
+ * Returned when checking the status of a message room
+ */
+export interface RoomStatus {
+  roomId: number;
+  status: string; // "BLOCKED", "ACTIVE", or other statuses
+  blockId?: number;
+}
+
+/**
  * Get room summaries for a user
  * Shows all matched connections with room information
  * @param userId - User ID to get rooms for
@@ -345,6 +355,50 @@ export const getRoomSummaries = async (
     const errorMsg =
       error instanceof Error ? error.message : "Failed to fetch room summaries";
     console.error("❌ Error fetching room summaries:", errorMsg);
+    throw error;
+  }
+};
+
+/**
+ * Get the status of a message room
+ * Checks if a room is blocked or active
+ * @param roomId - ID of the message room
+ * @param accessToken - User's access token
+ * @returns Room status with roomId, status, and blockId
+ */
+export const getRoomStatus = async (
+  roomId: number,
+  accessToken: string
+): Promise<RoomStatus> => {
+  try {
+    console.log(`🔍 Fetching room status for room ${roomId}`);
+    const url = buildApiUrl(API_BASE_URLS.connection, `/Connection/rooms/${roomId}/status`);
+    console.log("🌐 Request URL:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log("📊 Response Status:", response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ API error response:", errorText);
+      throw new Error(
+        `Failed to fetch room status: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ Room status fetched:", data);
+    return data;
+  } catch (error) {
+    const errorMsg =
+      error instanceof Error ? error.message : "Failed to fetch room status";
+    console.error("❌ Error fetching room status:", errorMsg);
     throw error;
   }
 };
@@ -503,6 +557,7 @@ export const connectionService = {
   blockConnection,
   unblockConnection,
   getRoomSummaries,
+  getRoomStatus,
   getMessages,
   sendMessage,
   markMessageAsRead,

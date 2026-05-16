@@ -285,13 +285,13 @@ export default function SubscriptionManagementPage() {
                   <thead>
                     <tr className="bg-slate-50/50">
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                        Order Code
+                        Mã giao dịch
                       </th>
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                        Amount
+                        Số tiền
                       </th>
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">
-                        Status
+                        Trạng thái
                       </th>
                     </tr>
                   </thead>
@@ -315,7 +315,7 @@ export default function SubscriptionManagementPage() {
                           </div>
                         </td>
                         <td className="px-8 py-5 text-sm font-black text-slate-900">
-                          {tx.amount.toLocaleString()} {tx.currency}
+                          {tx.amount * 1000} {tx.currency}
                         </td>
                         <td className="px-8 py-5 text-right">
                           <span

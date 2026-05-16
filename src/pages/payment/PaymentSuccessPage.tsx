@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
@@ -13,12 +14,12 @@ export default function PaymentSuccessPage() {
           <p className="text-slate-600 font-medium">
             Tuyệt vời! Giao dịch của bạn đã được ghi nhận. Hệ thống đang kích hoạt quyền lợi gói dịch vụ cho tài khoản của bạn.
           </p>
-          <button
+          <Button
             onClick={() => navigate("/talent-home")}
             className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
           >
             BẮT ĐẦU TRẢI NGHIỆM
-          </button>
+          </Button>
         </div>
       </div>
     </div>

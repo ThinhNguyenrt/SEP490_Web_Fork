@@ -7,7 +7,7 @@ import deleteIcon from "../../assets/myWeb/delete 1.png";
 import defaultCoverImage from "../../assets/testImage/coverImagee.png";
 import { notify } from "@/lib/toast";
 import { useRealtimeConnectionStatus } from "@/hook/useRealtimeConnectionStatus";
-import { blockConnection, unblockConnection } from "@/services/connection.api";
+import { blockConnection, unblockConnection, getRoomStatus, RoomStatus } from "@/services/connection.api";
 
 interface Message {
   id: number;
@@ -55,10 +55,11 @@ export default function ChatDetails({
   const [sending, setSending] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [unblocking, setUnblocking] = useState(false);
+  const [roomStatus, setRoomStatus] = useState<RoomStatus | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const connectionStatus = useRealtimeConnectionStatus();
   
-  const isConversationBlocked = conversation.connectionStatus === "BLOCK";
+  const isConversationBlocked = roomStatus?.status === "BLOCK";
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -66,6 +67,27 @@ export default function ChatDetails({
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Fetch room status when component mounts or conversation changes
+  useEffect(() => {
+    const fetchRoomStatus = async () => {
+      if (!accessToken || !conversation.messageRoomId) {
+        return;
+      }
+
+      try {
+        const status = await getRoomStatus(conversation.messageRoomId, accessToken);
+        setRoomStatus(status);
+        console.log("✅ Room status fetched:", status);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Không thể lấy trạng thái phòng";
+        console.error("❌ Error fetching room status:", errorMsg);
+        // Don't notify user on initial fetch failure, just log it
+      }
+    };
+
+    fetchRoomStatus();
+  }, [conversation.messageRoomId, accessToken]);
 
   const handleSendMessage = async () => {
     if (isConversationBlocked) {
@@ -98,7 +120,14 @@ export default function ChatDetails({
       setBlocking(true);
       await blockConnection(conversation.connectionId, accessToken);
       notify.success("Đã chặn cuộc trò chuyện");
-      // Refresh to update conversation status
+      
+      // Refresh room status from API
+      if (conversation.messageRoomId) {
+        const updatedStatus = await getRoomStatus(conversation.messageRoomId, accessToken);
+        setRoomStatus(updatedStatus);
+      }
+      
+      // Callback to parent component if needed
       if (onBlockConversation) {
         onBlockConversation();
       }
@@ -121,7 +150,14 @@ export default function ChatDetails({
       setUnblocking(true);
       await unblockConnection(conversation.connectionId, accessToken);
       notify.success("Đã bỏ chặn cuộc trò chuyện");
-      // Refresh to update conversation status
+      
+      // Refresh room status from API
+      if (conversation.messageRoomId) {
+        const updatedStatus = await getRoomStatus(conversation.messageRoomId, accessToken);
+        setRoomStatus(updatedStatus);
+      }
+      
+      // Callback to parent component if needed
       if (onBlockConversation) {
         onBlockConversation();
       }

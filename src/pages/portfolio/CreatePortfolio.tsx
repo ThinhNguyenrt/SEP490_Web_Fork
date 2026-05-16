@@ -1535,11 +1535,15 @@ export default function CreatePortfolio() {
 
       // ── REFERENCE ───────────────────────────────────────────────────────
       if (blockType === "REFERENCE" && variant === "REFERENCEONE") {
+        const listData = Array.isArray(rawData)
+          ? rawData.map((item) => createReferenceOneDraft(item))
+          : [];
         const initialData = createReferenceOneDraft(rawData);
         return (
           <ReferenceEditor
             key={editorKey}
             initialData={initialData}
+            initialList={listData}
             onSave={(draft: ReferenceOneDraft) => {
               scopedUpdate((current) => {
                 const items = toRecordArray(current);
@@ -1554,6 +1558,16 @@ export default function CreatePortfolio() {
                 }];
               });
               resetSlotKey(slotKey);
+            }}
+            onSaveList={(list: ReferenceOneDraft[]) => {
+              handleSaveWrapper(list.map((r) => ({
+                name: r.name,
+                position: r.position,
+                mail: r.email,
+                email: r.email,
+                phone: r.contactInfo,
+                detail: r.contactInfo,
+              })));
             }}
             onCancel={() => {}}
           />

@@ -10,7 +10,7 @@ interface RatingData {
   id: number | null;
   score: number;
   content: string;
-  selectedCriteria: number[]; // Array of criteria IDs
+  selectedCriteria: number[];
 }
 
 interface CommentModalProps {
@@ -38,146 +38,110 @@ const CommentModal = ({
   const [criteria, setCriteria] = useState<CriteriaItem[]>([]);
   const [loadingCriteria, setLoadingCriteria] = useState(false);
 
-  console.log("🎨 CommentModal render - isOpen:", isOpen, "portfolioId:", portfolioId);
-
-  // Load criteria from API
-  const loadCriteria = useCallback(async () => {
+  /**
+   * Load both criteria and existing rating in parallel, then parse
+   * selected criteria IDs from the saved content string in one shot.
+   * This avoids the race condition where one useEffect fires before
+   * the other async load has finished populating state.
+   */
+  const loadData = useCallback(async () => {
     if (!accessToken) {
-      console.log("⚠️ No access token, skipping criteria load");
+      setRatingData({ id: null, score: 0, content: "", selectedCriteria: [] });
       return;
     }
-    
-    try {
-      setLoadingCriteria(true);
-      console.log("📡 Loading criteria... Token available:", !!accessToken);
-      const criteriaList = await portfolioService.fetchCriteria(accessToken);
-      console.log("📡 fetchCriteria returned:", criteriaList);
-      setCriteria(criteriaList || []);
-      console.log("✅ Criteria loaded successfully. Count:", criteriaList?.length || 0);
-    } catch (err) {
-      console.error("❌ Error loading criteria:", err);
-      console.error("❌ Error details:", err instanceof Error ? err.message : String(err));
-      // Don't show error to user, just continue without criteria
-      setCriteria([]);
-    } finally {
-      setLoadingCriteria(false);
-    }
-  }, [accessToken]);
 
-  const loadExistingRating = useCallback(async () => {
-    try {
-      if (!accessToken) {
-        console.log("⚠️ No access token, skipping load");
-        setRatingData({
-          id: null,
-          score: 0,
-          content: "",
-          selectedCriteria: [],
-        });
-        return;
-      }
+    setIsLoading(true);
+    setLoadingCriteria(true);
+    setLoadError(null);
 
-      console.log("🔄 Loading existing rating for portfolio:", portfolioId);
-      setIsLoading(true);
-      const data = await complimentService.getComplimentByPortfolioId(portfolioId, accessToken);
-      
-      if (data) {
-        console.log("✅ Found existing rating:", data);
-        console.log("📊 Score type:", typeof data.score, "value:", data.score);
-        console.log("📝 Content:", data.content);
-        
-        const newScore = typeof data.score === 'number' ? data.score : Number(data.score);
-        console.log("🔢 Parsed score:", newScore);
-        
-        // Parse criteria from content will be done after criteria loads
+    try {
+      const [criteriaList, existingRating] = await Promise.all([
+        portfolioService.fetchCriteria(accessToken).catch((err) => {
+          console.error("❌ Error loading criteria:", err);
+          return [] as CriteriaItem[];
+        }),
+        complimentService
+          .getComplimentByPortfolioId(portfolioId, accessToken)
+          .catch((err) => {
+            console.error("❌ Error loading rating:", err);
+            return null;
+          }),
+      ]);
+
+      setCriteria(criteriaList ?? []);
+
+      if (existingRating) {
+        const score =
+          typeof existingRating.score === "number"
+            ? existingRating.score
+            : Number(existingRating.score);
+
+        const savedContent: string = existingRating.content ?? "";
+
+        // The content format is: "criteria1\ncriteria2\n...userComment"
+        // Parse out which lines match known criteria names, the rest is
+        // the user's free-text comment.
+        const lines = savedContent.split("\n").map((l) => l.trim()).filter(Boolean);
+        const loadedCriteria = criteriaList ?? [];
+
+        const criteriaNames = new Set(loadedCriteria.map((c) => c.name));
+        const selectedCriteriaIds: number[] = [];
+        const commentLines: string[] = [];
+
+        for (const line of lines) {
+          const match = loadedCriteria.find((c) => c.name === line);
+          if (match && criteriaNames.has(line)) {
+            selectedCriteriaIds.push(match.id);
+          } else {
+            commentLines.push(line);
+          }
+        }
+
         setRatingData({
-          id: data.id,
-          score: newScore,
-          content: data.content || "",
-          selectedCriteria: [], // Will be updated after criteria loads
+          id: existingRating.id,
+          score,
+          content: commentLines.join("\n"),
+          selectedCriteria: selectedCriteriaIds,
         });
-        console.log("💾 State set with score:", newScore, "content:", data.content);
-        setLoadError(null);
       } else {
-        console.log("ℹ️ No existing rating found, showing empty form");
-        setRatingData({
-          id: null,
-          score: 0,
-          content: "",
-          selectedCriteria: [],
-        });
-        setLoadError(null);
+        setRatingData({ id: null, score: 0, content: "", selectedCriteria: [] });
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Không thể tải dữ liệu đánh giá";
-      console.error("❌ Error loading rating:", err);
-      setLoadError(errorMsg);
-      setRatingData({
-        id: null,
-        score: 0,
-        content: "",
-        selectedCriteria: [],
-      });
+      const msg =
+        err instanceof Error ? err.message : "Không thể tải dữ liệu đánh giá";
+      console.error("❌ loadData error:", err);
+      setLoadError(msg);
+      setRatingData({ id: null, score: 0, content: "", selectedCriteria: [] });
     } finally {
       setIsLoading(false);
+      setLoadingCriteria(false);
     }
   }, [portfolioId, accessToken]);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      // Load criteria and existing rating if available
-      setLoadError(null);
-      loadCriteria();
-      loadExistingRating();
+      loadData();
     } else {
       document.body.style.overflow = "unset";
-      // Reset state when closing modal
-      setRatingData({
-        id: null,
-        score: 0,
-        content: "",
-        selectedCriteria: [],
-      });
+      setRatingData({ id: null, score: 0, content: "", selectedCriteria: [] });
+      setCriteria([]);
       setLoadError(null);
     }
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, portfolioId, loadExistingRating, loadCriteria]);
-
-  // Parse criteria from loaded rating content after criteria is available
-  useEffect(() => {
-    if (criteria.length > 0 && ratingData.content && ratingData.selectedCriteria.length === 0) {
-      console.log("🔄 Parsing criteria from loaded content...");
-      const criteriaNames = ratingData.content.split("\n").filter(name => name.trim());
-      console.log("📋 Parsed criteria names:", criteriaNames);
-      
-      const selectedCriteriaIds = criteria
-        .filter(c => criteriaNames.some(name => name.trim() === c.name))
-        .map(c => c.id);
-      
-      if (selectedCriteriaIds.length > 0) {
-        console.log("📍 Selected criteria IDs:", selectedCriteriaIds);
-        setRatingData(prev => ({
-          ...prev,
-          selectedCriteria: selectedCriteriaIds,
-        }));
-      }
-    }
-  }, [criteria]);
+  }, [isOpen, loadData]);
 
   const handleSubmit = async () => {
     if (!accessToken) {
       notify.error("Vui lòng đăng nhập lại để gửi nhận xét");
       return;
     }
-
     if (ratingData.score === 0) {
       notify.error("Vui lòng chọn điểm số");
       return;
     }
-
     if (!ratingData.content.trim()) {
       notify.error("Vui lòng nhập nội dung nhận xét");
       return;
@@ -185,46 +149,35 @@ const CommentModal = ({
 
     setIsLoading(true);
     try {
-      // Build criteria text: combine selected criteria names with newline separator
-      let contentToSave = ratingData.content;
-      if (ratingData.selectedCriteria.length > 0) {
-        const selectedCriteriaNames = criteria
-          .filter(c => ratingData.selectedCriteria.includes(c.id))
-          .map(c => c.name);
-        
-        console.log("✅ Selected criteria names:", selectedCriteriaNames);
-        
-        // Combine user comment with criteria (criteria first, then comment)
-        contentToSave = selectedCriteriaNames.join("\n");
-        if (ratingData.content.trim()) {
-          contentToSave += "\n" + ratingData.content;
-        }
-        
-        console.log("📝 Final content to save:", contentToSave);
-      }
+      // Reconstruct content: criteria names first (newline-separated),
+      // then the user's free-text comment on a new line.
+      const selectedCriteriaNames = criteria
+        .filter((c) => ratingData.selectedCriteria.includes(c.id))
+        .map((c) => c.name);
+
+      const parts = [...selectedCriteriaNames];
+      if (ratingData.content.trim()) parts.push(ratingData.content.trim());
+      const contentToSave = parts.join("\n");
 
       if (ratingData.id) {
-        // Update existing rating
-        await complimentService.updateCompliment(ratingData.id, {
-          content: contentToSave,
-          score: ratingData.score,
-        }, accessToken);
+        await complimentService.updateCompliment(
+          ratingData.id,
+          { content: contentToSave, score: ratingData.score },
+          accessToken
+        );
         notify.success("Cập nhật nhận xét thành công!");
       } else {
-        // Create new rating
-        await complimentService.submitCompliment({
-          portfolioId,
-          content: contentToSave,
-          score: ratingData.score,
-        }, accessToken);
+        await complimentService.submitCompliment(
+          { portfolioId, content: contentToSave, score: ratingData.score },
+          accessToken
+        );
         notify.success("Gửi nhận xét thành công!");
       }
-      
+
       onSuccess();
       onClose();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Không thể gửi nhận xét";
-      console.error("Error submitting comment:", errorMsg);
+      console.error("Error submitting comment:", error);
       notify.error("Lỗi khi gửi nhận xét. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
@@ -237,12 +190,11 @@ const CommentModal = ({
       return {
         ...prev,
         selectedCriteria: isSelected
-          ? prev.selectedCriteria.filter(id => id !== criteriaId)
+          ? prev.selectedCriteria.filter((id) => id !== criteriaId)
           : [...prev.selectedCriteria, criteriaId],
       };
     });
   };
-
 
   if (!isOpen) return null;
 
@@ -252,7 +204,7 @@ const CommentModal = ({
       <div
         className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-200"
         onClick={onClose}
-      ></div>
+      />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -277,10 +229,10 @@ const CommentModal = ({
 
           {/* Body */}
           <div className="p-6 space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-            {/* Loading Spinner for Rating */}
+            {/* Loading Spinner */}
             {isLoading && (
               <div className="flex justify-center items-center py-12">
-                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
               </div>
             )}
 
@@ -289,7 +241,7 @@ const CommentModal = ({
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm text-red-700">{loadError}</p>
                 <button
-                  onClick={loadExistingRating}
+                  onClick={loadData}
                   className="mt-2 px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors"
                 >
                   Thử lại
@@ -299,7 +251,62 @@ const CommentModal = ({
 
             {!isLoading && !loadError && (
               <>
-                {/* Star Rating */}
+                {/* ── 1. Criteria Selection (moved above star rating) ── */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Tiêu chí đánh giá
+                  </label>
+                  {loadingCriteria ? (
+                    <div className="flex justify-center items-center py-6">
+                      <div className="w-5 h-5 border-[3px] border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                      <span className="ml-2 text-sm text-gray-500">
+                        Đang tải tiêu chí...
+                      </span>
+                    </div>
+                  ) : criteria.length > 0 ? (
+                    <div className="space-y-2">
+                      {criteria.map((criteriaItem) => {
+                        const isSelected = ratingData.selectedCriteria.includes(
+                          criteriaItem.id
+                        );
+                        return (
+                          <button
+                            key={criteriaItem.id}
+                            onClick={() => toggleCriteria(criteriaItem.id)}
+                            disabled={isLoading}
+                            type="button"
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left ${
+                              isSelected
+                                ? "border-blue-400 bg-blue-50"
+                                : "border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {isSelected ? (
+                              <CheckSquare2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            )}
+                            <span
+                              className={`text-sm ${
+                                isSelected
+                                  ? "font-semibold text-blue-600"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {criteriaItem.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      Không có tiêu chí nào
+                    </p>
+                  )}
+                </div>
+
+                {/* ── 2. Star Rating ── */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Chấm điểm <span className="text-red-500">*</span>
@@ -332,7 +339,7 @@ const CommentModal = ({
                   </div>
                 </div>
 
-                {/* Content Textarea */}
+                {/* ── 3. Comment Textarea ── */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Nhận xét <span className="text-red-500">*</span>
@@ -340,55 +347,17 @@ const CommentModal = ({
                   <textarea
                     value={ratingData.content}
                     onChange={(e) =>
-                      setRatingData((prev) => ({ ...prev, content: e.target.value }))
+                      setRatingData((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
                     }
                     placeholder="Chia sẻ nhận xét của bạn về portfolio này..."
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     rows={4}
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Tối đa 1000 ký tự
-                  </p>
-                </div>
-
-                {/* Criteria Selection */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Tiêu chí đánh giá
-                  </label>
-                  {loadingCriteria ? (
-                    <div className="flex justify-center items-center py-6">
-                      <div className="w-5 h-5 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
-                      <span className="ml-2 text-sm text-gray-500">Đang tải tiêu chí...</span>
-                    </div>
-                  ) : criteria.length > 0 ? (
-                    <div className="space-y-2">
-                      {criteria.map((criteriaItem) => {
-                        const isSelected = ratingData.selectedCriteria.includes(criteriaItem.id);
-                        return (
-                          <button
-                            key={criteriaItem.id}
-                            onClick={() => toggleCriteria(criteriaItem.id)}
-                            disabled={isLoading}
-                            type="button"
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
-                          >
-                            {isSelected ? (
-                              <CheckSquare2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                            ) : (
-                              <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                            )}
-                            <span className={`text-sm ${isSelected ? "font-semibold text-blue-600" : "text-gray-700"}`}>
-                              {criteriaItem.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">Không có tiêu chí nào</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Tối đa 1000 ký tự</p>
                 </div>
               </>
             )}
@@ -410,7 +379,7 @@ const CommentModal = ({
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Đang lưu...</span>
                 </>
               ) : (

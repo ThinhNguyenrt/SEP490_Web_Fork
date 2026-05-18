@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  
   ChevronLeft,
   ChevronRight,
-  Plus,
   Trophy,
 } from "lucide-react";
 // import { Button } from "@/components/ui/button"; 
-import { Badge } from "@/components/ui/badge";
 import SortIcon from "@/assets/myWeb/sort.png";
 import ShareIcon from "@/assets/myWeb/share1.png";
 import {
@@ -16,14 +13,7 @@ import {
 } from "@/services/portfolio.api";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import { notify } from "@/lib/toast";
-import CommentModal from "../../recruiter/home/CommentModal";
 import { useNavigate } from "react-router-dom";
-
-interface PortfolioMetadata {
-  portfolioId: number;
-  title: string;
-  skills: string[];
-}
 
 interface IntroData {
   portfolioId: number;
@@ -33,58 +23,6 @@ interface IntroData {
   avatar?: string;
   ranking?: { rankPosition: number; totalScore: number };
 }
-
-const extractPortfolioMetadata = (
-  portfolio: PortfolioMainBlockItem,
-): PortfolioMetadata => {
-  const blocks = Array.isArray(portfolio.blocks)
-    ? portfolio.blocks
-    : [portfolio.blocks];
-  let title = portfolio.portfolio?.name || "";
-  let skills: string[] = [];
-
-  blocks.forEach((block: Record<string, unknown>) => {
-    if (!block) return;
-    const data = block.data as Record<string, unknown> || {};
-    const blockType = (block.type as string)?.toUpperCase() || "";
-    
-    if (
-      blockType === "INTRO" ||
-      blockType === "NAME" ||
-      blockType === "HEADER"
-    ) {
-      title = (data.jobTitle as string) || (data.studyField as string) || (data.position as string) || (data.title as string) || title;
-    }
-    if (blockType === "SKILLS") {
-      if (Array.isArray(data.skills)) {
-        skills = (data.skills as Array<Record<string, string> | string>).map(
-          (s) =>
-            (typeof s === "object" && s !== null && "name" in s
-              ? (s as Record<string, string>).name
-              : s
-            )
-              .toString()
-              .toLowerCase(),
-        );
-      } else if (Array.isArray(data)) {
-        skills = (data as Array<Record<string, string> | string>).map((s) =>
-          (typeof s === "object" && s !== null && "name" in s
-            ? (s as Record<string, string>).name
-            : s
-          )
-            .toString()
-            .toLowerCase(),
-        );
-      }
-    }
-  });
-
-  return {
-    portfolioId: portfolio.portfolioId,
-    title: title.toLowerCase(),
-    skills,
-  };
-};
 
 const extractIntroData = (portfolio: PortfolioMainBlockItem): IntroData | null => {
   const blocks = Array.isArray(portfolio.blocks)
@@ -111,32 +49,20 @@ const extractIntroData = (portfolio: PortfolioMainBlockItem): IntroData | null =
 export default function ExploreTab() {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [filters, setFilters] = useState({
-    position: "",
-    skills: "",
-    location: "",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredPortfolios, setFilteredPortfolios] = useState<
     PortfolioMainBlockItem[]
   >([]);
   const [allPortfolios, setAllPortfolios] = useState<PortfolioMainBlockItem[]>(
     [],
   );
-  const [portfolioMetadata, setPortfolioMetadata] = useState<
-    Map<number, PortfolioMetadata>
-  >(new Map());
   const [topPortfolios, setTopPortfolios] = useState<PortfolioMainBlockItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [skillTags, setSkillTags] = useState<string[]>([]);
-  const [skillInput, setSkillInput] = useState("");
-  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
   const loadPortfolios = async () => {
     try {
-      setIsLoading(true);
-      
       // Fetch top portfolio separately (sorted by ranking)
       const topResponse = await portfolioService.fetchAllPortfolios(1, 1, "0");
       if (topResponse && topResponse.items && topResponse.items.length > 0) {
@@ -151,32 +77,14 @@ export default function ExploreTab() {
         return;
       }
 
-      // Backend returns random portfolios with sort=2 (random)
       const portfolios = response.items;
-
-      const metadata = new Map<number, PortfolioMetadata>();
-      portfolios.forEach((p, index) => {
-        metadata.set(p.portfolioId, extractPortfolioMetadata(p));
-        console.log(`📊 [ExploreTab] Portfolio #${index + 1}:`, {
-          portfolioId: p.portfolioId,
-          name: p.portfolio?.name,
-          ranking: p.ranking,
-          rankPosition: p.ranking?.rankPosition,
-          hasRankBadge:
-            (p.ranking?.rankPosition ?? 0) >= 1 &&
-            (p.ranking?.rankPosition ?? 0) <= 10,
-        });
-      });
 
       setFilteredPortfolios(portfolios);
       setAllPortfolios(portfolios);
-      setPortfolioMetadata(metadata);
       setCurrentIndex(0);
     } catch (error) {
       console.error("❌ Error loading portfolios:", error);
       notify.error("Không thể tải danh sách portfolio.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -192,143 +100,113 @@ export default function ExploreTab() {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
-  const handleApplyFilter = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      let results = allPortfolios;
-      if (filters.position.trim()) {
-        results = results.filter((p) =>
-          portfolioMetadata
-            .get(p.portfolioId)
-            ?.title.includes(filters.position.toLowerCase()),
-        );
+  const handleSearch = async (query: string) => {
+    setIsSearching(true);
+    try {
+      // Call API with search query parameter
+      const response = await portfolioService.fetchAllPortfolios(1, 10000, "2", query);
+      if (!response || !response.items || response.items.length === 0) {
+        setFilteredPortfolios([]);
+        setCurrentIndex(0);
+        return;
       }
-      if (skillTags.length > 0) {
-        results = results.filter((p) => {
-          const m = portfolioMetadata.get(p.portfolioId);
-          return skillTags.some((tag) =>
-            m?.skills.some((s) => s.includes(tag.toLowerCase())),
-          );
-        });
-      }
-      
-      // Backend returns random portfolios with sort=2 (random), keep original order
-      
-      setFilteredPortfolios(results);
+
+      const portfolios = response.items;
+      setFilteredPortfolios(portfolios);
       setCurrentIndex(0);
-      setIsLoading(false);
-    }, 300);
+    } catch (error) {
+      console.error("❌ Error searching portfolios:", error);
+      notify.error("Lỗi khi tìm kiếm portfolio.");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const handleResetFilter = () => {
-    setFilters({ position: "", skills: "", location: "" });
-    setSkillTags([]);
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
     
-    // Backend returns random portfolios with sort=2 (random), keep original order
-    const sortedPortfolios = [...allPortfolios];
+    // Call handleSearch with debounce can be added if needed
+    // For now, search as user types
+    if (query.trim() === "") {
+      // If search is cleared, show all portfolios
+      setFilteredPortfolios(allPortfolios);
+      setCurrentIndex(0);
+    }
+  };
 
-    setFilteredPortfolios(sortedPortfolios);
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      handleSearch(searchQuery);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setFilteredPortfolios(allPortfolios);
     setCurrentIndex(0);
   };
 
   return (
     <div className="flex w-full min-h-screen">
-      {/* Sidebar Filter - Thay thế fixed bằng sticky để "hài hòa" với Flexbox */}
-
-      {/* Sidebar Filter Container */}
+      {/* Search Bar - Top Section for XL screens */}
       <div className="hidden xl:block w-[360px] shrink-0 px-4">
-        {/* Thêm sticky và top để nó "dính" khi cuộn, h-fit để background vừa khít nội dung */}
         <div className="sticky top-16 w-full bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-fit">
-          {/* Header của bộ lọc */}
+          {/* Header của thanh tìm kiếm */}
           <div className="flex items-center gap-2 mb-6">
-            <img src={SortIcon} alt="Sort" className="w-7 h-7" />
-            <h2 className="text-xl font-bold text-gray-900">Bộ lọc ứng viên</h2>
+            <img src={SortIcon} alt="Search" className="w-7 h-7" />
+            <h2 className="text-xl font-bold text-gray-900">Tìm kiếm Portfolio</h2>
           </div>
 
-          <div className="space-y-5">
-            {/* Position Filter */}
+          <div className="space-y-4">
+            {/* Search Input */}
             <div>
               <label className="text-sm font-bold text-gray-700 mb-2 block ml-1">
-                Vị trí công việc
+                Nhập từ khóa tìm kiếm
               </label>
               <input
                 type="text"
-                placeholder="Nhập vị trí..."
-                value={filters.position}
-                onChange={(e) =>
-                  setFilters({ ...filters, position: e.target.value })
-                }
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 outline-none transition-all"
-                style={{ backgroundColor: "#F8FAFC" }} // Dùng màu Slate nhạt cho hiện đại
+                placeholder="Tìm kiếm theo tên, kỹ năng, vị trí..."
+                value={searchQuery}
+                onChange={handleSearchInputChange}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearchSubmit();
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 outline-none transition-all"
+                style={{ backgroundColor: "#F8FAFC" }}
               />
             </div>
 
-            {/* Skills Filter */}
-            <div>
-              <label className="text-sm font-bold text-gray-700 mb-2 block ml-1">
-                Kỹ năng
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nhập kỹ năng..."
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-400 outline-none"
-                  style={{ backgroundColor: "#F8FAFC" }}
-                />
-                <button
-                  onClick={() => {
-                    /* Logic handleAddSkillTag */
-                  }}
-                  className="p-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-
-              {/* Render Tags */}
-              {skillTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {skillTags.map((tag, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="px-3 py-1 rounded-lg text-xs bg-blue-50 text-blue-600 border-none hover:bg-blue-100 cursor-pointer"
-                    >
-                      {tag} ×
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Apply Filter Button */}
+            {/* Search Button */}
             <button
-              onClick={handleApplyFilter}
-              disabled={isLoading}
-              className="w-full mt-4 py-3 rounded-xl font-bold text-white shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
+              onClick={handleSearchSubmit}
+              disabled={isSearching}
+              className="w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
               style={{
-                backgroundColor: isLoading ? "#1E40AF" : "#3B82F6",
+                backgroundColor: isSearching ? "#1E40AF" : "#3B82F6",
               }}
             >
-              {isLoading ? (
+              {isSearching ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Đang tìm...</span>
                 </div>
               ) : (
-                "Áp dụng bộ lọc"
+                "Tìm kiếm"
               )}
             </button>
 
-            {/* Reset Button (Optional but recommended) */}
-            <button
-              onClick={handleResetFilter}
-              className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Xóa tất cả bộ lọc
-            </button>
+            {/* Clear Search Button */}
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Xóa tìm kiếm
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -448,15 +326,6 @@ export default function ExploreTab() {
           </button>
         </div>
       </div>
-
-      {currentPortfolio && isCommentModalOpen && (
-        <CommentModal
-          isOpen={isCommentModalOpen}
-          onClose={() => setIsCommentModalOpen(false)}
-          portfolioId={currentPortfolio.portfolioId}
-          onSuccess={() => notify.success("Đã gửi nhận xét")}
-        />
-      )}
     </div>
   );
 }

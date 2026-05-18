@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { ChevronLeft, ChevronRight, Plus, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
 import SortIcon from "../../../assets/myWeb/sort.png";
 import BookmarkIcon from "../../../assets/myWeb/bookmark.png";
 import ShareIcon from "../../../assets/myWeb/share1.png";
@@ -13,60 +13,18 @@ import BookmarkModal from "./BookmarkModal";
 import { notify } from "@/lib/toast";
 import { RootState } from "@/store";
 
-// Helper to extract searchable data from portfolio
-interface PortfolioMetadata {
-  portfolioId: number;
-  title: string;
-  skills: string[];
-}
 
-const extractPortfolioMetadata = (portfolio: PortfolioMainBlockItem): PortfolioMetadata => {
-  const blocks = Array.isArray(portfolio.blocks) ? portfolio.blocks : [portfolio.blocks];
-  
-  let title = portfolio.portfolio?.name || "";
-  let skills: string[] = [];
-
-  blocks.forEach((block: any) => {
-    if (!block) return;
-    const data = block.data || {};
-
-    // Extract title from intro/header block
-    if (block.type === "intro" || block.type === "name" || block.type === "header") {
-      title = data.jobTitle || data.position || data.title || title;
-    }
-
-    // Extract skills
-    if (block.type === "skills") {
-      if (Array.isArray(data.skills)) {
-        skills = data.skills.map((s: any) => (s.name || s).toString().toLowerCase());
-      } else if (Array.isArray(data)) {
-        skills = data.map((s: any) => (s.name || s).toString().toLowerCase());
-      }
-    }
-  });
-
-  return {
-    portfolioId: portfolio.portfolioId,
-    title: title.toLowerCase(),
-    skills
-  };
-};
 
 export default function RecruiterHome() {
+  const navigate = useNavigate();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [filters, setFilters] = useState({
-    position: '',
-    skills: '',
-    location: ''
-  });
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredPortfolios, setFilteredPortfolios] = useState<PortfolioMainBlockItem[]>([]);
   const [allPortfolios, setAllPortfolios] = useState<PortfolioMainBlockItem[]>([]);
-  const [portfolioMetadata, setPortfolioMetadata] = useState<Map<number, PortfolioMetadata>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
-  const [skillTags, setSkillTags] = useState<string[]>([]);
-  const [skillInput, setSkillInput] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
   const [savedPortfolios, setSavedPortfolios] = useState<Set<number>>(new Set());
@@ -112,19 +70,8 @@ export default function RecruiterHome() {
       
       console.log("✅ Loaded", portfolios.length, "portfolios in total");
       
-      // Backend already sorted by rank with sort=0 (rank_asc)
-      
-      // Extract metadata from portfolios
-      const metadata = new Map<number, PortfolioMetadata>();
-      portfolios.forEach(portfolio => {
-        const data = extractPortfolioMetadata(portfolio);
-        metadata.set(portfolio.portfolioId, data);
-        console.log("📋 Portfolio metadata:", data);
-      });
-      
       setFilteredPortfolios(portfolios);
       setAllPortfolios(portfolios);
-      setPortfolioMetadata(metadata);
       setCurrentIndex(0);
 
       // Load saved portfolios to check which ones are already saved
@@ -157,81 +104,49 @@ export default function RecruiterHome() {
     }
   };
 
-  const handleResetFilter = () => {
-    setFilters({
-      position: '',
-      skills: '',
-      location: ''
-    });
-    setSkillTags([]);
-    setSkillInput("");
-    
-    // Backend already sorted by rank with sort=0 (rank_asc), keep original order
-    const sortedPortfolios = [...allPortfolios];
-    
-    setFilteredPortfolios(sortedPortfolios);
-    setCurrentIndex(0);
-  };
-
-  const handleApplyFilter = async () => {
-    setIsLoading(true);
-    
+  const handleSearch = async (query: string) => {
+    setIsSearching(true);
     try {
-      // Use all portfolios that are already loaded
-      const portfoliosToFilter = allPortfolios;
-      
-      setTimeout(() => {
-        let results = portfoliosToFilter;
-
-        // Filter by position
-        if (filters.position.trim()) {
-          const positionKeyword = filters.position.toLowerCase();
-          results = results.filter(portfolio => {
-            const metadata = portfolioMetadata.get(portfolio.portfolioId);
-            if (!metadata) return false;
-            return metadata.title.includes(positionKeyword);
-          });
-          console.log("🔍 After position filter:", results.length, "portfolios");
-        }
-
-        // Filter by skill tags
-        if (skillTags.length > 0) {
-          results = results.filter(portfolio => {
-            const metadata = portfolioMetadata.get(portfolio.portfolioId);
-            if (!metadata) return false;
-            
-            // Check if portfolio has at least one of the selected skills
-            return skillTags.some(tag => {
-              const tagLower = tag.toLowerCase();
-              return metadata.skills.some(skill => 
-                skill.includes(tagLower) || tagLower.includes(skill)
-              );
-            });
-          });
-          console.log("🔍 After skills filter:", results.length, "portfolios");
-        }
-
-        // Backend already sorted by rank with sort=0 (rank_asc), keep original order
-
-        setFilteredPortfolios(results);
+      // Call API with search query parameter
+      const response = await portfolioService.fetchAllPortfolios(1, 10000, "0", query);
+      if (!response || !response.items || response.items.length === 0) {
+        setFilteredPortfolios([]);
         setCurrentIndex(0);
-        setIsLoading(false);
-      }, 300);
+        return;
+      }
+
+      const portfolios = response.items;
+      setFilteredPortfolios(portfolios);
+      setCurrentIndex(0);
     } catch (error) {
-      console.error("❌ Error applying filter:", error);
-      setIsLoading(false);
+      console.error("❌ Error searching portfolios:", error);
+      notify.error("Lỗi khi tìm kiếm portfolio.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleAddSkillTag = () => {
-    if (skillInput.trim() && !skillTags.includes(skillInput.trim())) {
-      setSkillTags([...skillTags, skillInput.trim()]);
-      setSkillInput("");
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim() === "") {
+      // If search is cleared, show all portfolios
+      setFilteredPortfolios(allPortfolios);
+      setCurrentIndex(0);
     }
   };
 
-  const handleRemoveSkillTag = (tagToRemove: string) => {
-    setSkillTags(skillTags.filter(tag => tag !== tagToRemove));
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      handleSearch(searchQuery);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setFilteredPortfolios(allPortfolios);
+    setCurrentIndex(0);
   };
 
   const handleBookmark = () => {
@@ -254,13 +169,17 @@ export default function RecruiterHome() {
     }
   };
 
+  const handleSubscribe = () => {
+    navigate("/subscription");
+  };
+
   if (!currentPortfolio) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-gray-600 mb-4">Không tìm thấy portfolio nào</p>
-          <Button onClick={handleResetFilter} className="bg-[#0288D1]">
-            Đặt lại bộ lọc
+          <Button onClick={handleClearSearch} className="bg-[#0288D1]">
+            Đặt lại tìm kiếm
           </Button>
         </div>
       </div>
@@ -270,89 +189,64 @@ export default function RecruiterHome() {
   return (
     <div className="min-h-screen overflow-x-hidden">
       <div className="flex gap-0 pt-6 min-h-screen">
-        {/* Left Filter Sidebar */}
+        {/* Left Search Sidebar */}
         <div className="fixed left-3 top-20 z-10 hidden xl:block">
           <div className="w-[20rem] bg-white rounded-lg p-4 shadow-md max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-2 mb-6">
-              <img src={SortIcon} alt="Sort" className="w-8 h-8"/>
-              <h2 className="text-2xl font-bold text-gray-900">Bộ lọc ứng viên</h2>
+              <img src={SortIcon} alt="Search" className="w-8 h-8"/>
+              <h2 className="text-2xl font-bold text-gray-900">Tìm kiếm</h2>
             </div>
             
             <div className="space-y-4">
-              {/* Position Filter */}
+              {/* Search Input */}
               <div>
                 <label className="text-sm font-bold text-gray-700 mb-2 block">
-                  Vị trí công việc
+                  Nhập từ khóa tìm kiếm
                 </label>
                 <input
                   type="text"
-                  placeholder="Nhập vị trí..."
-                  value={filters.position}
-                  onChange={(e) => setFilters({...filters, position: e.target.value})}
+                  placeholder="Tìm kiếm theo tên, kỹ năng, vị trí..."
+                  value={searchQuery}
+                  onChange={handleSearchInputChange}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchSubmit();
+                    }
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300"
                   style={{ backgroundColor: '#EFF6FF' }}
                 />
               </div>
 
-              {/* Skills Filter with Tags */}
-              <div >
-                <label className="text-sm font-bold text-gray-700 mb-2 block">
-                  Kỹ năng
-                </label>
-                <div className="flex gap-2 mb-11">
-                  <input
-                    type="text"
-                    placeholder="Nhập kỹ năng..."
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkillTag()}
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300"
-                    style={{ backgroundColor: '#EFF6FF' }}
-                  />
-                  <button
-                    onClick={handleAddSkillTag}
-                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
-                  >
-                    <Plus size={16} />
-                    Thêm
-                  </button>
-                </div>
-                {skillTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {skillTags.map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="px-2 py-1 text-sm cursor-pointer hover:bg-gray-300"
-                        onClick={() => handleRemoveSkillTag(tag)}
-                      >
-                        {tag} ×
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-             
-              {/* Apply Filter Button */}
+              {/* Search Button */}
               <button
-                onClick={handleApplyFilter}
-                disabled={isLoading}
+                onClick={handleSearchSubmit}
+                disabled={isSearching}
                 className="w-full mt-6 py-2 rounded-lg font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2"
                 style={{ 
-                  backgroundColor: isLoading ? '#1E40AF' : '#3B82F6',
-                  opacity: isLoading ? 0.8 : 1
+                  backgroundColor: isSearching ? '#1E40AF' : '#3B82F6',
+                  opacity: isSearching ? 0.8 : 1
                 }}
               >
-                {isLoading ? (
+                {isSearching ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Đang tìm kiếm...</span>
                   </>
                 ) : (
-                  <span>Áp dụng bộ lọc</span>
+                  <span>Tìm kiếm</span>
                 )}
               </button>
+
+              {/* Clear Search Button */}
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Xóa tìm kiếm
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -370,7 +264,7 @@ export default function RecruiterHome() {
                   Không có portfolio phù hợp với tiêu chí tìm kiếm của bạn. Vui lòng thử lại với các tiêu chí khác.
                 </p>
                 <button
-                  onClick={handleResetFilter}
+                  onClick={handleClearSearch}
                   className="mt-8 px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
                 >
                   Quay lại danh sách gốc
@@ -476,7 +370,10 @@ export default function RecruiterHome() {
               </p>
               
               {/* CTA Button */}
-              <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-colors">
+              <button 
+                onClick={handleSubscribe}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-colors"
+              >
                 Đăng ký ngay
               </button>
             </div>

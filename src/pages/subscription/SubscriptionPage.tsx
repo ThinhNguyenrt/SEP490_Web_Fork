@@ -3,15 +3,17 @@ import { Loader2 } from "lucide-react";
 import { SubscriptionPlan } from "@/types/subscription";
 import { notify } from "@/lib/toast";
 import PlanCard from "./PlanCard";
+import { useAppSelector } from "@/store/hook";
 
 const SubscriptionPage = () => {
   // Type safe cho state plans
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+    const { user } = useAppSelector((state) => state.auth);
   const fetchPlans = async () => {
     try {
       const res = await fetch(
-        `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Plans`,
+        `https://subscription-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api/Plans/by-role/${user?.role || ""}`,
       );
       if (res.ok) {
         const data: SubscriptionPlan[] = await res.json();

@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { X, Bookmark, BookmarkX, AlertCircle, ChevronDown, Loader } from "lucide-react";
+import {
+  X,
+  Bookmark,
+  BookmarkX,
+  AlertCircle,
+  ChevronDown,
+  Loader,
+} from "lucide-react";
 import { notify } from "@/lib/toast";
 import { portfolioService } from "@/services/portfolio.api";
 import { followCategoryService } from "@/services/followCategory.api";
-import { followPortfolioWithCategory, updateFollow, unfollowPortfolio } from "@/services/portfolio.api"; // ← thêm unfollowPortfolio
+import {
+  followPortfolioWithCategory,
+  updateFollow,
+  unfollowPortfolio,
+} from "@/services/portfolio.api"; // ← thêm unfollowPortfolio
 import { RootState } from "@/store";
 import { FollowCategory } from "@/types/followCategory";
 
@@ -12,12 +23,15 @@ interface BookmarkModalProps {
   isOpen: boolean;
   onClose: () => void;
   portfolioId: number;
-  onSuccess: () => void;
+  onSuccess: (data: {
+    interestLevel: "LOW" | "MEDIUM" | "HIGH";
+    categoryId: number | null;
+  }) => void;
   isAlreadySaved?: boolean;
   mode?: "create" | "edit";
   currentInterestLevel?: "LOW" | "MEDIUM" | "HIGH";
   currentCategoryId?: number | null;
-  onUnsave?: () => void; // ← thêm callback khi bỏ lưu thành công
+  onUnsave?: () => void;
 }
 
 type InterestLevel = "LOW" | "MEDIUM" | "HIGH";
@@ -34,11 +48,14 @@ const BookmarkModal = ({
   onUnsave, // ← thêm prop
 }: BookmarkModalProps) => {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  const [interestLevel, setInterestLevel] = useState<InterestLevel>(currentInterestLevel);
+  const [interestLevel, setInterestLevel] =
+    useState<InterestLevel>(currentInterestLevel);
   const [isLoading, setIsLoading] = useState(false);
   const [isUnsaving, setIsUnsaving] = useState(false); // ← state riêng cho unsave
   const [categories, setCategories] = useState<FollowCategory[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(currentCategoryId);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    currentCategoryId,
+  );
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showUnsaveConfirm, setShowUnsaveConfirm] = useState(false); // ← confirm dialog
@@ -47,21 +64,36 @@ const BookmarkModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log(
+        "🔍 BookmarkModal opened - currentInterestLevel:",
+        currentInterestLevel,
+      );
+      console.log(
+        "🔍 BookmarkModal opened - currentCategoryId:",
+        currentCategoryId,
+      );
+      console.log("🔍 BookmarkModal opened - mode:", mode);
+
       document.body.style.overflow = "hidden";
-      setShowUnsaveConfirm(false); // reset confirm khi mở modal
-      
-      if (mode === "edit") {
-        setInterestLevel(currentInterestLevel);
-        setSelectedCategoryId(currentCategoryId);
-      }
-      
+      setShowUnsaveConfirm(false);
+
+      // ← Bỏ điều kiện if (mode === "edit"), luôn sync state với props
+      setInterestLevel(currentInterestLevel);
+      setSelectedCategoryId(currentCategoryId);
+
       if (accessToken) {
         const fetchCategoriesData = async () => {
           try {
             setIsLoadingCategories(true);
-            const data = await followCategoryService.fetchFollowCategories(accessToken);
+            const data =
+              await followCategoryService.fetchFollowCategories(accessToken);
             setCategories(data);
-            if (data.length > 0 && mode === "create" && currentCategoryId === null) {
+
+            if (currentCategoryId !== null) {
+              // ← Ưu tiên sync từ prop trước (cả create lẫn edit mode)
+              setSelectedCategoryId(currentCategoryId);
+            } else if (data.length > 0 && mode === "create") {
+              // ← Chỉ auto-select first khi không có currentCategoryId
               setSelectedCategoryId(data[0].id);
             }
           } catch (error) {
@@ -100,7 +132,8 @@ const BookmarkModal = ({
       onUnsave?.();
       onClose();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Không thể bỏ lưu portfolio";
+      const errorMsg =
+        error instanceof Error ? error.message : "Không thể bỏ lưu portfolio";
       console.error("Error unfollowing portfolio:", errorMsg);
       notify.error("Lỗi khi bỏ lưu portfolio. Vui lòng thử lại.");
     } finally {
@@ -110,48 +143,91 @@ const BookmarkModal = ({
 
   const handleSubmit = async () => {
     if (isRestricted) {
-      notify.error("Không thể lưu portfolio này vì đã lưu và nhận xét trước đó");
+      notify.error(
+        "Không thể lưu portfolio này vì đã lưu và nhận xét trước đó",
+      );
       return;
     }
 
     if (!accessToken) {
-      notify.error(mode === "edit" ? "Vui lòng đăng nhập lại để cập nhật portfolio" : "Vui lòng đăng nhập lại để lưu portfolio");
+      notify.error(
+        mode === "edit"
+          ? "Vui lòng đăng nhập lại để cập nhật portfolio"
+          : "Vui lòng đăng nhập lại để lưu portfolio",
+      );
       return;
     }
 
     setIsLoading(true);
     try {
       if (mode === "edit") {
-        await updateFollow(portfolioId, { interestLevel, categoryId: selectedCategoryId }, accessToken);
+        await updateFollow(
+          portfolioId,
+          { interestLevel, categoryId: selectedCategoryId },
+          accessToken,
+        );
         notify.success("Cập nhật portfolio thành công!");
       } else {
         if (selectedCategoryId) {
-          await followPortfolioWithCategory({ portfolioId, interestLevel, categoryId: selectedCategoryId }, accessToken);
+          await followPortfolioWithCategory(
+            { portfolioId, interestLevel, categoryId: selectedCategoryId },
+            accessToken,
+          );
         } else {
-          await portfolioService.followPortfolio({ portfolioId, interestLevel }, accessToken);
+          await portfolioService.followPortfolio(
+            { portfolioId, interestLevel },
+            accessToken,
+          );
         }
         notify.success("Đã lưu portfolio thành công!");
       }
-      onSuccess();
+      onSuccess({
+        interestLevel,
+        categoryId: selectedCategoryId,
+      });
       onClose();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Không thể xử lý yêu cầu";
+      const errorMsg =
+        error instanceof Error ? error.message : "Không thể xử lý yêu cầu";
       console.error("Error handling portfolio:", errorMsg);
-      notify.error(mode === "edit" ? "Lỗi khi cập nhật portfolio. Vui lòng thử lại." : "Lỗi khi lưu portfolio. Vui lòng thử lại.");
+      notify.error(
+        mode === "edit"
+          ? "Lỗi khi cập nhật portfolio. Vui lòng thử lại."
+          : "Lỗi khi lưu portfolio. Vui lòng thử lại.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const interestLevelOptions: { value: InterestLevel; label: string; color: string }[] = [
-    { value: "LOW", label: "Mức độ thấp", color: "bg-green-100 text-green-800 border-green-300" },
-    { value: "MEDIUM", label: "Mức độ trung bình", color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
-    { value: "HIGH", label: "Mức độ cao", color: "bg-red-100 text-red-800 border-red-300" },
+  const interestLevelOptions: {
+    value: InterestLevel;
+    label: string;
+    color: string;
+  }[] = [
+    {
+      value: "LOW",
+      label: "Mức độ thấp",
+      color: "bg-green-100 text-green-800 border-green-300",
+    },
+    {
+      value: "MEDIUM",
+      label: "Mức độ trung bình",
+      color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    },
+    {
+      value: "HIGH",
+      label: "Mức độ cao",
+      color: "bg-red-100 text-red-800 border-red-300",
+    },
   ];
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-200" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-200"
+        onClick={onClose}
+      />
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
@@ -163,10 +239,14 @@ const BookmarkModal = ({
             <div className="flex items-center gap-2">
               <Bookmark className="w-6 h-6 text-blue-500" />
               <h2 className="text-xl font-bold text-gray-900">
-                {mode === "edit" ? "Cập nhật Portfolio" : "Lưu Portfolio"}
+                {mode === "edit" ? "Thay đổi mức độ ưu tiên Portfolio" : "Lưu Portfolio"}
               </h2>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors" disabled={isLoading || isUnsaving}>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={isLoading || isUnsaving}
+            >
               <X className="w-6 h-6 text-gray-600" />
             </button>
           </div>
@@ -179,16 +259,21 @@ const BookmarkModal = ({
                   <div className="flex gap-3">
                     <div className="text-red-600 text-2xl mt-1">⛔</div>
                     <div>
-                      <h3 className="font-bold text-red-900 mb-2">Không thể lưu portfolio này</h3>
+                      <h3 className="font-bold text-red-900 mb-2">
+                        Không thể lưu portfolio này
+                      </h3>
                       <p className="text-sm text-red-700">
-                        Portfolio này đã được lưu và bạn đã gửi nhận xét. Bạn không thể lưu lại portfolio này.
+                        Portfolio này đã được lưu và bạn đã gửi nhận xét. Bạn
+                        không thể lưu lại portfolio này.
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    💡 Mỗi portfolio chỉ có thể được lưu một lần. Nếu bạn muốn cập nhật mức độ quan tâm, vui lòng xem mục "Danh sách đã lưu".
+                    💡 Mỗi portfolio chỉ có thể được lưu một lần. Nếu bạn muốn
+                    cập nhật mức độ quan tâm, vui lòng xem mục "Danh sách đã
+                    lưu".
                   </p>
                 </div>
               </div>
@@ -197,7 +282,8 @@ const BookmarkModal = ({
                 {/* Interest Level */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Đánh giá mức độ quan tâm <span className="text-red-500">*</span>
+                    Đánh giá mức độ quan tâm{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-2">
                     {interestLevelOptions.map((option) => (
@@ -205,8 +291,14 @@ const BookmarkModal = ({
                         key={option.value}
                         className="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-gray-50"
                         style={{
-                          borderColor: interestLevel === option.value ? "#3B82F6" : "#E5E7EB",
-                          backgroundColor: interestLevel === option.value ? "#EFF6FF" : "transparent",
+                          borderColor:
+                            interestLevel === option.value
+                              ? "#3B82F6"
+                              : "#E5E7EB",
+                          backgroundColor:
+                            interestLevel === option.value
+                              ? "#EFF6FF"
+                              : "transparent",
                         }}
                       >
                         <input
@@ -214,16 +306,23 @@ const BookmarkModal = ({
                           name="interestLevel"
                           value={option.value}
                           checked={interestLevel === option.value}
-                          onChange={(e) => setInterestLevel(e.target.value as InterestLevel)}
+                          onChange={(e) =>
+                            setInterestLevel(e.target.value as InterestLevel)
+                          }
                           disabled={isLoading || isUnsaving}
                           className="w-4 h-4 text-blue-500 cursor-pointer"
                         />
                         <span className="ml-3 flex-1">
-                          <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {option.label}
+                          </span>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {option.value === "LOW" && "Ứng viên tiềm năng cho tương lai"}
-                            {option.value === "MEDIUM" && "Ứng viên đáng chú ý, cần xem xét thêm"}
-                            {option.value === "HIGH" && "Ứng viên rất tiềm năng, ưu tiên liên hệ"}
+                            {option.value === "LOW" &&
+                              "Ứng viên tiềm năng cho tương lai"}
+                            {option.value === "MEDIUM" &&
+                              "Ứng viên đáng chú ý, cần xem xét thêm"}
+                            {option.value === "HIGH" &&
+                              "Ứng viên rất tiềm năng, ưu tiên liên hệ"}
                           </p>
                         </span>
                       </label>
@@ -233,7 +332,8 @@ const BookmarkModal = ({
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    💡 Mức độ quan tâm sẽ giúp bạn quản lý danh sách ứng viên yêu thích một cách hiệu quả hơn.
+                    💡 Mức độ quan tâm sẽ giúp bạn quản lý danh sách ứng viên
+                    yêu thích một cách hiệu quả hơn.
                   </p>
                 </div>
 
@@ -245,8 +345,15 @@ const BookmarkModal = ({
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      disabled={isLoading || isUnsaving || isLoadingCategories || categories.length === 0}
+                      onClick={() =>
+                        setShowCategoryDropdown(!showCategoryDropdown)
+                      }
+                      disabled={
+                        isLoading ||
+                        isUnsaving ||
+                        isLoadingCategories ||
+                        categories.length === 0
+                      }
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-left bg-white hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
                     >
                       <span className="text-sm text-gray-700">
@@ -256,14 +363,17 @@ const BookmarkModal = ({
                             Đang tải...
                           </span>
                         ) : selectedCategoryId ? (
-                          categories.find((c) => c.id === selectedCategoryId)?.name || "Chọn danh sách"
+                          categories.find((c) => c.id === selectedCategoryId)
+                            ?.name || "Chọn danh sách"
                         ) : categories.length > 0 ? (
                           "Chọn danh sách"
                         ) : (
                           "Không có danh sách nào"
                         )}
                       </span>
-                      <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showCategoryDropdown ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-500 transition-transform ${showCategoryDropdown ? "rotate-180" : ""}`}
+                      />
                     </button>
 
                     {showCategoryDropdown && categories.length > 0 && (
@@ -272,17 +382,24 @@ const BookmarkModal = ({
                           <button
                             key={category.id}
                             type="button"
-                            onClick={() => { setSelectedCategoryId(category.id); setShowCategoryDropdown(false); }}
+                            onClick={() => {
+                              setSelectedCategoryId(category.id);
+                              setShowCategoryDropdown(false);
+                            }}
                             className={`w-full px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-blue-50 ${selectedCategoryId === category.id ? "bg-blue-100 text-blue-700" : "text-gray-700"}`}
                           >
                             <p className="font-semibold">{category.name}</p>
-                            <p className="text-xs text-gray-500">{category.code}</p>
+                            <p className="text-xs text-gray-500">
+                              {category.code}
+                            </p>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Chọn danh sách để phân loại portfolio này</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Chọn danh sách để phân loại portfolio này
+                  </p>
                 </div>
 
                 {/* ← Unsave confirm section - chỉ hiện ở edit mode */}
@@ -303,7 +420,8 @@ const BookmarkModal = ({
                           Bạn có chắc muốn bỏ lưu portfolio này?
                         </p>
                         <p className="text-xs text-red-600 text-center">
-                          Hành động này sẽ xóa portfolio khỏi danh sách đã lưu của bạn.
+                          Hành động này sẽ xóa portfolio khỏi danh sách đã lưu
+                          của bạn.
                         </p>
                         <div className="flex gap-2">
                           <button
@@ -349,7 +467,9 @@ const BookmarkModal = ({
               onClick={handleSubmit}
               disabled={isLoading || isUnsaving || isRestricted}
               className={`flex-1 px-4 py-2 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                isRestricted ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+                isRestricted
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
               {isLoading ? (

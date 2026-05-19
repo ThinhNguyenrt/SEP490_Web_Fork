@@ -21,7 +21,7 @@ export interface Challenge {
   title: string;
   description?: string;
   expectedSolution?: string;
-  status?: "Draft" | "Published" | "Closed" | "Archived";
+  status?: "Draft" | "PendingReview"|"Published" | "Closed" | "Archived";
   createdAt: string;
   createdById?: number;
   reviewedById?: number | null;

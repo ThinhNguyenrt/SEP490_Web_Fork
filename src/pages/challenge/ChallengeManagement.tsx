@@ -67,7 +67,7 @@ function ChallengeCard({
     }
   };
 
-  const statusDisplay = getStatusDisplay(challenge.status);
+  const statusDisplay = getStatusDisplay(challenge.status ?? "");
 
   return (
     <div className="p-5 rounded-lg border border-slate-200 bg-white hover:shadow-md transition-shadow">

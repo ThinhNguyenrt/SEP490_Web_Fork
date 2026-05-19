@@ -15,6 +15,7 @@ import { useUserProfile } from "./hook/useUserProfile";
 import { useTokenExpirationCheck } from "./hook/useTokenExpirationCheck";
 import SubscriptionManagementPage from "./pages/subscription/SubscriptionManagementPage";
 
+
 // --- CHUYỂN SANG LAZY LOAD CHO CÁC PAGES ---
 const LoginPage = lazy(() => import("./pages/login/Login"));
 const ProfilePage = lazy(() => import("./pages/profile/Profile"));
@@ -103,7 +104,13 @@ const PortfolioRanking = lazy(() => import("./pages/ranking/PortfolioRanking"));
 const SubscriptionPage = lazy(
   () => import("./pages/subscription/SubscriptionPage"),
 );
-const PaymentResultPage = lazy(() => import("./pages/payment/ResultPage"));
+const PaymentSuccessPage = lazy(
+  () => import("./pages/payment/PaymentSuccessPage"),
+);
+const PaymentCancelPage = lazy(
+  () => import("./pages/payment/PaymentCancelPage"),
+);
+
 const ChallengeManagementPage = lazy(
   () => import("./pages/challenge/ChallengeManagement"),
 );
@@ -188,8 +195,8 @@ function AppContent() {
           <Route path="talent-home" element={<TalentHome />} />
           <Route path="recruiter-home" element={<RecruiterHome />} />
           <Route path="/job/:postId" element={<PostDetail />} />
-          <Route path="/payment/result" element={<PaymentResultPage />} />
-          <Route path="/payment/cancel" element={<PaymentResultPage />} />
+          <Route path="/payment/result" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
           <Route path="/chat" element={<ChatRoom />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/ranking" element={<PortfolioRanking />} />
@@ -252,7 +259,7 @@ function AppContent() {
             element={<ChallengeTalentPage />}
           />
           <Route
-            path="/talent-challenge/:challengeId"
+            path="/talent-challenge/:id"
             element={<ChallengeDetailTalentPage />}
           />
           <Route

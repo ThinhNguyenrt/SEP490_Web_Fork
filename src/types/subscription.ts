@@ -11,6 +11,7 @@ export interface SubscriptionPlan {
   description: string;
   price: number;
   billingCycle: string;
+  allowedRole: string;
   features: PlanFeature[];
 }
 export interface SubscriptionHistoryItem {

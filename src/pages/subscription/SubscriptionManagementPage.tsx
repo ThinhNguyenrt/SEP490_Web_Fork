@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/hook";
@@ -27,7 +28,7 @@ const PAGE_SIZE = 5;
 
 export default function SubscriptionManagementPage() {
   const navigate = useNavigate();
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const { accessToken, user } = useAppSelector((state) => state.auth);
 
   // States dữ liệu
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
@@ -48,7 +49,7 @@ export default function SubscriptionManagementPage() {
       try {
         setLoadingSub(true);
         const res = await fetch(
-          `${SUB_SERVICE_URL}/api/Subscriptions/my-entitlements`,
+          `${SUB_SERVICE_URL}/api/Subscriptions/entitlements/${user?.id}`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           },
@@ -56,6 +57,7 @@ export default function SubscriptionManagementPage() {
         if (res.ok) {
           const data = await res.json();
           setEntitlements(data);
+          console.log("Fetch Entitlements Response:", data);
         } else {
           setEntitlements(null);
         }
@@ -82,6 +84,7 @@ export default function SubscriptionManagementPage() {
           const data = await res.json();
           setTransactions(data);
           setHasMore(data.length === PAGE_SIZE);
+          console.log("Fetch History Response:", data);
         }
       } catch (error) {
         console.error("Error fetching history:", error);
@@ -91,6 +94,40 @@ export default function SubscriptionManagementPage() {
     };
     fetchHistory();
   }, [accessToken, page]);
+
+  // Helper render trạng thái tiếng Việt
+  const renderStatus = (status: string) => {
+    switch (status) {
+      case "Succeeded":
+        return (
+          <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter inline-flex items-center gap-1.5 shadow-sm bg-green-50 text-green-600 border border-green-100">
+            <CheckCircle2 size={10} strokeWidth={4} />
+            Thành công
+          </span>
+        );
+      case "Expired":
+        return (
+          <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter inline-flex items-center gap-1.5 shadow-sm bg-amber-50 text-amber-600 border border-amber-100">
+            <Clock size={10} strokeWidth={4} />
+            Hết hạn
+          </span>
+        );
+      case "Cancelled":
+        return (
+          <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter inline-flex items-center gap-1.5 shadow-sm bg-red-50 text-red-600 border border-red-100">
+            <XCircle size={10} strokeWidth={4} />
+            Đã hủy
+          </span>
+        );
+      default:
+        return (
+          <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter inline-flex items-center gap-1.5 shadow-sm bg-slate-50 text-slate-600 border border-slate-100">
+            <AlertTriangle size={10} strokeWidth={4} />
+            {status}
+          </span>
+        );
+    }
+  };
 
   // Helper render từng dòng feature
   const renderFeatureItem = (
@@ -125,7 +162,7 @@ export default function SubscriptionManagementPage() {
           </span>
         </div>
         {!isBoolean && (
-          <span className="text-[10px] font-black bg-white text-blue-600 px-2 py-0.5 rounded-md shadow-sm">
+          <span className="text-[16px] font-black bg-white text-blue-600 px-2 py-0.5 rounded-md shadow-sm">
             {value === "-1" ? "∞" : value}
           </span>
         )}
@@ -134,7 +171,7 @@ export default function SubscriptionManagementPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-in fade-in duration-700 text-bold">
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -164,7 +201,6 @@ export default function SubscriptionManagementPage() {
             <div
               className={cn(
                 "rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col h-full transition-all duration-500",
-                // Logic đổi màu dựa trên planName
                 entitlements.planName === "Premium"
                   ? "bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 shadow-yellow-200"
                   : "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 shadow-blue-200",
@@ -211,7 +247,6 @@ export default function SubscriptionManagementPage() {
                     Quyền lợi khả dụng:
                   </p>
 
-                  {/* Render feature items với logic màu sắc bên trong hàm renderFeatureItem nếu cần */}
                   {renderFeatureItem(
                     "MAX_APPLY",
                     entitlements.features.MAX_APPLY,
@@ -235,11 +270,10 @@ export default function SubscriptionManagementPage() {
                 </div>
               </div>
 
-
               <Zap className="absolute -bottom-12 -right-12 w-48 h-48 text-white/10 rotate-12 pointer-events-none" />
             </div>
           ) : (
-            /* EMPTY PLAN STATE (Giữ nguyên) */
+            /* EMPTY PLAN STATE */
             <div className="bg-slate-50 rounded-[2.5rem] p-10 border-2 border-dashed border-slate-200 flex flex-col items-center text-center justify-center min-h-[450px]">
               <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-slate-300 mb-6">
                 <Zap size={32} />
@@ -248,8 +282,7 @@ export default function SubscriptionManagementPage() {
                 Chưa có gói đăng ký
               </h3>
               <p className="text-slate-500 text-xs font-bold mt-2 mb-8 leading-relaxed">
-                Bạn đang dùng bản miễn phí. Nâng cấp ngay để mở khóa các tính
-                năng AI Matching.
+                Bạn đang dùng bản miễn phí. Nâng cấp ngay để mở khóa các tính năng AI Matching.
               </p>
               <button
                 onClick={() => navigate("/subscription")}
@@ -268,7 +301,7 @@ export default function SubscriptionManagementPage() {
               <div className="p-3 bg-slate-50 rounded-2xl text-slate-900">
                 <History size={24} />
               </div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight  uppercase">
+              <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">
                 Lịch sử giao dịch
               </h3>
             </div>
@@ -285,13 +318,13 @@ export default function SubscriptionManagementPage() {
                   <thead>
                     <tr className="bg-slate-50/50">
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                        Order Code
+                        Mã giao dịch
                       </th>
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                        Amount
+                        Số tiền
                       </th>
                       <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">
-                        Status
+                        Trạng thái
                       </th>
                     </tr>
                   </thead>
@@ -309,30 +342,16 @@ export default function SubscriptionManagementPage() {
                             <span className="text-[10px] text-slate-400 font-bold">
                               {format(
                                 new Date(tx.createdAt),
-                                "dd MMM, yyyy · HH:mm",
+                                "dd/MM/yyyy · HH:mm",
                               )}
                             </span>
                           </div>
                         </td>
                         <td className="px-8 py-5 text-sm font-black text-slate-900">
-                          {tx.amount.toLocaleString()} {tx.currency}
+                          {(tx.amount * 1000).toLocaleString("vi-VN")} {tx.currency}
                         </td>
                         <td className="px-8 py-5 text-right">
-                          <span
-                            className={cn(
-                              "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter inline-flex items-center gap-1.5 shadow-sm",
-                              tx.status === "Succeeded"
-                                ? "bg-green-50 text-green-600 border border-green-100"
-                                : "bg-red-50 text-red-600 border border-red-100",
-                            )}
-                          >
-                            {tx.status === "Succeeded" ? (
-                              <CheckCircle2 size={10} strokeWidth={4} />
-                            ) : (
-                              <Clock size={10} strokeWidth={4} />
-                            )}
-                            {tx.status}
-                          </span>
+                          {renderStatus(tx.status)}
                         </td>
                       </tr>
                     ))}
@@ -348,8 +367,7 @@ export default function SubscriptionManagementPage() {
                       Không tìm thấy lịch sử giao dịch
                     </h4>
                     <p className="text-slate-400 text-xs font-bold mt-1">
-                      Lịch sử thanh toán sẽ xuất hiện sau khi bạn hoàn tất giao
-                      dịch đầu tiên.
+                      Lịch sử thanh toán sẽ xuất hiện sau khi bạn hoàn tất giao dịch đầu tiên.
                     </p>
                   </div>
                 )

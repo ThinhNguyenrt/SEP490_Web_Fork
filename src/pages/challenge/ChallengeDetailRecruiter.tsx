@@ -124,7 +124,7 @@ export default function ChallengeDetailRecruiter() {
     }
   };
 
-  const statusDisplay = getStatusDisplay(challenge.status);
+  const statusDisplay = getStatusDisplay(challenge.status ?? "");
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">

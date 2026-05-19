@@ -239,7 +239,7 @@ const SavedCandidates = () => {
               }`}
             >
               <AlertCircle size={16} />
-              Không phân loại
+              Tất cả
             </button>
 
             {/* Category buttons */}

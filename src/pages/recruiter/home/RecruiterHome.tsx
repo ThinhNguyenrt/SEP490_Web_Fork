@@ -49,15 +49,46 @@ export default function RecruiterHome() {
 
       console.log("📡 Loading saved portfolios...");
       const savedData = await portfolioService.fetchSavedPortfolios(token);
+      console.log("📦 Raw saved portfolio data:", savedData);
+      
       const savedIds = new Set(savedData.map((p: any) => p.portfolioId));
       const detailsMap = new Map(
-        savedData.map((p: any) => [
-          p.portfolioId,
-          {
-            interestLevel: p.interestLevel || "MEDIUM",
-            categoryId: p.categoryId || null,
-          },
-        ]),
+        savedData.map((p: any) => {
+          const interestLevelRaw =
+            p.interestLevel ||
+            p.level ||
+            p.priority ||
+            p.interestLevelType ||
+            "MEDIUM";
+          // Normalize to uppercase (API returns lowercase)
+          const interestLevel = interestLevelRaw
+            .toUpperCase() as "LOW" | "MEDIUM" | "HIGH";
+          const categoryId =
+            p.categoryId ||
+            p.followCategoryId ||
+            p.categoryFollowId ||
+            p.followId ||
+            null;
+          
+          console.log(
+            "📋 Portfolio details for",
+            p.portfolioId,
+            "- Full object:",
+            p,
+            "| Interest level extracted:",
+            interestLevel,
+            "| Category ID extracted:",
+            categoryId,
+          );
+          
+          return [
+            p.portfolioId,
+            {
+              interestLevel,
+              categoryId,
+            },
+          ];
+        }),
       );
       setSavedPortfolios(savedIds);
       setSavedPortfolioDetails(detailsMap);
@@ -466,22 +497,42 @@ export default function RecruiterHome() {
               savedPortfolios.has(currentPortfolio.portfolioId) ? "edit" : "create"
             }
             currentInterestLevel={
-              savedPortfolioDetails.get(currentPortfolio.portfolioId)
-                ?.interestLevel || "MEDIUM"
+              (() => {
+                const level =
+                  savedPortfolioDetails.get(currentPortfolio.portfolioId)
+                    ?.interestLevel || "MEDIUM";
+                console.log(
+                  "📤 Passing currentInterestLevel to BookmarkModal:",
+                  level,
+                  "for portfolio",
+                  currentPortfolio.portfolioId,
+                );
+                return level;
+              })()
             }
             currentCategoryId={
-              savedPortfolioDetails.get(currentPortfolio.portfolioId)
-                ?.categoryId || null
+              (() => {
+                const catId =
+                  savedPortfolioDetails.get(currentPortfolio.portfolioId)
+                    ?.categoryId || null;
+                console.log(
+                  "📤 Passing currentCategoryId to BookmarkModal:",
+                  catId,
+                  "for portfolio",
+                  currentPortfolio.portfolioId,
+                );
+                return catId;
+              })()
             }
-            onSuccess={() => {
+            onSuccess={(data) => {
               setSavedPortfolios(
                 (prev) => new Set([...prev, currentPortfolio.portfolioId]),
               );
               setSavedPortfolioDetails((prev) => {
                 const next = new Map(prev);
                 next.set(currentPortfolio.portfolioId, {
-                  interestLevel: "MEDIUM",
-                  categoryId: null,
+                  interestLevel: data.interestLevel,
+                  categoryId: data.categoryId,
                 });
                 return next;
               });

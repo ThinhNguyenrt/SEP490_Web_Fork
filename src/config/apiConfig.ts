@@ -101,6 +101,13 @@ export const API_BASE_URLS = {
     "https://notification-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
     "/api"
   ),
+
+  // Challenge Service - Challenge management and submissions
+  challenge: getBaseUrl(
+    "VITE_CHALLENGE_API_BASE_URL",
+    "https://challenge-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io",
+    ""
+  ),
 } as const;
 
 /**
@@ -178,6 +185,17 @@ export const API_ENDPOINTS = {
     unreadCount: "/notifications/unread-count",
     markAsRead: (id: number) => `/notifications/${id}/read`,
     markAllAsRead: "/notifications/read-all",
+  },
+
+  // Challenge Endpoints
+  challenge: {
+    list: "/api/challenges",
+    create: "/api/challenges",
+    detail: (id: string) => `/api/challenges/${id}`,
+    update: (id: string) => `/api/challenges/${id}`,
+    delete: (id: string) => `/api/challenges/${id}`,
+    creatorList: "/api/creator/challenges",
+    publicList: "/api/challenges/public",
   },
 } as const;
 

@@ -1,14 +1,39 @@
+export interface ChallengeVersion {
+  id: string;
+  versionNumber: number;
+  difficultyScore: number;
+  difficultyLabel: "Easy" | "Medium" | "Hard";
+  skillWeights?: Record<string, number>;
+  criteria: ChallengeCriteria[];
+  createdAt: string;
+}
+
+export interface ChallengeCriteria {
+  id: string;
+  name: string;
+  description: string;
+  maxScore: number;
+  displayOrder: number;
+}
+
 export interface Challenge {
-  id: number;
-  companyId: number;
+  id: string;
   title: string;
   description?: string;
-  startDate: string;
-  endDate: string;
-  reward?: string;
-  status: "active" | "inactive" | "closed";
+  expectedSolution?: string;
+  status?: "Draft" | "Published" | "Closed" | "Archived";
   createdAt: string;
-  updatedAt: string;
+  createdById?: number;
+  reviewedById?: number | null;
+  deadline: string;
+  publishedAt?: string | null;
+  currentVersionId?: string | null;
+  updatedAt?: string;
+  difficultyScore?: number;
+  difficultyLabel?: "Easy" | "Medium" | "Hard";
+  activeVersion?: ChallengeVersion;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface ChallengeSubmission {
@@ -25,13 +50,19 @@ export interface ChallengeSubmission {
 export interface CreateChallengePayload {
   title: string;
   description?: string;
-  startDate: string;
-  endDate: string;
-  reward?: string;
+  expectedSolution?: string;
+  deadline: string; // ISO 8601 format
 }
 
 export interface UpdateChallengePayload extends CreateChallengePayload {
-  id: number;
+  id: string;
+}
+
+export interface CreatorChallengesResponse {
+  items: Challenge[];
+  totalCount: number;
+  skip: number;
+  take: number;
 }
 
 export interface ChallengePaginatedResponse {

@@ -1,0 +1,227 @@
+import { ArrowLeft, CheckCircle2, Send, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAppSelector } from "@/store/hook";
+import { getChallengeDetail, submitChallengeForReview, approveAndPublishChallenge } from "@/services/challenge.api";
+import { Challenge } from "@/types/challenge";
+import CustomLoading from "@/components/Loading/Loading";
+import { notify } from "@/lib/toast";
+
+export default function ChallengeDetailRecruiter() {
+  const navigate = useNavigate();
+  const { challengeId } = useParams<{ challengeId: string }>();
+  const { accessToken } = useAppSelector((state) => state.auth);
+
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadChallengeDetail = async () => {
+    try {
+      setIsLoading(true);
+
+      if (!challengeId || !accessToken) {
+        throw new Error("Invalid challenge ID or token");
+      }
+
+      console.log("📡 [ChallengeDetailRecruiter] Loading challenge:", challengeId);
+      const challengeData = await getChallengeDetail(challengeId, accessToken);
+      setChallenge(challengeData);
+      console.log("✅ [ChallengeDetailRecruiter] Challenge loaded:", challengeData);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
+      console.error("❌ Error loading challenge:", errorMessage);
+      notify.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadChallengeDetail();
+  }, [challengeId, accessToken]);
+
+  const handleSubmitForReview = async () => {
+    if (!challenge || !challengeId || !accessToken) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log("📡 Submitting challenge for review:", challenge.id);
+      
+      // Thực hiện gọi API gửi duyệt
+      const updatedChallenge = await submitChallengeForReview(challengeId, accessToken);
+      
+      // Cập nhật lại state giúp UI đổi trạng thái lập tức
+      setChallenge(updatedChallenge);
+      notify.success("Gửi duyệt Admin thành công");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi gửi duyệt";
+      notify.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePublishNow = async () => {
+    if (!challenge || !challengeId || !accessToken) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log("📡 Publishing challenge immediately:", challenge.id);
+      
+      // Thực hiện gọi API tự xuất bản nhanh
+      const updatedChallenge = await approveAndPublishChallenge(challengeId, accessToken);
+      
+      // Cập nhật lại state giúp UI đổi tag sang "Đã xuất bản"
+      setChallenge(updatedChallenge);
+      notify.success("Xuất bản thử thách thành công");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi xuất bản";
+      notify.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <CustomLoading />;
+  }
+
+  if (!challenge) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle size={48} className="mx-auto text-red-600 mb-4" />
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Không tìm thấy thử thách</h1>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const createdDate = new Date(challenge.createdAt).toLocaleDateString("vi-VN");
+  const deadline = new Date(challenge.deadline).toLocaleDateString("vi-VN");
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case "Draft":
+        return { label: "Nháp", color: "bg-slate-100 text-slate-800" };
+      case "PendingReview":
+        return { label: "Chờ duyệt", color: "bg-yellow-100 text-yellow-800" };
+      case "Published":
+        return { label: "Đã xuất bản", color: "bg-green-100 text-green-800" };
+      case "Closed":
+        return { label: "Đã đóng", color: "bg-red-100 text-red-800" };
+      case "Archived":
+        return { label: "Đã lưu trữ", color: "bg-gray-100 text-gray-800" };
+      default:
+        return { label: status, color: "bg-slate-100 text-slate-800" };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay(challenge.status);
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-medium"
+        >
+          <ArrowLeft size={20} />
+          Quay lại
+        </button>
+
+        {/* Challenge Info */}
+        <div className="bg-white rounded-lg border border-slate-200 p-8 mb-6">
+          {/* Title and Status */}
+          <div className="mb-6">
+            <div className="flex items-start justify-between mb-3">
+              <h1 className="text-3xl font-bold text-slate-900">{challenge.title}</h1>
+              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${statusDisplay.color}`}>
+                {statusDisplay.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-3">Mô tả</h2>
+            <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+              {challenge.description}
+            </p>
+          </div>
+
+          {/* Expected Solution */}
+          {challenge.expectedSolution && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-slate-900 mb-3">Giải pháp mong đợi</h2>
+              <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+                {challenge.expectedSolution}
+              </p>
+            </div>
+          )}
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg mb-8">
+            <div>
+              <p className="text-sm text-slate-500">Ngày tạo</p>
+              <p className="text-sm font-semibold text-slate-900">{createdDate}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Hạn chót</p>
+              <p className="text-sm font-semibold text-slate-900">{deadline}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Trạng thái</p>
+              <p className="text-sm font-semibold text-slate-900">{statusDisplay.label}</p>
+            </div>
+            {challenge.reviewedById && (
+              <div>
+                <p className="text-sm text-slate-500">Duyệt bởi</p>
+                <p className="text-sm font-semibold text-slate-900">ID: {challenge.reviewedById}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSubmitForReview}
+              disabled={isSubmitting || challenge.status !== "Draft"}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send size={18} />
+              Gửi Admin duyệt
+            </button>
+            <button
+              onClick={handlePublishNow}
+              disabled={isSubmitting}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <CheckCircle2 size={18} />
+              Tự xuất bản ngay
+            </button>
+          </div>
+        </div>
+
+        {/* Submissions List */}
+        <div className="bg-white rounded-lg border border-slate-200 p-8">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Danh sách đã nộp</h2>
+          
+          {/* TODO: Add submissions list */}
+          <div className="text-center py-12">
+            <AlertCircle size={48} className="mx-auto text-slate-400 mb-4" />
+            <p className="text-slate-500">Chưa có bài nộp nào</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

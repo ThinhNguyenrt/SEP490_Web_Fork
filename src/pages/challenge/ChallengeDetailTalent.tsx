@@ -1,121 +1,79 @@
-import { ArrowLeft, Download, Upload, Clock, CheckCircle2, AlertCircle, FileText } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAppSelector } from "@/store/hook";
 import {
-  getChallengeDetailWithSubmission,
-  submitChallengeSolution,
-} from "@/services/talentChallenge.api";
-import { Challenge, ChallengeSubmission } from "@/types/challenge";
+  ArrowLeft,
+  Clock,
+  Code2,
+  Link as LinkIcon,
+  Send,
+  AlertCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { fetchPublicChallengeDetail } from "@/services/challenge.api";
+import { Challenge } from "@/types/challenge";
 import CustomLoading from "@/components/Loading/Loading";
 import { notify } from "@/lib/toast";
 
 export default function ChallengeDetailTalent() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { challengeId } = useParams<{ challengeId: string }>();
-  const { user, accessToken } = useAppSelector((state) => state.auth);
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [submission, setSubmission] = useState<ChallengeSubmission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"details" | "criteria">("details");
+  const [code, setCode] = useState("");
+  const [submissionLink, setSubmissionLink] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const loadChallengeDetail = async () => {
-    try {
-      setIsLoading(true);
-
-      if (!challengeId || !user?.id) {
-        throw new Error("Invalid challenge or user");
-      }
-
-      const { challenge: challengeData, submission: submissionData } =
-        await getChallengeDetailWithSubmission(
-          parseInt(challengeId),
-          user.id,
-          accessToken ?? undefined
-        );
-
-      setChallenge(challengeData);
-      setSubmission(submissionData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
-      console.error("❌ Error loading challenge:", errorMessage);
-      notify.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    loadChallengeDetail();
-  }, [challengeId, user?.id]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      // Validate file size (max 50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        notify.error("Kích thước file không được vượt quá 50MB");
-        return;
+    if (!id) return;
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchPublicChallengeDetail(id);
+        setChallenge(data);
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
+        setError(msg);
+        notify.error(msg);
+      } finally {
+        setIsLoading(false);
       }
-      setSelectedFile(file);
-      notify.success(`Chọn file: ${file.name}`);
-    }
-  };
+    };
+    load();
+  }, [id]);
 
   const handleSubmit = async () => {
-    if (!selectedFile || !challenge || !user?.id) {
-      notify.warning("Vui lòng chọn file để nộp");
+    if (!code.trim() && !submissionLink.trim()) {
+      notify.warning("Vui lòng nhập mã code hoặc link nộp bài");
       return;
     }
-
     try {
       setIsSubmitting(true);
-      const newSubmission = await submitChallengeSolution(
-        challenge.id,
-        user.id,
-        selectedFile,
-        accessToken ?? undefined
-      );
-      setSubmission(newSubmission);
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      // TODO: Call submit API
       notify.success("Nộp bài thành công!");
+      setCode("");
+      setSubmissionLink("");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi nộp bài";
-      console.error("❌ Error submitting:", errorMessage);
-      notify.error(errorMessage);
+      notify.error(err instanceof Error ? err.message : "Có lỗi khi nộp bài");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDownloadSubmission = () => {
-    if (submission) {
-      // In a real app, this would trigger a download
-      window.open(submission.fileUrl, "_blank");
-      notify.info("Tải file submission của bạn");
-    }
-  };
+  if (isLoading) return <CustomLoading />;
 
-  if (isLoading) {
-    return <CustomLoading />;
-  }
-
-  if (!challenge) {
+  if (error || !challenge) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle size={48} className="mx-auto text-red-600 mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Không tìm thấy thử thách</h1>
+          <p className="text-red-600 mb-4">
+            {error || "Không tìm thấy thử thách"}
+          </p>
           <button
             onClick={() => navigate(-1)}
-            className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+            className="text-blue-600 hover:underline"
           >
             Quay lại
           </button>
@@ -124,15 +82,34 @@ export default function ChallengeDetailTalent() {
     );
   }
 
-  const startDate = new Date(challenge.startDate);
-  const endDate = new Date(challenge.endDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const isExpired = endDate < now;
+  const deadline = new Date(challenge.deadline);
+  const daysLeft = Math.ceil(
+    (deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+  const difficulty =
+    challenge.activeVersion?.difficultyLabel ||
+    challenge.difficultyLabel ||
+    "Unknown";
+  // 1. Định nghĩa object chứa cả Màu cấu hình và Tên hiển thị tiếng Việt
+  const difficultyConfig: Record<string, { label: string; color: string }> = {
+    Easy: { label: "Dễ", color: "bg-green-100 text-green-800" },
+    Medium: { label: "Vừa", color: "bg-yellow-100 text-yellow-800" },
+    Hard: { label: "Khó", color: "bg-red-100 text-red-800" },
+  };
+
+  // 2. Lấy ra config dựa vào biến `difficulty` (nếu không khớp key nào thì dùng fallback mặc định)
+  const currentDifficulty = difficultyConfig[difficulty] || {
+    label: difficulty || "Không xác định", // Giữ lại chữ cũ hoặc hiển thị mặc định
+    color: "bg-slate-100 text-slate-800",
+  };
+
+  // 3. Giờ bạn có 2 biến sạch sẽ để dùng trong JSX:
+  // - currentDifficulty.color (Dùng để cho vào className)
+  // - currentDifficulty.label (Dùng để hiển thị ra màn hình)
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <button
           onClick={() => navigate(-1)}
@@ -142,197 +119,220 @@ export default function ChallengeDetailTalent() {
           Quay lại
         </button>
 
-        {/* Challenge Info */}
-        <div className="bg-white rounded-lg border border-slate-200 p-8 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">{challenge.title}</h1>
-
-          {/* Status Badge and Timer */}
-          <div className="flex items-center gap-4 mb-6">
-            {isExpired ? (
-              <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full font-semibold text-sm">
-                Đã hết hạn
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+            {challenge.title}
+          </h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span
+              className={`px-2 py-1 rounded text-sm font-medium ${currentDifficulty.color}`}
+            >
+              {currentDifficulty.label}
+            </span>
+            {daysLeft > 0 ? (
+              <span className="flex items-center gap-1 text-sm text-orange-600 font-medium">
+                <Clock size={14} /> Còn {daysLeft} ngày
               </span>
             ) : (
-              <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold text-sm flex items-center gap-2">
-                <Clock size={16} />
-                Còn {daysLeft} ngày
+              <span className="flex items-center gap-1 text-sm text-red-600 font-medium">
+                <AlertCircle size={14} /> Đã hết hạn
               </span>
             )}
-
-            {submission && (
-              <span
-                className={`px-4 py-2 rounded-full font-semibold text-sm flex items-center gap-2 ${
-                  submission.status === "approved"
-                    ? "bg-green-100 text-green-800"
-                    : submission.status === "rejected"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                <CheckCircle2 size={16} />
-                {submission.status === "approved"
-                  ? "Đã chấp nhận"
-                  : submission.status === "rejected"
-                  ? "Bị từ chối"
-                  : "Chờ xét duyệt"}
-              </span>
-            )}
-          </div>
-
-          {/* Description */}
-          {challenge.description && (
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-3">Mô tả</h2>
-              <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
-                {challenge.description}
-              </p>
-            </div>
-          )}
-
-          {/* Details */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-            <div>
-              <p className="text-sm text-slate-500">Ngày bắt đầu</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {startDate.toLocaleDateString("vi-VN")}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Ngày kết thúc</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {endDate.toLocaleDateString("vi-VN")}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Giải thưởng</p>
-              <p className="text-sm font-semibold text-green-600">
-                {challenge.reward || "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Công ty</p>
-              <p className="text-sm font-semibold text-slate-900">
-                Company #{challenge.companyId}
-              </p>
-            </div>
+            <span className="text-sm text-slate-500">
+              Hạn chót: {deadline.toLocaleDateString("vi-VN")}
+            </span>
           </div>
         </div>
 
-        {/* Submission Section */}
-        <div className="bg-white rounded-lg border border-slate-200 p-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Nộp bài</h2>
-
-          {submission && (
-            <div className="mb-6 p-4 rounded-lg border-2 border-green-200 bg-green-50">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-green-900 mb-1">Bài nộp của bạn</h3>
-                  <p className="text-sm text-green-700 mb-3">
-                    File: <span className="font-mono">{submission.fileName}</span>
-                  </p>
-                  <p className="text-sm text-green-700 mb-3">
-                    Nộp lúc:{" "}
-                    {new Date(submission.submittedAt).toLocaleString("vi-VN")}
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        submission.status === "approved"
-                          ? "bg-green-200 text-green-900"
-                          : submission.status === "rejected"
-                          ? "bg-red-200 text-red-900"
-                          : "bg-yellow-200 text-yellow-900"
-                      }`}
-                    >
-                      {submission.status === "approved"
-                        ? "Đã chấp nhận"
-                        : submission.status === "rejected"
-                        ? "Bị từ chối"
-                        : "Chờ xét duyệt"}
-                    </span>
-                  </div>
-
-                  {submission.feedback && (
-                    <div className="mt-3 p-3 bg-white rounded border border-green-200">
-                      <p className="text-xs font-semibold text-slate-900 mb-1">
-                        Nhận xét từ công ty:
-                      </p>
-                      <p className="text-sm text-slate-600">{submission.feedback}</p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleDownloadSubmission}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors text-sm"
-                  >
-                    <Download size={16} />
-                    Tải file của bạn
-                  </button>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Details + Criteria */}
+          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-6">
+            {/* Tabs */}
+            <div className="flex border-b border-slate-200 mb-6">
+              <button
+                onClick={() => setActiveTab("details")}
+                className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+                  activeTab === "details"
+                    ? "text-blue-600 border-blue-600"
+                    : "text-slate-600 border-transparent hover:text-slate-900"
+                }`}
+              >
+                Chi tiết
+              </button>
+              <button
+                onClick={() => setActiveTab("criteria")}
+                className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+                  activeTab === "criteria"
+                    ? "text-blue-600 border-blue-600"
+                    : "text-slate-600 border-transparent hover:text-slate-900"
+                }`}
+              >
+                Tiêu chí ({challenge.activeVersion?.criteria?.length || 0})
+              </button>
             </div>
-          )}
 
-          {!isExpired && (
-            <>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-900 mb-3">
-                  Chọn file để nộp <span className="text-red-600">*</span>
-                </label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
-                >
-                  <Upload size={32} className="mx-auto text-slate-400 mb-3" />
-                  <p className="text-sm font-medium text-slate-900 mb-1">
-                    Chọn file hoặc kéo thả vào đây
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Hỗ trợ: ZIP, RAR, PDF (Tối đa 50MB)
-                  </p>
-
-                  {selectedFile && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200 flex items-center gap-2">
-                      <FileText size={16} className="text-blue-600" />
-                      <span className="text-sm font-medium text-blue-900">
-                        {selectedFile.name}
-                      </span>
-                      <span className="text-xs text-blue-600 ml-auto">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
-                      </span>
+            {activeTab === "details" ? (
+              <div className="space-y-6">
+                {challenge.description && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      Mô tả
+                    </h3>
+                    <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+                      {challenge.description}
+                    </p>
+                  </div>
+                )}
+                {challenge.expectedSolution && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      Giải pháp mong đợi
+                    </h3>
+                    <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+                      {challenge.expectedSolution}
+                    </p>
+                  </div>
+                )}
+                {challenge.activeVersion?.skillWeights && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                      Kỹ năng yêu cầu
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {Object.entries(challenge.activeVersion.skillWeights).map(
+                        ([skill, weight]) => (
+                          <div
+                            key={skill}
+                            className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                          >
+                            <span className="text-slate-900 font-medium">
+                              {skill}
+                            </span>
+                            <span className="text-blue-600 font-semibold">
+                              {(weight * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
-                  )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {challenge.activeVersion?.criteria?.length ? (
+                  challenge.activeVersion.criteria.map((criterion) => (
+                    <div
+                      key={criterion.id}
+                      className="p-4 border border-slate-200 rounded-lg hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-slate-900">
+                            {criterion.name}
+                          </h4>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {criterion.description}
+                          </p>
+                        </div>
+                        <div className="ml-4 px-3 py-1 bg-blue-50 rounded-lg">
+                          <span className="text-sm font-semibold text-blue-600">
+                            {criterion.maxScore} điểm
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-8 text-slate-500">
+                    Chưa có tiêu chí
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Submission */}
+          <div className="lg:col-span-1">
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 sticky top-8">
+              <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <Send size={18} className="text-blue-600" />
+                Nộp bài
+              </h3>
+
+              <div className="mb-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Code2 size={16} className="text-slate-600" />
+                  <label className="text-sm font-semibold text-slate-900">
+                    Mã nguồn
+                  </label>
+                </div>
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Dán code tại đây..."
+                  className="w-full h-40 p-2 border border-slate-300 rounded-lg font-mono text-xs resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">Tất cả ngôn ngữ</p>
+              </div>
+
+              <div className="mb-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <LinkIcon size={16} className="text-slate-600" />
+                  <label className="text-sm font-semibold text-slate-900">
+                    Link
+                  </label>
                 </div>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  accept=".zip,.rar,.pdf,.7z"
+                  type="url"
+                  value={submissionLink}
+                  onChange={(e) => setSubmissionLink(e.target.value)}
+                  placeholder="https://github.com/..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-slate-500 mt-1">Tùy chọn</p>
+              </div>
+
+              <div className="mb-5 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-900">
+                  <strong>Lưu ý:</strong> Code phải rõ ràng và dễ hiểu.
+                </p>
               </div>
 
               <button
                 onClick={handleSubmit}
-                disabled={!selectedFile || isSubmitting}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={isSubmitting || daysLeft <= 0}
+                className="w-full py-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
               >
-                <Upload size={20} />
+                <Send size={16} />
                 {isSubmitting ? "Đang nộp..." : "Nộp bài"}
               </button>
-            </>
-          )}
 
-          {isExpired && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700">
-                Thời gian nộp bài đã hết. Bạn không thể nộp bài cho thử thách này nữa.
-              </p>
+              {daysLeft <= 3 && daysLeft > 0 && (
+                <div className="mt-4 p-2 bg-orange-50 border border-orange-200 rounded-lg flex gap-2">
+                  <Clock
+                    size={16}
+                    className="text-orange-600 flex-shrink-0 mt-0.5"
+                  />
+                  <p className="text-xs text-orange-900">
+                    <strong>Cảnh báo:</strong> Chỉ còn {daysLeft} ngày
+                  </p>
+                </div>
+              )}
+
+              {daysLeft <= 0 && (
+                <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                  <AlertCircle
+                    size={16}
+                    className="text-red-600 flex-shrink-0 mt-0.5"
+                  />
+                  <p className="text-xs text-red-900">
+                    <strong>Đã hết hạn nộp bài</strong>
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,29 +1,45 @@
-import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
-import { fetchActiveChallenges, fetchCompletedChallenges } from "@/services/talentChallenge.api";
+import { fetchPublicChallenges } from "@/services/challenge.api";
 import { Challenge } from "@/types/challenge";
 import CustomLoading from "@/components/Loading/Loading";
 import { notify } from "@/lib/toast";
 
-type Tab = "active" | "completed";
-
 function ChallengeCard({
   challenge,
   onClick,
-  tab,
 }: {
   challenge: Challenge;
   onClick: () => void;
-  tab: Tab;
 }) {
-  const startDate = new Date(challenge.startDate).toLocaleDateString("vi-VN");
-  const endDate = new Date(challenge.endDate).toLocaleDateString("vi-VN");
+  const deadline = new Date(challenge.deadline);
   const now = new Date();
   const daysLeft = Math.ceil(
-    (new Date(challenge.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
   );
+
+  const difficulty =
+    challenge.activeVersion?.difficultyLabel ||
+    challenge.difficultyLabel ||
+    "Unknown";
+  // 1. Định nghĩa object chứa cả Màu cấu hình và Tên hiển thị tiếng Việt
+  const difficultyConfig: Record<string, { label: string; color: string }> = {
+    Easy: { label: "Dễ", color: "bg-green-100 text-green-800" },
+    Medium: { label: "Vừa", color: "bg-yellow-100 text-yellow-800" },
+    Hard: { label: "Khó", color: "bg-red-100 text-red-800" },
+  };
+
+  // 2. Lấy ra config dựa vào biến `difficulty` (nếu không khớp key nào thì dùng fallback mặc định)
+  const currentDifficulty = difficultyConfig[difficulty] || {
+    label: difficulty || "Không xác định", // Giữ lại chữ cũ hoặc hiển thị mặc định
+    color: "bg-slate-100 text-slate-800",
+  };
+
+  // 3. Giờ bạn có 2 biến sạch sẽ để dùng trong JSX:
+  // - currentDifficulty.color (Dùng để cho vào className)
+  // - currentDifficulty.label (Dùng để hiển thị ra màn hình)
 
   return (
     <div
@@ -32,19 +48,23 @@ function ChallengeCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
             {challenge.title}
           </h3>
-          {tab === "active" && daysLeft > 0 && (
-            <div className="flex items-center gap-2 text-sm text-orange-600 font-medium">
-              <Clock size={16} />
-              Còn {daysLeft} ngày
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`px-2 py-1 rounded text-sm font-medium ${currentDifficulty.color}`}
+            >
+              {currentDifficulty.label}
+            </span>
+            {daysLeft > 0 && (
+              <div className="flex items-center gap-1 text-sm text-orange-600 font-medium">
+                <Clock size={14} />
+                Còn {daysLeft} ngày
+              </div>
+            )}
+          </div>
         </div>
-        {tab === "completed" && (
-          <CheckCircle2 size={24} className="text-green-600 flex-shrink-0" />
-        )}
       </div>
 
       {challenge.description && (
@@ -53,20 +73,18 @@ function ChallengeCard({
         </p>
       )}
 
-      <div className="space-y-2 text-sm mb-4">
+      <div className="space-y-2 text-sm mb-4 border-t border-slate-100 pt-4">
         <div className="flex justify-between">
-          <span className="text-slate-500">Từ:</span>
-          <span className="text-slate-900 font-medium">{startDate}</span>
+          <span className="text-slate-500">Hạn chót:</span>
+          <span className="text-slate-900 font-medium">
+            {deadline.toLocaleDateString("vi-VN")}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Đến:</span>
-          <span className="text-slate-900 font-medium">{endDate}</span>
-        </div>
-        {challenge.reward && (
+        {challenge.activeVersion?.criteria && (
           <div className="flex justify-between">
-            <span className="text-slate-500">Giải thưởng:</span>
-            <span className="text-slate-900 font-medium text-green-600">
-              {challenge.reward}
+            <span className="text-slate-500">Tiêu chí:</span>
+            <span className="text-slate-900 font-medium">
+              {challenge.activeVersion.criteria.length} tiêu chí
             </span>
           </div>
         )}
@@ -81,28 +99,28 @@ function ChallengeCard({
 
 export default function ChallengeTalent() {
   const navigate = useNavigate();
-  const { user, accessToken } = useAppSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState<Tab>("active");
-  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
-  const [completedChallenges, setCompletedChallenges] = useState<Challenge[]>([]);
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const [publicChallenges, setPublicChallenges] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadChallenges = async () => {
+  const loadPublicChallenges = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const [active, completed] = await Promise.all([
-        fetchActiveChallenges(accessToken ?? undefined),
-        user?.id ? fetchCompletedChallenges(user.id, accessToken ?? undefined) : Promise.resolve([]),
-      ]);
-
-      setActiveChallenges(active);
-      setCompletedChallenges(completed);
+      console.log("📡 [ChallengeTalent] Loading public challenges...");
+      const response = await fetchPublicChallenges(0, 50);
+      setPublicChallenges(response.items || []);
+      console.log(
+        "✅ [ChallengeTalent] Loaded:",
+        response.items?.length,
+        "challenges",
+      );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
-      console.error("❌ Error loading challenges:", errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
+      console.error("❌ Error loading public challenges:", errorMessage);
       setError(errorMessage);
       notify.error(errorMessage);
     } finally {
@@ -111,18 +129,16 @@ export default function ChallengeTalent() {
   };
 
   useEffect(() => {
-    loadChallenges();
-  }, [user?.id]);
+    loadPublicChallenges();
+  }, [accessToken]);
 
-  const handleChallengeClick = (challengeId: number) => {
-    navigate(`/talent-challenge/${challengeId}`);
+  const handleChallengeClick = (challenge: Challenge) => {
+    navigate(`/talent-challenge/${challenge.id}`);
   };
 
   if (isLoading) {
     return <CustomLoading />;
   }
-
-  const currentChallenges = activeTab === "active" ? activeChallenges : completedChallenges;
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -137,8 +153,12 @@ export default function ChallengeTalent() {
             Quay lại
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Thử thách</h1>
-            <p className="text-slate-500 mt-1">Tham gia các thử thách và chinh phục bản thân</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Thử thách đang diễn ra
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Khám phá và tham gia các thử thách thú vị
+            </p>
           </div>
         </div>
 
@@ -149,65 +169,24 @@ export default function ChallengeTalent() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="mb-6 flex gap-4 border-b border-slate-200">
-          <button
-            onClick={() => setActiveTab("active")}
-            className={`pb-3 px-4 font-semibold transition-colors border-b-2 ${
-              activeTab === "active"
-                ? "text-blue-600 border-blue-600"
-                : "text-slate-600 border-transparent hover:text-slate-900"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Clock size={18} />
-              Đang diễn ra ({activeChallenges.length})
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab("completed")}
-            className={`pb-3 px-4 font-semibold transition-colors border-b-2 ${
-              activeTab === "completed"
-                ? "text-blue-600 border-blue-600"
-                : "text-slate-600 border-transparent hover:text-slate-900"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} />
-              Đã làm ({completedChallenges.length})
-            </div>
-          </button>
-        </div>
-
         {/* Content */}
-        {currentChallenges.length === 0 ? (
+        {publicChallenges.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-            {activeTab === "active" ? (
-              <>
-                <Clock size={48} className="mx-auto text-slate-400 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  Chưa có thử thách nào
-                </h3>
-                <p className="text-slate-500">Quay lại sau để xem các thử thách mới</p>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={48} className="mx-auto text-slate-400 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  Chưa nộp bài nào
-                </h3>
-                <p className="text-slate-500">Hãy bắt đầu với một thử thách từ danh sách</p>
-              </>
-            )}
+            <Clock size={48} className="mx-auto text-slate-400 mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Chưa có thử thách nào
+            </h3>
+            <p className="text-slate-500">
+              Vui lòng quay lại sau để xem các thử thách mới
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentChallenges.map((challenge) => (
+            {publicChallenges.map((challenge) => (
               <ChallengeCard
                 key={challenge.id}
                 challenge={challenge}
-                onClick={() => handleChallengeClick(challenge.id)}
-                tab={activeTab}
+                onClick={() => handleChallengeClick(challenge)}
               />
             ))}
           </div>

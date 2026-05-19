@@ -1,90 +1,180 @@
-import { Challenge, ChallengePaginatedResponse, CreateChallengePayload } from '@/types/challenge';
-import { mockChallenges } from '@/data/mockChallenge';
+import {
+  Challenge,
+  ChallengePaginatedResponse,
+  CreateChallengePayload,
+  CreatorChallengesResponse,
+} from "@/types/challenge";
+import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
 
 /**
  * Challenge API Service
  * Handles challenge operations for company users
- * Currently using mock data - replace with real API calls when backend is ready
+ * Uses real API calls to the Challenge Service
  */
 
-// Mock data storage (simulating database)
-let challenges: Challenge[] = JSON.parse(JSON.stringify(mockChallenges));
-let nextId = Math.max(...challenges.map(c => c.id)) + 1;
+/**
+ * Build authorization header with Bearer token
+ */
+const getAuthHeader = (accessToken: string) => ({
+  Authorization: `Bearer ${accessToken}`,
+  "Content-Type": "application/json",
+});
 
-// Helper function to simulate network delay
-const simulateNetworkDelay = (ms: number = 500): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Fetch creator's challenges (for challenge management page)
+ */
+export const fetchCreatorChallenges = async (
+  skip: number = 0,
+  take: number = 20,
+  accessToken?: string,
+): Promise<CreatorChallengesResponse> => {
+  try {
+    console.log(
+      "📡 [fetchCreatorChallenges] Fetching creator challenges from API",
+    );
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.creatorList,
+    );
+    const queryParams = new URLSearchParams({
+      skip: skip.toString(),
+      take: take.toString(),
+    });
+
+    console.log(
+      "🔗 [fetchCreatorChallenges] Full URL:",
+      `${url}?${queryParams}`,
+    );
+    console.log("🔐 [fetchCreatorChallenges] Token exists:", !!accessToken);
+
+    const response = await fetch(`${url}?${queryParams}`, {
+      method: "GET",
+      headers: accessToken
+        ? getAuthHeader(accessToken)
+        : { "Content-Type": "application/json" },
+    });
+
+    console.log(
+      "📊 [fetchCreatorChallenges] Response status:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [fetchCreatorChallenges] Error response:", error);
+      throw new Error(
+        error.message ||
+          `Failed to fetch creator challenges: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [fetchCreatorChallenges] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch creator challenges";
+    console.error("❌ [fetchCreatorChallenges] Error:", errorMessage);
+    throw error;
+  }
 };
 
 /**
- * Fetch challenges for a company with pagination support
+ * Fetch challenges with optional pagination
  */
 export const fetchChallengesByCompanyId = async (
-  companyId: number,
   cursor?: string,
   limit: number = 10,
-  _accessToken?: string
+  accessToken?: string,
 ): Promise<ChallengePaginatedResponse> => {
   try {
-    console.log("📡 [fetchChallengesByCompanyId] Fetching mock data with companyId:", companyId);
+    console.log("📡 [fetchChallengesByCompanyId] Fetching challenges from API");
 
-    // Simulate network delay
-    await simulateNetworkDelay(600);
-
-    // Filter challenges by companyId
-    const filteredChallenges = challenges.filter(c => c.companyId === companyId);
-
-    // Implement simple cursor-based pagination
-    let startIndex = 0;
-    if (cursor) {
-      startIndex = filteredChallenges.findIndex(c => c.id.toString() === cursor) + 1;
-    }
-
-    const paginatedChallenges = filteredChallenges.slice(startIndex, startIndex + limit);
-    const hasMore = startIndex + limit < filteredChallenges.length;
-    const nextCursor = hasMore ? paginatedChallenges[paginatedChallenges.length - 1]?.id.toString() : undefined;
-
-    console.log("✅ [fetchChallengesByCompanyId] Success:", {
-      count: paginatedChallenges.length,
-      total: filteredChallenges.length,
-      hasMore,
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.list,
+    );
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+      ...(cursor && { cursor }),
     });
 
-    return {
-      data: paginatedChallenges,
-      total: filteredChallenges.length,
-      hasMore,
-      cursor: nextCursor,
-    };
+    const response = await fetch(`${url}?${queryParams}`, {
+      method: "GET",
+      headers: accessToken
+        ? getAuthHeader(accessToken)
+        : { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Failed to fetch challenges: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [fetchChallengesByCompanyId] Success");
+    return data;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to fetch challenges";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to fetch challenges";
     console.error("❌ [fetchChallengesByCompanyId] Error:", errorMessage);
     throw error;
   }
 };
 
 /**
- * Get challenge details
+ * Get challenge details by ID
  */
 export const getChallengeDetail = async (
-  challengeId: number,
-  _accessToken?: string
+  challengeId: string | number,
+  accessToken?: string,
 ): Promise<Challenge> => {
   try {
     console.log("📡 [getChallengeDetail] Fetching challenge:", challengeId);
 
-    await simulateNetworkDelay(400);
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.detail(String(challengeId)),
+    );
 
-    const challenge = challenges.find(c => c.id === challengeId);
+    console.log("🔗 [getChallengeDetail] Full URL:", url);
+    console.log("🔐 [getChallengeDetail] Token exists:", !!accessToken);
 
-    if (!challenge) {
-      throw new Error(`Challenge with ID ${challengeId} not found`);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: accessToken
+        ? getAuthHeader(accessToken)
+        : { "Content-Type": "application/json" },
+    });
+
+    console.log(
+      "📊 [getChallengeDetail] Response status:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [getChallengeDetail] Error response:", error);
+      throw new Error(
+        error.message || `Failed to fetch challenge: ${response.statusText}`,
+      );
     }
 
-    console.log("✅ [getChallengeDetail] Success:", challenge);
-    return challenge;
+    const data = await response.json();
+    console.log("✅ [getChallengeDetail] Success:", data);
+    return data;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to fetch challenge detail";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch challenge detail";
     console.error("❌ [getChallengeDetail] Error:", errorMessage);
     throw error;
   }
@@ -94,34 +184,49 @@ export const getChallengeDetail = async (
  * Create a new challenge
  */
 export const createChallenge = async (
-  companyId: number,
   payload: CreateChallengePayload,
-  _accessToken?: string
+  accessToken: string,
 ): Promise<Challenge> => {
   try {
     console.log("📡 [createChallenge] Creating challenge:", payload);
 
-    await simulateNetworkDelay(500);
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.create,
+    );
+    console.log("🔗 [createChallenge] Full URL:", url);
+    console.log(
+      "📦 [createChallenge] Payload:",
+      JSON.stringify(payload, null, 2),
+    );
+    console.log("🔐 [createChallenge] Token exists:", !!accessToken);
 
-    const now = new Date().toISOString();
-    const newChallenge: Challenge = {
-      id: nextId++,
-      companyId,
-      title: payload.title,
-      description: payload.description,
-      startDate: new Date(payload.startDate).toISOString(),
-      endDate: new Date(payload.endDate).toISOString(),
-      reward: payload.reward,
-      status: "inactive",
-      createdAt: now,
-      updatedAt: now,
-    };
+    const response = await fetch(url, {
+      method: "POST",
+      headers: getAuthHeader(accessToken),
+      body: JSON.stringify(payload),
+    });
 
-    challenges.push(newChallenge);
-    console.log("✅ [createChallenge] Success:", newChallenge);
-    return newChallenge;
+    console.log(
+      "📊 [createChallenge] Response status:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [createChallenge] Error response:", error);
+      throw new Error(
+        error.message || `Failed to create challenge: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [createChallenge] Success:", data);
+    return data;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to create challenge";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to create challenge";
     console.error("❌ [createChallenge] Error:", errorMessage);
     throw error;
   }
@@ -131,36 +236,37 @@ export const createChallenge = async (
  * Update a challenge
  */
 export const updateChallenge = async (
-  challengeId: number,
+  challengeId: string | number,
   payload: CreateChallengePayload,
-  _accessToken?: string
+  accessToken: string,
 ): Promise<Challenge> => {
   try {
     console.log("📡 [updateChallenge] Updating challenge:", challengeId);
 
-    await simulateNetworkDelay(500);
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.update(String(challengeId)),
+    );
 
-    const challengeIndex = challenges.findIndex(c => c.id === challengeId);
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: getAuthHeader(accessToken),
+      body: JSON.stringify(payload),
+    });
 
-    if (challengeIndex === -1) {
-      throw new Error(`Challenge with ID ${challengeId} not found`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Failed to update challenge: ${response.statusText}`,
+      );
     }
 
-    const updatedChallenge: Challenge = {
-      ...challenges[challengeIndex],
-      title: payload.title,
-      description: payload.description,
-      startDate: new Date(payload.startDate).toISOString(),
-      endDate: new Date(payload.endDate).toISOString(),
-      reward: payload.reward,
-      updatedAt: new Date().toISOString(),
-    };
-
-    challenges[challengeIndex] = updatedChallenge;
-    console.log("✅ [updateChallenge] Success:", updatedChallenge);
-    return updatedChallenge;
+    const data = await response.json();
+    console.log("✅ [updateChallenge] Success:", data);
+    return data;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to update challenge";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to update challenge";
     console.error("❌ [updateChallenge] Error:", errorMessage);
     throw error;
   }
@@ -170,25 +276,233 @@ export const updateChallenge = async (
  * Delete a challenge
  */
 export const deleteChallenge = async (
-  challengeId: number,
-  _accessToken?: string
+  challengeId: string | number,
+  accessToken: string,
 ): Promise<void> => {
   try {
     console.log("📡 [deleteChallenge] Deleting challenge:", challengeId);
 
-    await simulateNetworkDelay(500);
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.delete(String(challengeId)),
+    );
 
-    const challengeIndex = challenges.findIndex(c => c.id === challengeId);
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: getAuthHeader(accessToken),
+    });
 
-    if (challengeIndex === -1) {
-      throw new Error(`Challenge with ID ${challengeId} not found`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Failed to delete challenge: ${response.statusText}`,
+      );
     }
 
-    challenges.splice(challengeIndex, 1);
     console.log("✅ [deleteChallenge] Success");
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to delete challenge";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to delete challenge";
     console.error("❌ [deleteChallenge] Error:", errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Fetch public challenges (ongoing challenges for talents to participate)
+ */
+export const fetchPublicChallenges = async (
+  skip: number = 0,
+  take: number = 20,
+): Promise<CreatorChallengesResponse> => {
+  try {
+    console.log(
+      "📡 [fetchPublicChallenges] Fetching public challenges from API",
+    );
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.publicList,
+    );
+    const queryParams = new URLSearchParams({
+      skip: skip.toString(),
+      take: take.toString(),
+    });
+
+    console.log(
+      "🔗 [fetchPublicChallenges] Full URL:",
+      `${url}?${queryParams}`,
+    );
+
+    const response = await fetch(`${url}?${queryParams}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    console.log(
+      "📊 [fetchPublicChallenges] Response status:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [fetchPublicChallenges] Error response:", error);
+      throw new Error(
+        error.message ||
+          `Failed to fetch public challenges: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [fetchPublicChallenges] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch public challenges";
+    console.error("❌ [fetchPublicChallenges] Error:", errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Fetch public challenge detail by ID (no auth required)
+ */
+export const fetchPublicChallengeDetail = async (
+  id: string | number,
+  accessToken?: string,
+): Promise<Challenge> => {
+  try {
+    console.log("📡 [fetchPublicChallengeDetail] Fetching challenge:", id);
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.publicDetail(String(id)), // dùng endpoint public
+    );
+
+    console.log("🔗 [fetchPublicChallengeDetail] Full URL:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: accessToken
+        ? getAuthHeader(accessToken)
+        : { "Content-Type": "application/json" },
+    });
+
+    console.log("📊 [fetchPublicChallengeDetail] Status:", response.status);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Failed to fetch challenge: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [fetchPublicChallengeDetail] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch challenge detail";
+    console.error("❌ [fetchPublicChallengeDetail] Error:", errorMessage);
+    throw error;
+  }
+};
+/**
+ * Submit a challenge for admin review
+ * POST /api/challenges/{id}/submit-review
+ */
+export const submitChallengeForReview = async (
+  challengeId: string,
+  accessToken: string,
+): Promise<Challenge> => {
+  try {
+    console.log(
+      "📡 [submitChallengeForReview] Submitting challenge ID:",
+      challengeId,
+    );
+
+    // Bạn hãy cấu hình endpoint này trong apiConfig nếu cần, dưới đây là fallback nối chuỗi URL trực tiếp
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      `${API_ENDPOINTS.challenge.list}/${challengeId}/submit-review`,
+    );
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: getAuthHeader(accessToken),
+    });
+
+    console.log(
+      "📊 [submitChallengeForReview] Response status:",
+      response.status,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Gửi duyệt thất bại: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [submitChallengeForReview] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Lỗi khi gửi duyệt thử thách";
+    console.error("❌ [submitChallengeForReview] Error:", errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Creator self-approve and publish challenge
+ * POST /api/creator/challenges/{challengeId}/approve-and-publish
+ */
+export const approveAndPublishChallenge = async (
+  challengeId: string,
+  accessToken: string,
+): Promise<Challenge> => {
+  try {
+    console.log(
+      "📡 [approveAndPublishChallenge] Publishing challenge ID:",
+      challengeId,
+    );
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      `/api/creator/challenges/${challengeId}/approve-and-publish`,
+    );
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: getAuthHeader(accessToken),
+    });
+
+    console.log(
+      "📊 [approveAndPublishChallenge] Response status:",
+      response.status,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Xuất bản thất bại: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [approveAndPublishChallenge] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Lỗi khi xuất bản thử thách";
+    console.error("❌ [approveAndPublishChallenge] Error:", errorMessage);
     throw error;
   }
 };

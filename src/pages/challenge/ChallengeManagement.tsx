@@ -1,8 +1,8 @@
-import { ArrowLeft, Plus, MoreVertical, Edit3, Trash2, AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Plus, MoreVertical, Edit3, Trash2, AlertCircle, Eye } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
-import { fetchChallengesByCompanyId, deleteChallenge } from "@/services/challenge.api";
+import { fetchCreatorChallenges, deleteChallenge } from "@/services/challenge.api";
 import { Challenge } from "@/types/challenge";
 import CustomLoading from "@/components/Loading/Loading";
 import { notify } from "@/lib/toast";
@@ -12,16 +12,24 @@ function ChallengeCard({
   challenge,
   onEdit,
   onDelete,
+  onViewDetail,
 }: {
   challenge: Challenge;
-  onEdit: (challengeId: number) => void;
-  onDelete: (challengeId: number) => void;
+  onEdit: (challengeId: string) => void;
+  onDelete: (challengeId: string) => void;
+  onViewDetail: (challengeId: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowMenu(!showMenu);
+  };
+
+  const handleViewDetailClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewDetail(challenge.id);
+    setShowMenu(false);
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
@@ -36,8 +44,30 @@ function ChallengeCard({
     setShowMenu(false);
   };
 
-  const startDate = new Date(challenge.startDate).toLocaleDateString("vi-VN");
-  const endDate = new Date(challenge.endDate).toLocaleDateString("vi-VN");
+  const deadline = new Date(challenge.deadline).toLocaleDateString("vi-VN");
+  const deadlineTime = new Date(challenge.deadline).toLocaleTimeString("vi-VN");
+  const now = new Date();
+  const deadlineDate = new Date(challenge.deadline);
+  const isExpired = deadlineDate < now;
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case "Draft":
+        return { label: "Nháp", color: "bg-slate-100 text-slate-800" };
+      case "PendingReview":
+        return { label: "Chờ duyệt", color: "bg-yellow-100 text-yellow-800" };
+      case "Published":
+        return { label: "Đã xuất bản", color: "bg-green-100 text-green-800" };
+      case "Closed":
+        return { label: "Đã đóng", color: "bg-red-100 text-red-800" };
+      case "Archived":
+        return { label: "Đã lưu trữ", color: "bg-gray-100 text-gray-800" };
+      default:
+        return { label: status, color: "bg-slate-100 text-slate-800" };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay(challenge.status ?? "");
 
   return (
     <div className="p-5 rounded-lg border border-slate-200 bg-white hover:shadow-md transition-shadow">
@@ -45,20 +75,8 @@ function ChallengeCard({
         <div className="flex-1">
           <h3 className="text-lg font-bold text-slate-900 mb-1">{challenge.title}</h3>
           <div className="inline-block">
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                challenge.status === "active"
-                  ? "bg-green-100 text-green-800"
-                  : challenge.status === "inactive"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {challenge.status === "active"
-                ? "Đang diễn ra"
-                : challenge.status === "inactive"
-                ? "Sắp bắt đầu"
-                : "Đã kết thúc"}
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusDisplay.color}`}>
+              {statusDisplay.label}
             </span>
           </div>
         </div>
@@ -76,6 +94,13 @@ function ChallengeCard({
           {/* Dropdown menu */}
           {showMenu && (
             <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden z-10">
+              <button
+                onClick={handleViewDetailClick}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-slate-700 transition-colors text-sm"
+              >
+                <Eye size={14} />
+                <span>Chi tiết</span>
+              </button>
               <button
                 onClick={handleEditClick}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-slate-700 transition-colors text-sm"
@@ -101,19 +126,15 @@ function ChallengeCard({
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-slate-500">Ngày bắt đầu:</span>
-          <span className="text-slate-900 font-medium">{startDate}</span>
+          <span className="text-slate-500">Hạn chót:</span>
+          <span className="text-slate-900 font-medium">{deadline} {deadlineTime}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-slate-500">Ngày kết thúc:</span>
-          <span className="text-slate-900 font-medium">{endDate}</span>
+          <span className="text-slate-500">Trạng thái:</span>
+          <span className={`font-medium ${isExpired ? "text-red-600" : "text-green-600"}`}>
+            {isExpired ? "Đã hết hạn" : "Còn hạn"}
+          </span>
         </div>
-        {challenge.reward && (
-          <div className="flex justify-between">
-            <span className="text-slate-500">Giải thưởng:</span>
-            <span className="text-slate-900 font-medium">{challenge.reward}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -121,21 +142,25 @@ function ChallengeCard({
 
 export default function ChallengeManagement() {
   const navigate = useNavigate();
-  const { user, accessToken } = useAppSelector((state) => state.auth);
+  const { accessToken } = useAppSelector((state) => state.auth);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deletingChallengeId, setDeletingChallengeId] = useState<number | null>(null);
+  const [deletingChallengeId, setDeletingChallengeId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingChallengeId, setEditingChallengeId] = useState<number | null>(null);
+  const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
 
-  const handleEdit = (challengeId: number) => {
+  const handleEdit = (challengeId: string) => {
     setEditingChallengeId(challengeId);
     setShowCreateForm(true);
   };
 
-  const handleDelete = (challengeId: number) => {
+  const handleViewDetail = (challengeId: string) => {
+    navigate(`/challenge/${challengeId}`);
+  };
+
+  const handleDelete = (challengeId: string) => {
     setDeletingChallengeId(challengeId);
   };
 
@@ -171,25 +196,20 @@ export default function ChallengeManagement() {
     handleFormClose();
   };
 
-  const loadChallenges = async () => {
+  const loadChallenges = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      if (!user?.companyId) {
-        setError("Không thể xác định công ty. Vui lòng đăng nhập lại.");
+      if (!accessToken) {
+        setError("Token xác thực không tìm thấy. Vui lòng đăng nhập lại.");
         setIsLoading(false);
         return;
       }
 
-      const response = await fetchChallengesByCompanyId(
-        user.companyId,
-        undefined,
-        100,
-        accessToken ?? undefined
-      );
+      const response = await fetchCreatorChallenges(0, 100, accessToken);
 
-      setChallenges(response.data || []);
+      setChallenges(response.items || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
       console.error("❌ Error loading challenges:", errorMessage);
@@ -197,11 +217,11 @@ export default function ChallengeManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     loadChallenges();
-  }, []);
+  }, [loadChallenges]);
 
   if (isLoading) {
     return <CustomLoading />;
@@ -240,7 +260,7 @@ export default function ChallengeManagement() {
         {/* Content */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle size={20} className="text-red-600 mt-0.5 shrink-0" />
             <div>
               <h3 className="font-semibold text-red-900">Lỗi</h3>
               <p className="text-red-700">{error}</p>
@@ -272,6 +292,7 @@ export default function ChallengeManagement() {
                 challenge={challenge}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onViewDetail={handleViewDetail}
               />
             ))}
           </div>

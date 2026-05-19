@@ -16,6 +16,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      "/api/challenges": {
+        target: "https://challenge-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/api/creator": {
+        target: "https://challenge-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
       "/api/follow-categories": {
         target: "https://portfolio-service.redmushroom-1d023c6a.southeastasia.azurecontainerapps.io/api",
         changeOrigin: true,

@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchPublicChallengeDetail } from "@/services/challenge.api";
+import { fetchPublicChallengeDetail, createSubmission } from "@/services/challenge.api";
+import { useAppSelector } from "@/store/hook";
 import { Challenge } from "@/types/challenge";
 import CustomLoading from "@/components/Loading/Loading";
 import { notify } from "@/lib/toast";
@@ -24,6 +25,8 @@ export default function ChallengeDetailTalent() {
   const [code, setCode] = useState("");
   const [submissionLink, setSubmissionLink] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (!id) return;
@@ -44,17 +47,46 @@ export default function ChallengeDetailTalent() {
     load();
   }, [id]);
 
+  // BƯỚC 3: Cập nhật hàm xử lý nộp bài
   const handleSubmit = async () => {
+    // Validate: Ở Swagger, cả 2 trường content và githubUrl đều là string. 
+    // Tùy theo thiết kế, bạn có thể chặn nếu thiếu một trong hai hoặc giữ nguyên logic của bạn.
     if (!code.trim() && !submissionLink.trim()) {
       notify.warning("Vui lòng nhập mã code hoặc link nộp bài");
       return;
     }
+
+    if (!id) {
+      notify.error("Không tìm thấy ID của thử thách");
+      return;
+    }
+
+    if (!accessToken) {
+      notify.error("Bạn cần đăng nhập để nộp bài!");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      // TODO: Call submit API
+
+      // Định nghĩa payload đúng cấu trúc CreateSubmissionPayload
+      const payload = {
+        content: code,
+        githubUrl: submissionLink,
+      };
+
+      // Gọi hàm API thực tế đã tạo từ trước
+      await createSubmission(id, payload, accessToken);
+
       notify.success("Nộp bài thành công!");
+      
+      // Reset form sau khi nộp thành công
       setCode("");
       setSubmissionLink("");
+      
+      // (Tùy chọn) Điều hướng user về trang danh sách hoặc trang lịch sử nộp bài nếu có
+      // navigate("/talents/submissions");
+
     } catch (err) {
       notify.error(err instanceof Error ? err.message : "Có lỗi khi nộp bài");
     } finally {
@@ -90,22 +122,17 @@ export default function ChallengeDetailTalent() {
     challenge.activeVersion?.difficultyLabel ||
     challenge.difficultyLabel ||
     "Unknown";
-  // 1. Định nghĩa object chứa cả Màu cấu hình và Tên hiển thị tiếng Việt
+
   const difficultyConfig: Record<string, { label: string; color: string }> = {
     Easy: { label: "Dễ", color: "bg-green-100 text-green-800" },
     Medium: { label: "Vừa", color: "bg-yellow-100 text-yellow-800" },
     Hard: { label: "Khó", color: "bg-red-100 text-red-800" },
   };
 
-  // 2. Lấy ra config dựa vào biến `difficulty` (nếu không khớp key nào thì dùng fallback mặc định)
   const currentDifficulty = difficultyConfig[difficulty] || {
-    label: difficulty || "Không xác định", // Giữ lại chữ cũ hoặc hiển thị mặc định
+    label: difficulty || "Không xác định",
     color: "bg-slate-100 text-slate-800",
   };
-
-  // 3. Giờ bạn có 2 biến sạch sẽ để dùng trong JSX:
-  // - currentDifficulty.color (Dùng để cho vào className)
-  // - currentDifficulty.label (Dùng để hiển thị ra màn hình)
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">

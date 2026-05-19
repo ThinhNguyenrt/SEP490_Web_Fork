@@ -6,28 +6,39 @@ import { Button } from "../../../components/ui/button";
 import SortIcon from "../../../assets/myWeb/sort.png";
 import BookmarkIcon from "../../../assets/myWeb/bookmark.png";
 import ShareIcon from "../../../assets/myWeb/share1.png";
-import { portfolioService, PortfolioMainBlockItem } from "@/services/portfolio.api";
+import {
+  portfolioService,
+  PortfolioMainBlockItem,
+} from "@/services/portfolio.api";
 import PortfolioRenderer from "@/components/portfolio/render/PortfolioRenderer";
 import CommentModal from "./CommentModal";
 import BookmarkModal from "./BookmarkModal";
 import { notify } from "@/lib/toast";
 import { RootState } from "@/store";
 
-
-
 export default function RecruiterHome() {
   const navigate = useNavigate();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredPortfolios, setFilteredPortfolios] = useState<PortfolioMainBlockItem[]>([]);
-  const [allPortfolios, setAllPortfolios] = useState<PortfolioMainBlockItem[]>([]);
+  const [filteredPortfolios, setFilteredPortfolios] = useState<
+    PortfolioMainBlockItem[]
+  >([]);
+  const [allPortfolios, setAllPortfolios] = useState<PortfolioMainBlockItem[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
-  const [savedPortfolios, setSavedPortfolios] = useState<Set<number>>(new Set());
+  const [savedPortfolios, setSavedPortfolios] = useState<Set<number>>(
+    new Set(),
+  );
+  // Store saved portfolio details (interest level, category)
+  const [savedPortfolioDetails, setSavedPortfolioDetails] = useState<
+    Map<number, { interestLevel: "LOW" | "MEDIUM" | "HIGH"; categoryId: number | null }>
+  >(new Map());
 
   const currentPortfolio = filteredPortfolios[currentIndex];
 
@@ -39,8 +50,19 @@ export default function RecruiterHome() {
       console.log("📡 Loading saved portfolios...");
       const savedData = await portfolioService.fetchSavedPortfolios(token);
       const savedIds = new Set(savedData.map((p: any) => p.portfolioId));
+      const detailsMap = new Map(
+        savedData.map((p: any) => [
+          p.portfolioId,
+          {
+            interestLevel: p.interestLevel || "MEDIUM",
+            categoryId: p.categoryId || null,
+          },
+        ]),
+      );
       setSavedPortfolios(savedIds);
+      setSavedPortfolioDetails(detailsMap);
       console.log("✅ Loaded saved portfolio IDs:", savedIds);
+      console.log("✅ Loaded saved portfolio details:", detailsMap);
     } catch (error) {
       console.warn("⚠️ Could not load saved portfolios:", error);
       // Don't fail if we can't load saved portfolios, just continue
@@ -51,13 +73,13 @@ export default function RecruiterHome() {
   const loadPortfolios = useCallback(async () => {
     try {
       setIsLoading(true);
-      
+
       console.log("📡 Loading all portfolios...");
-      
+
       // Load all portfolios with a large pageSize
       const response = await portfolioService.fetchAllPortfolios(1, 10000);
       console.log("📦 Loaded portfolios response:", response);
-      
+
       if (!response || !response.items || response.items.length === 0) {
         console.warn("⚠️ API returned empty response");
         setFilteredPortfolios([]);
@@ -65,11 +87,11 @@ export default function RecruiterHome() {
         setIsLoading(false);
         return;
       }
-      
+
       const portfolios = response.items;
-      
+
       console.log("✅ Loaded", portfolios.length, "portfolios in total");
-      
+
       setFilteredPortfolios(portfolios);
       setAllPortfolios(portfolios);
       setCurrentIndex(0);
@@ -77,10 +99,11 @@ export default function RecruiterHome() {
       // Load saved portfolios to check which ones are already saved
       await loadSavedPortfolios(accessToken);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to load portfolios";
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to load portfolios";
       console.error("❌ Error loading portfolios:", errorMsg);
       notify.error("Không thể tải danh sách portfolio. Vui lòng thử lại sau.");
-      
+
       setFilteredPortfolios([]);
     } finally {
       setIsLoading(false);
@@ -108,7 +131,12 @@ export default function RecruiterHome() {
     setIsSearching(true);
     try {
       // Call API with search query parameter
-      const response = await portfolioService.fetchAllPortfolios(1, 10000, "0", query);
+      const response = await portfolioService.fetchAllPortfolios(
+        1,
+        10000,
+        "0",
+        query,
+      );
       if (!response || !response.items || response.items.length === 0) {
         setFilteredPortfolios([]);
         setCurrentIndex(0);
@@ -129,7 +157,7 @@ export default function RecruiterHome() {
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     if (query.trim() === "") {
       // If search is cleared, show all portfolios
       setFilteredPortfolios(allPortfolios);
@@ -151,7 +179,10 @@ export default function RecruiterHome() {
 
   const handleBookmark = () => {
     if (currentPortfolio) {
-      console.log("Opening bookmark modal for portfolio:", currentPortfolio.portfolioId);
+      console.log(
+        "Opening bookmark modal for portfolio:",
+        currentPortfolio.portfolioId,
+      );
       setIsBookmarkModalOpen(true);
     }
   };
@@ -177,7 +208,9 @@ export default function RecruiterHome() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-gray-600 mb-4">Không tìm thấy portfolio nào</p>
+          <p className="text-xl text-gray-600 mb-4">
+            Không tìm thấy portfolio nào
+          </p>
           <Button onClick={handleClearSearch} className="bg-[#0288D1]">
             Đặt lại tìm kiếm
           </Button>
@@ -193,10 +226,10 @@ export default function RecruiterHome() {
         <div className="fixed left-3 top-20 z-10 hidden xl:block">
           <div className="w-[20rem] bg-white rounded-lg p-4 shadow-md max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-2 mb-6">
-              <img src={SortIcon} alt="Search" className="w-8 h-8"/>
+              <img src={SortIcon} alt="Search" className="w-8 h-8" />
               <h2 className="text-2xl font-bold text-gray-900">Tìm kiếm</h2>
             </div>
-            
+
             <div className="space-y-4">
               {/* Search Input */}
               <div>
@@ -209,12 +242,12 @@ export default function RecruiterHome() {
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleSearchSubmit();
                     }
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300"
-                  style={{ backgroundColor: '#EFF6FF' }}
+                  style={{ backgroundColor: "#EFF6FF" }}
                 />
               </div>
 
@@ -223,9 +256,9 @@ export default function RecruiterHome() {
                 onClick={handleSearchSubmit}
                 disabled={isSearching}
                 className="w-full mt-6 py-2 rounded-lg font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2"
-                style={{ 
-                  backgroundColor: isSearching ? '#1E40AF' : '#3B82F6',
-                  opacity: isSearching ? 0.8 : 1
+                style={{
+                  backgroundColor: isSearching ? "#1E40AF" : "#3B82F6",
+                  opacity: isSearching ? 0.8 : 1,
                 }}
               >
                 {isSearching ? (
@@ -252,16 +285,19 @@ export default function RecruiterHome() {
         </div>
 
         {/* Main Content - Candidate Card */}
-        <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-6 xl:ml-88 mr-2 lg:mr-4">
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-6 xl:ml-88 mr-2 lg:mr-4 ">
           {/* Portfolio Card or Empty State */}
           {filteredPortfolios.length === 0 ? (
             // Màn hình không tìm thấy
             <div className="relative w-full max-w-3xl min-h-128 rounded-2xl overflow-hidden shadow-lg shrink-0 bg-white flex flex-col items-center justify-center">
               <div className="text-center space-y-6 px-8">
                 <div className="text-6xl">😕</div>
-                <h2 className="text-3xl font-bold text-gray-900">Không tìm thấy portfolio</h2>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Không tìm thấy portfolio
+                </h2>
                 <p className="text-gray-600 text-lg">
-                  Không có portfolio phù hợp với tiêu chí tìm kiếm của bạn. Vui lòng thử lại với các tiêu chí khác.
+                  Không có portfolio phù hợp với tiêu chí tìm kiếm của bạn. Vui
+                  lòng thử lại với các tiêu chí khác.
                 </p>
                 <button
                   onClick={handleClearSearch}
@@ -277,16 +313,27 @@ export default function RecruiterHome() {
               <div className="w-full max-w-3xl min-w-0">
                 {/* Portfolio Blocks Content */}
                 <div className="mb-3 p-4 sm:p-5 md:p-6">
-                  {currentPortfolio?.blocks && Array.isArray(currentPortfolio.blocks) && currentPortfolio.blocks.length > 0 ? (
-                    <PortfolioRenderer blocks={currentPortfolio.blocks} ranking={currentPortfolio.ranking} />
-                  ) : currentPortfolio?.blocks && !Array.isArray(currentPortfolio.blocks) ? (
-                    <PortfolioRenderer blocks={[currentPortfolio.blocks]} ranking={currentPortfolio.ranking} />
+                  {currentPortfolio?.blocks &&
+                  Array.isArray(currentPortfolio.blocks) &&
+                  currentPortfolio.blocks.length > 0 ? (
+                    <PortfolioRenderer
+                      blocks={currentPortfolio.blocks}
+                      ranking={currentPortfolio.ranking}
+                    />
+                  ) : currentPortfolio?.blocks &&
+                    !Array.isArray(currentPortfolio.blocks) ? (
+                    <PortfolioRenderer
+                      blocks={[currentPortfolio.blocks]}
+                      ranking={currentPortfolio.ranking}
+                    />
                   ) : (
                     <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
                       <h3 className="text-lg font-bold text-gray-900 mb-2">
                         {currentPortfolio?.portfolio?.name || "Portfolio"}
                       </h3>
-                      <p className="text-sm text-gray-600">Portfolio này chưa có nội dung để hiển thị.</p>
+                      <p className="text-sm text-gray-600">
+                        Portfolio này chưa có nội dung để hiển thị.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -300,57 +347,72 @@ export default function RecruiterHome() {
               </div>
 
               {/* Floating Action Bar - Similar to ExploreTab */}
-              <div className="fixed bottom-4 z-[100] w-fit px-6 py-2 bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-3xl flex items-center gap-10">
-                {/* Previous Button */}
-                <button
-                  onClick={handlePrev}
-                  disabled={currentIndex === 0}
-                  className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
-                >
-                  <ChevronLeft size={32} strokeWidth={2.5} />
-                </button>
+              {!isCommentModalOpen && !isBookmarkModalOpen && (
+                <div className="fixed bottom-4 z-[100] w-fit px-6 py-2 bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-3xl flex items-center gap-10">
+                  {/* Previous Button */}
+                  <button
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
+                  >
+                    <ChevronLeft size={32} strokeWidth={2.5} />
+                  </button>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-12 border-x border-slate-100 px-12">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-12 border-x border-slate-100 px-12">
+                    <button
+                      onClick={() => setIsCommentModalOpen(true)}
+                      className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
+                      title="Nhận xét"
+                    >
+                      <MessageSquare className="text-blue-500" size={24} />
+                    </button>
+                    <button
+                      onClick={handleBookmark}
+                      className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
+                      title="Lưu"
+                    >
+                      <img
+                        src={BookmarkIcon}
+                        alt="Bookmark"
+                        className="w-6 h-6"
+                        style={{
+                          filter:
+                            "brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)",
+                        }}
+                      />
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
+                      title="Chia sẻ"
+                    >
+                      <img
+                        src={ShareIcon}
+                        alt="Share"
+                        className="w-6 h-6"
+                        style={{ filter: "brightness(0) saturate(100%)" }}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Next Button */}
                   <button
-                    onClick={() => setIsCommentModalOpen(true)}
-                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
-                    title="Nhận xét"
+                    onClick={handleNext}
+                    disabled={currentIndex === filteredPortfolios.length - 1}
+                    className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
                   >
-                    <MessageSquare className="text-blue-500" size={24} />
-                  </button>
-                  <button
-                    onClick={handleBookmark}
-                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
-                    title="Lưu"
-                  >
-                    <img src={BookmarkIcon} alt="Bookmark" className="w-6 h-6" style={{ filter: 'brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1726%) hue-rotate(200deg) brightness(98%) contrast(93%)' }} />
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center justify-center hover:scale-125 transition-all cursor-pointer"
-                    title="Chia sẻ"
-                  >
-                    <img src={ShareIcon} alt="Share" className="w-6 h-6" style={{ filter: 'brightness(0) saturate(100%)' }} />
+                    <ChevronRight size={32} strokeWidth={2.5} />
                   </button>
                 </div>
-
-                {/* Next Button */}
-                <button
-                  onClick={handleNext}
-                  disabled={currentIndex === filteredPortfolios.length - 1}
-                  className="p-3 hover:bg-slate-100 rounded-2xl transition-all disabled:opacity-20 text-slate-800 cursor-pointer"
-                >
-                  <ChevronRight size={32} strokeWidth={2.5} />
-                </button>
-              </div>
+              )}
             </>
           )}
         </div>
 
         {/* Right Premium Section */}
         <aside className="hidden 2xl:block w-[20rem] shrink-0 py-6 pr-4 h-fit">
-          <div className="sticky top-6">
+          <div className="fixed top-8 pt-11 pr-5">
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
               {/* Premium Badge */}
               <div className="mb-6">
@@ -358,19 +420,20 @@ export default function RecruiterHome() {
                   Premium
                 </span>
               </div>
-              
+
               {/* Title */}
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Tuyển dụng nhanh hơn gấp 2 lần!
               </h2>
-              
+
               {/* Description */}
               <p className="text-gray-700 text-base leading-relaxed mb-8">
-                Nâng cấp để tuyển dụng nhanh hơn với các ứng viên được phân tích từ AI phù hợp với yêu cầu của bạn.
+                Nâng cấp để tuyển dụng nhanh hơn với các ứng viên được phân tích
+                từ AI phù hợp với yêu cầu của bạn.
               </p>
-              
+
               {/* CTA Button */}
-              <button 
+              <button
                 onClick={handleSubscribe}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition-colors"
               >
@@ -399,10 +462,42 @@ export default function RecruiterHome() {
             onClose={() => setIsBookmarkModalOpen(false)}
             portfolioId={currentPortfolio.portfolioId}
             isAlreadySaved={savedPortfolios.has(currentPortfolio.portfolioId)}
+            mode={
+              savedPortfolios.has(currentPortfolio.portfolioId) ? "edit" : "create"
+            }
+            currentInterestLevel={
+              savedPortfolioDetails.get(currentPortfolio.portfolioId)
+                ?.interestLevel || "MEDIUM"
+            }
+            currentCategoryId={
+              savedPortfolioDetails.get(currentPortfolio.portfolioId)
+                ?.categoryId || null
+            }
             onSuccess={() => {
-              // Mark as saved
-              setSavedPortfolios(prev => new Set([...prev, currentPortfolio.portfolioId]));
-              console.log("Portfolio bookmarked successfully");
+              setSavedPortfolios(
+                (prev) => new Set([...prev, currentPortfolio.portfolioId]),
+              );
+              setSavedPortfolioDetails((prev) => {
+                const next = new Map(prev);
+                next.set(currentPortfolio.portfolioId, {
+                  interestLevel: "MEDIUM",
+                  categoryId: null,
+                });
+                return next;
+              });
+            }}
+            onUnsave={() => {
+              // ← Xóa khỏi savedPortfolios khi bỏ lưu
+              setSavedPortfolios((prev) => {
+                const next = new Set(prev);
+                next.delete(currentPortfolio.portfolioId);
+                return next;
+              });
+              setSavedPortfolioDetails((prev) => {
+                const next = new Map(prev);
+                next.delete(currentPortfolio.portfolioId);
+                return next;
+              });
             }}
           />
         )}

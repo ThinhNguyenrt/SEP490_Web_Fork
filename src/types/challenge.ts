@@ -40,11 +40,11 @@ export interface ChallengeSubmission {
   id: number;
   challengeId: number;
   userId: number;
-  fileUrl: string;
-  fileName: string;
-  submittedAt: string;
-  status: "pending" | "approved" | "rejected";
-  feedback?: string;
+  status: string;
+  overallScore?: number;
+  aiFeedback?: string;
+  createdAt: string;
+  gradedAt?: string;
 }
 
 export interface CreateChallengePayload {
@@ -70,4 +70,9 @@ export interface ChallengePaginatedResponse {
   total: number;
   hasMore: boolean;
   cursor?: string;
+}
+ 
+export interface CreateSubmissionPayload {
+  content: string;
+  githubUrl: string;
 }

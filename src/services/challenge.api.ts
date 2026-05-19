@@ -3,6 +3,8 @@ import {
   ChallengePaginatedResponse,
   CreateChallengePayload,
   CreatorChallengesResponse,
+  ChallengeSubmission,
+  CreateSubmissionPayload,
 } from "@/types/challenge";
 import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
 
@@ -503,6 +505,54 @@ export const approveAndPublishChallenge = async (
     const errorMessage =
       error instanceof Error ? error.message : "Lỗi khi xuất bản thử thách";
     console.error("❌ [approveAndPublishChallenge] Error:", errorMessage);
+    throw error;
+  }
+};
+export const createSubmission = async (
+  challengeId: string,
+  payload: CreateSubmissionPayload,
+  accessToken: string,
+): Promise<ChallengeSubmission> => {
+  try {
+    console.log(`📡 [createSubmission] Submitting for challenge ID: ${challengeId}`);
+
+    // Sử dụng buildApiUrl của dự án hoặc nối chuỗi trực tiếp nếu chưa config ENDPOINTS
+    // Ở đây mình build URL gốc kèm endpoint path chính xác của Swagger
+    const baseUrl = buildApiUrl(
+      API_BASE_URLS.challenge,
+      API_ENDPOINTS.challenge.submissions,
+    );
+
+    // Thêm query parameter ?challengeId=... vào URL theo đúng Swagger UI
+    const queryParams = new URLSearchParams({ challengeId });
+    const url = `${baseUrl}?${queryParams}`;
+
+    console.log("🔗 [createSubmission] Full URL:", url);
+    console.log("📦 [createSubmission] Payload:", JSON.stringify(payload));
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: getAuthHeader(accessToken),
+      body: JSON.stringify(payload),
+    });
+
+    console.log("📊 [createSubmission] Response status:", response.status);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [createSubmission] Error response:", error);
+      throw new Error(
+        error.message || `Nộp bài thất bại: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [createSubmission] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Lỗi khi nộp bài thử thách";
+    console.error("❌ [createSubmission] Error:", errorMessage);
     throw error;
   }
 };

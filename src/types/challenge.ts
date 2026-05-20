@@ -47,6 +47,39 @@ export interface ChallengeSubmission {
   gradedAt?: string;
 }
 
+export interface ChallengeSubmissionDetail {
+  id: string;
+  challengeId: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  userAvatar: string;
+  submissionStatus: string;
+  submittedAt: string;
+  submissionContent: string;
+  gitHubLink: string;
+  evaluationScore: number;
+  evaluationStatus: string;
+  evaluatedAt: string;
+  feedback: string;
+  attemptCount: number;
+}
+
+export interface SubmissionsResponse {
+  items: ChallengeSubmissionDetail[];
+}
+
+export interface SubmissionDetailResponse {
+  id: string;
+  challengeId: string;
+  userId: number;
+  status: string;
+  overallScore: number;
+  aiFeedback: string;
+  createdAt: string;
+  gradedAt: string;
+}
+
 export interface CreateChallengePayload {
   title: string;
   description?: string;

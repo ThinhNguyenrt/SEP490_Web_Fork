@@ -5,6 +5,8 @@ import {
   CreatorChallengesResponse,
   ChallengeSubmission,
   CreateSubmissionPayload,
+  SubmissionsResponse,
+  SubmissionDetailResponse,
 } from "@/types/challenge";
 import { API_BASE_URLS, API_ENDPOINTS, buildApiUrl } from "@/config/apiConfig";
 
@@ -553,6 +555,109 @@ export const createSubmission = async (
     const errorMessage =
       error instanceof Error ? error.message : "Lỗi khi nộp bài thử thách";
     console.error("❌ [createSubmission] Error:", errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Get challenge submissions for creator
+ * GET /api/creator/challenges/{challengeId}/submissions
+ */
+export const getChallengeSubmissions = async (
+  challengeId: string,
+  accessToken: string,
+): Promise<SubmissionsResponse> => {
+  try {
+    console.log(
+      "📡 [getChallengeSubmissions] Fetching submissions for challenge ID:",
+      challengeId,
+    );
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      `/api/creator/challenges/${challengeId}/submissions`,
+    );
+
+    console.log("🔗 [getChallengeSubmissions] Full URL:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getAuthHeader(accessToken),
+    });
+
+    console.log(
+      "📊 [getChallengeSubmissions] Response status:",
+      response.status,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [getChallengeSubmissions] Error response:", error);
+      throw new Error(
+        error.message || `Failed to fetch submissions: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [getChallengeSubmissions] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Lỗi khi tải danh sách bài nộp";
+    console.error("❌ [getChallengeSubmissions] Error:", errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Get submission detail
+ * GET /api/submissions/{id}
+ */
+export const getSubmissionDetail = async (
+  id: string,
+  accessToken: string,
+): Promise<SubmissionDetailResponse> => {
+  try {
+    console.log(
+      "📡 [getSubmissionDetail] Fetching submission details for ID:",
+      id,
+    );
+    console.log("🔐 [getSubmissionDetail] Token exists:", !!accessToken);
+    console.log("🔐 [getSubmissionDetail] Token preview:", accessToken?.substring(0, 20) + "...");
+
+    const url = buildApiUrl(
+      API_BASE_URLS.challenge,
+      `/api/submissions/${id}`,
+    );
+
+    console.log("🔗 [getSubmissionDetail] Full URL:", url);
+    console.log("📋 [getSubmissionDetail] Headers:", { Authorization: `Bearer ${accessToken?.substring(0, 20)}...` });
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getAuthHeader(accessToken),
+    });
+
+    console.log(
+      "📊 [getSubmissionDetail] Response status:",
+      response.status,
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.log("❌ [getSubmissionDetail] Error response:", error);
+      throw new Error(
+        error.message || `Failed to fetch submission details: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ [getSubmissionDetail] Success:", data);
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Lỗi khi tải chi tiết bài nộp";
+    console.error("❌ [getSubmissionDetail] Error:", errorMessage);
     throw error;
   }
 };

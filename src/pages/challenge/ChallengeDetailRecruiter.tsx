@@ -1,9 +1,10 @@
-import { ArrowLeft, CheckCircle2, Send, AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2, Send, AlertCircle, Eye } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppSelector } from "@/store/hook";
-import { getChallengeDetail, submitChallengeForReview, approveAndPublishChallenge } from "@/services/challenge.api";
+import { getChallengeDetail, submitChallengeForReview, approveAndPublishChallenge, getChallengeSubmissions } from "@/services/challenge.api";
 import { Challenge } from "@/types/challenge";
+import { ChallengeSubmissionDetail } from "@/types/challenge";
 import CustomLoading from "@/components/Loading/Loading";
 import { notify } from "@/lib/toast";
 
@@ -15,8 +16,30 @@ export default function ChallengeDetailRecruiter() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissions, setSubmissions] = useState<ChallengeSubmissionDetail[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
-  const loadChallengeDetail = async () => {
+  const loadChallengeSubmissions = useCallback(
+    async (cId: string) => {
+      if (!accessToken) return;
+      try {
+        setIsLoadingSubmissions(true);
+        console.log("📡 [ChallengeDetailRecruiter] Loading submissions for challenge:", cId);
+        const submissionsData = await getChallengeSubmissions(cId, accessToken);
+        setSubmissions(submissionsData.items || []);
+        console.log("✅ [ChallengeDetailRecruiter] Submissions loaded:", submissionsData);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải danh sách bài nộp";
+        console.error("❌ Error loading submissions:", errorMessage);
+        // Không notify error ở đây để tránh ảnh hưởng đến trải nghiệm người dùng
+      } finally {
+        setIsLoadingSubmissions(false);
+      }
+    },
+    [accessToken]
+  );
+
+  const loadChallengeDetail = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -24,10 +47,14 @@ export default function ChallengeDetailRecruiter() {
         throw new Error("Invalid challenge ID or token");
       }
 
-      console.log("📡 [ChallengeDetailRecruiter] Loading challenge:", challengeId);
-      const challengeData = await getChallengeDetail(challengeId, accessToken);
+      const id = challengeId;
+      console.log("📡 [ChallengeDetailRecruiter] Loading challenge:", id);
+      const challengeData = await getChallengeDetail(id, accessToken);
       setChallenge(challengeData);
       console.log("✅ [ChallengeDetailRecruiter] Challenge loaded:", challengeData);
+
+      // Load submissions after challenge is loaded
+      await loadChallengeSubmissions(id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Có lỗi khi tải dữ liệu";
       console.error("❌ Error loading challenge:", errorMessage);
@@ -35,11 +62,13 @@ export default function ChallengeDetailRecruiter() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [challengeId, accessToken, loadChallengeSubmissions]);
 
   useEffect(() => {
-    loadChallengeDetail();
-  }, [challengeId, accessToken]);
+    if (challengeId) {
+      loadChallengeDetail();
+    }
+  }, [challengeId, loadChallengeDetail]);
 
   const handleSubmitForReview = async () => {
     if (!challenge || !challengeId || !accessToken) return;
@@ -215,11 +244,85 @@ export default function ChallengeDetailRecruiter() {
         <div className="bg-white rounded-lg border border-slate-200 p-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Danh sách đã nộp</h2>
           
-          {/* TODO: Add submissions list */}
-          <div className="text-center py-12">
-            <AlertCircle size={48} className="mx-auto text-slate-400 mb-4" />
-            <p className="text-slate-500">Chưa có bài nộp nào</p>
-          </div>
+          {isLoadingSubmissions ? (
+            <div className="text-center py-12">
+              <CustomLoading />
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertCircle size={48} className="mx-auto text-slate-400 mb-4" />
+              <p className="text-slate-500">Chưa có bài nộp nào</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Người nộp</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời điểm nộp</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Điểm</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Lần nộp</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((submission) => (
+                    <tr key={submission.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-4 text-sm text-slate-600">{submission.userEmail}</td>
+                      <td className="px-4 py-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={submission.userAvatar}
+                            alt={submission.userName}
+                            className="w-8 h-8 rounded-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "https://via.placeholder.com/32?text=Avatar";
+                            }}
+                          />
+                          <span className="text-slate-900 font-medium">
+                            {submission.userName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-600">
+                        {new Date(submission.submittedAt).toLocaleDateString(
+                          "vi-VN",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-sm">
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
+                          {submission.evaluationScore}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-600">
+                        {submission.attemptCount}
+                      </td>
+                      <td className="px-4 py-4 text-sm">
+                        <button
+                          onClick={() => {
+                            navigate(`/submission/${submission.id}`);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                        >
+                          <Eye size={16} />
+                          Xem chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

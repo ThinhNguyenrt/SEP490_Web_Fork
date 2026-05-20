@@ -123,6 +123,9 @@ const ChallengeDetailTalentPage = lazy(
 const ChallengeDetailRecruiterPage = lazy(
   () => import("./pages/challenge/ChallengeDetailRecruiter"),
 );
+const SubmissionDetailsPage = lazy(
+  () => import("./pages/challenge/SubmissionDetails"),
+);
 function AppContent() {
   const { accessToken } = useAppSelector((state) => state.auth);
   const profile = useUserProfile(); // Custom hook để lấy thông tin profile người dùng từ Redux store
@@ -253,6 +256,10 @@ function AppContent() {
           <Route
             path="/challenge/:challengeId"
             element={<ChallengeDetailRecruiterPage />}
+          />
+          <Route
+            path="/submission/:submissionId"
+            element={<SubmissionDetailsPage />}
           />
           <Route
             path="/talent-challenge"
